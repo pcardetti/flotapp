@@ -23,8 +23,9 @@ separados, y talleres y recapadoras como proveedores vinculados.
    toma su dirección de cada pedido. Si cambiás una variable, volvé a publicar (Redeploy), porque
    las `NEXT_PUBLIC_*` se fijan al compilar.
 5. **Región.** `vercel.json` fija las funciones en la misma región que la base de Supabase, para que
-   cada consulta no cruce el continente. Hoy la base está en Virginia (`us-east-1`), así que las
-   funciones van en Washington (`iad1`). Si la base se mueve a São Paulo (`sa-east-1`), usá `gru1`.
+   cada consulta no cruce el continente: São Paulo (`gru1` en Vercel, `sa-east-1` en Supabase).
+6. **Chequeo.** `/api/estado` muestra qué variables de Supabase existen (sólo los nombres), si la base
+   responde, si el esquema está aplicado y la demora de la función a la base. Nunca devuelve claves.
 
 ## Desarrollo
 

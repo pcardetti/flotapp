@@ -18,8 +18,12 @@ separados, y talleres y recapadoras como proveedores vinculados.
    - Redirect URLs: agregá `http://localhost:3000/**` y `https://<tu-dominio-de-vercel>/**`.
 3. **Claves en tu PC.** Copiá `.env.example` como `.env.local` y completá los valores
    (Supabase → Project Settings → API).
-4. **Claves en Vercel.** Las mismas variables en Vercel → Settings → Environment Variables,
-   con `NEXT_PUBLIC_SITE_URL` apuntando a la dirección de Vercel.
+4. **Claves en Vercel.** `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` en
+   Vercel → Settings → Environment Variables. `NEXT_PUBLIC_SITE_URL` no hace falta: en Vercel la app
+   toma su dirección de cada pedido. Si cambiás una variable, volvé a publicar (Redeploy), porque
+   las `NEXT_PUBLIC_*` se fijan al compilar.
+5. **Región.** `vercel.json` fija las funciones en São Paulo (`gru1`), la misma región que la base de
+   Supabase (`sa-east-1`). Si la base está en otra región, cambiá `gru1` por la equivalente.
 
 ## Desarrollo
 

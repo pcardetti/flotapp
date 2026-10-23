@@ -19,6 +19,11 @@ export async function crearClienteServidor() {
   });
 }
 
+// Una consulta que falla no debe pasar desapercibida: queda en el registro del servidor.
+export function avisarError(donde: string, error: { message: string; code?: string } | null) {
+  if (error) console.error(`[${donde}] ${error.code ?? ''} ${error.message}`);
+}
+
 export async function usuarioActual() {
   if (!supabaseConfigurado()) return null;
   const supabase = await crearClienteServidor();

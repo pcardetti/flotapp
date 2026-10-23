@@ -1,7 +1,8 @@
 import { Vacio } from '@/components/encabezado';
 import { Pildora, Tarjeta } from '@/components/ui';
 import { NOMBRE_TIPO, type TipoOrganizacion } from '@/lib/empresa';
-import { crearClienteServidor } from '@/lib/supabase/server';
+import { fechaCorta } from '@/lib/fechas';
+import { avisarError, crearClienteServidor } from '@/lib/supabase/server';
 
 const ESTADO = {
   activo: ['ok', 'Activo'],
@@ -15,11 +16,12 @@ type Fila = { id: string; estado: keyof typeof ESTADO; creado_en: string; otra: 
 export async function ListaVinculos({ org, lado }: { org: string; lado: 'flota' | 'proveedor' }) {
   const supabase = await crearClienteServidor();
   const otra = lado === 'flota' ? 'otra:organizaciones!vinculos_proveedor_proveedor_id_fkey(nombre, tipo)' : 'otra:organizaciones!vinculos_proveedor_flota_id_fkey(nombre, tipo)';
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('vinculos_proveedor')
     .select(`id, estado, creado_en, ${otra}`)
     .eq(lado === 'flota' ? 'flota_id' : 'proveedor_id', org)
     .order('creado_en', { ascending: false });
+  avisarError('vinculos', error);
   const filas = (data ?? []) as unknown as Fila[];
 
   if (!filas.length) {
@@ -43,7 +45,7 @@ export async function ListaVinculos({ org, lado }: { org: string; lado: 'flota' 
             <li key={f.id} className="flex items-center justify-between gap-4 border-b border-line py-3 last:border-0">
               <span className="flex min-w-0 flex-col">
                 <b className="truncate">{f.otra?.nombre ?? 'Empresa'}</b>
-                <span className="text-sm text-ink-3">{f.otra ? NOMBRE_TIPO[f.otra.tipo] : ''} · desde {new Date(f.creado_en).toLocaleDateString('es-AR')}</span>
+                <span className="text-sm text-ink-3">{f.otra ? NOMBRE_TIPO[f.otra.tipo] : ''} · desde {fechaCorta(f.creado_en)}</span>
               </span>
               <Pildora tipo={t}>{e}</Pildora>
             </li>

@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { Encabezado, Vacio } from '@/components/encabezado';
 import { Patente, Pildora, Tarjeta } from '@/components/ui';
 import { abrirSeccion } from '@/lib/empresa';
-import { crearClienteServidor } from '@/lib/supabase/server';
+import { avisarError, crearClienteServidor } from '@/lib/supabase/server';
 
 export const metadata: Metadata = { title: 'Flota y choferes' };
 
@@ -17,10 +17,12 @@ export default async function Flota({ params }: { params: Promise<{ org: string 
   const { org } = await params;
   await abrirSeccion(org, 'flota');
   const supabase = await crearClienteServidor();
-  const [{ data: unidades }, { data: choferes }] = await Promise.all([
+  const [{ data: unidades, error: e1 }, { data: choferes, error: e2 }] = await Promise.all([
     supabase.from('unidades').select('id, dominio, tipo, marca, modelo, anio, km, estado, chofer:choferes(nombre)').eq('organizacion_id', org).order('dominio'),
     supabase.from('choferes').select('id, nombre, telefono').eq('organizacion_id', org).order('nombre'),
   ]);
+  avisarError('flota/unidades', e1);
+  avisarError('flota/choferes', e2);
 
   return (
     <>

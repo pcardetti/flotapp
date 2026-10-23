@@ -2,7 +2,8 @@ import type { Metadata } from 'next';
 import { Encabezado } from '@/components/encabezado';
 import { Pildora, Tarjeta } from '@/components/ui';
 import { NOMBRE_ROL, abrirSeccion, type Rol } from '@/lib/empresa';
-import { crearClienteServidor } from '@/lib/supabase/server';
+import { fechaCorta } from '@/lib/fechas';
+import { avisarError, crearClienteServidor } from '@/lib/supabase/server';
 
 export const metadata: Metadata = { title: 'Equipo' };
 
@@ -10,7 +11,8 @@ export default async function Equipo({ params }: { params: Promise<{ org: string
   const { org } = await params;
   const { usuario, organizacion } = await abrirSeccion(org, 'equipo');
   const supabase = await crearClienteServidor();
-  const { data } = await supabase.from('miembros').select('user_id, rol, creado_en').eq('organizacion_id', org).order('creado_en');
+  const { data, error } = await supabase.from('miembros').select('user_id, rol, creado_en').eq('organizacion_id', org).order('creado_en');
+  avisarError('equipo', error);
 
   return (
     <>
@@ -21,7 +23,7 @@ export default async function Equipo({ params }: { params: Promise<{ org: string
             <li key={m.user_id} className="flex items-center justify-between gap-4 border-b border-line py-3 last:border-0">
               <span className="flex flex-col">
                 <b>{m.user_id === usuario.id ? `${usuario.email} (vos)` : 'Integrante del equipo'}</b>
-                <span className="text-sm text-ink-3">Desde {new Date(m.creado_en).toLocaleDateString('es-AR')}</span>
+                <span className="text-sm text-ink-3">Desde {fechaCorta(m.creado_en)}</span>
               </span>
               <Pildora tipo={m.rol === 'admin' ? 'info' : 'neutro'}>{NOMBRE_ROL[m.rol as Rol]}</Pildora>
             </li>

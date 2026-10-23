@@ -1,6 +1,6 @@
 import { notFound, redirect } from 'next/navigation';
 import { cache } from 'react';
-import { crearClienteServidor, usuarioActual } from '@/lib/supabase/server';
+import { avisarError, crearClienteServidor, usuarioActual } from '@/lib/supabase/server';
 import { puedeVer } from '@/lib/navegacion';
 
 export type TipoOrganizacion = 'flota' | 'taller' | 'recapadora';
@@ -29,11 +29,12 @@ export const misEmpresas = cache(async (): Promise<Membresia[]> => {
   const usuario = await usuarioActual();
   if (!usuario) return [];
   const supabase = await crearClienteServidor();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('miembros')
     .select('rol, organizacion:organizaciones(id, nombre, tipo)')
     .eq('user_id', usuario.id)
     .order('creado_en');
+  avisarError('misEmpresas', error);
   return (data ?? []).flatMap((m) => {
     const org = Array.isArray(m.organizacion) ? m.organizacion[0] : m.organizacion;
     return org ? [{ rol: m.rol as Rol, organizacion: org as Organizacion }] : [];

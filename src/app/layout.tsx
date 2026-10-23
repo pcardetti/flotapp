@@ -19,7 +19,8 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es-AR" className={`${barlow.variable} ${barlowCondensed.variable}`}>
+    // suppressHydrationWarning: algunas extensiones del navegador (por ejemplo, modos oscuros) modifican <html> antes de que cargue la app.
+    <html lang="es-AR" className={`${barlow.variable} ${barlowCondensed.variable}`} suppressHydrationWarning>
       <body className="min-h-dvh font-sans text-[15px] leading-normal antialiased">{children}</body>
     </html>
   );

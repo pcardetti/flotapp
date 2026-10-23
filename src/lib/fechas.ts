@@ -28,6 +28,9 @@ export function duracion(desde: string | Date, hasta: string | Date = new Date()
   return h % 24 ? `${Math.floor(h / 24)} d ${h % 24} h` : `${Math.floor(h / 24)} d`;
 }
 
+// Día (AAAA-MM-DD) de un momento, en hora argentina.
+export const diaDe = (d: string | Date) => new Intl.DateTimeFormat('en-CA', { timeZone: ZONA }).format(new Date(d));
+
 // Para fechas sin hora: "hoy", "ayer", "21/10" o, si es de otro año, "21/10/2025".
 export function diaCorto(fechaISO: string) {
   const hoy = hoyISO();

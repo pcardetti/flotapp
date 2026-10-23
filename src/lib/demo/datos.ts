@@ -167,12 +167,36 @@ export function sembrar(): Db {
     lectura(U5, 181000, 150, 'alta'), lectura(U5, 197520, 3.3, 'chequeo'), lectura(U5, 198200, 2.8, 'viaje'),
   ];
 
+  const celular = 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0 Mobile Safari/537.36';
+  const pc = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0 Safari/537.36';
+  let evento = 0;
+  const auditar = (horas: number, user_id: string, quien: string, rol: string, accion: string, categoria: string, detalle: Fila, ip: string, agente: string, recurso_id: string | null = null) =>
+    ({ ...base, id: ++evento, user_id, quien, rol, accion, categoria, recurso: accion.split('.')[0], recurso_id, detalle, ip, agente, creado_en: hace(horas) });
+  const auditoria = [
+    auditar(24 * 30, YO, 'Marcelo Gómez', 'admin', 'miembro.alta', 'equipo', { nombre: 'Marcelo Gómez', rol: 'admin' }, '190.18.44.7', pc, YO),
+    auditar(75, YO, 'Marcelo Gómez', 'admin', 'documento.renovado', 'documentos', { tipo: 'RTO (Revisión Técnica Obligatoria)', titular: 'AF 123 KD', de: dia(-5), a: dia(360) }, '190.18.44.7', pc),
+    auditar(50, YO, 'Marcelo Gómez', 'admin', 'gasto.borrado', 'gastos', { categoria: 'lavado', monto: 60000, fecha: dia(-2), dominio: 'AF 123 KD' }, '190.18.44.7', pc),
+    auditar(27, YO, 'Marcelo Gómez', 'admin', 'miembro.rol', 'equipo', { nombre: 'Raúl Benítez', de: 'chofer', a: 'mecanico' }, '190.18.44.7', pc, MECANICO),
+    auditar(26, YO, 'Marcelo Gómez', 'admin', 'invitacion.creada', 'equipo', { nombre: 'Carla Ruiz', rol: 'chofer' }, '190.18.44.7', pc),
+    auditar(5, MECANICO, 'Raúl Benítez', 'mecanico', 'falla.descartada', 'taller', { sistema: 'luces', dominio: 'AE 908 TR', gravedad: 'moderada' }, '181.47.12.90', celular),
+    auditar(2, MECANICO, 'Raúl Benítez', 'mecanico', 'orden.cerrada', 'taller', { numero: 17, descripcion: 'Cambio de aceite y filtros', dominio: 'AF 123 KD', costo: 605000 }, '181.47.12.90', celular),
+    auditar(0.5, DIEGO, 'Diego Fernández', 'chofer', 'permiso.denegado', 'seguridad', { que: 'gastos' }, '186.12.200.31', celular),
+  ];
+
   return {
     organizaciones: [{ id: ORG, nombre: 'Transportes Ejemplo', tipo: 'flota' }],
     miembros, choferes, unidades, chequeos, viajes, fallas, ordenes, gastos, tipos_documento, documentos, invitaciones, lecturas_km,
-    items_chequeo: ITEMS, vinculos_proveedor: [], neumaticos: [],
+    items_chequeo: ITEMS, vinculos_proveedor: [], neumaticos: [], auditoria,
   };
 }
+
+// Último ingreso de cada integrante del demo.
+export const ultimosIngresos = () => [
+  { user_id: YO, ultimo_ingreso: hace(0.2) },
+  { user_id: JUAN, ultimo_ingreso: hace(26) },
+  { user_id: MECANICO, ultimo_ingreso: hace(2) },
+  { user_id: DIEGO, ultimo_ingreso: hace(0.6) },
+];
 
 // Tablero con números verosímiles para una flota de cinco unidades (pesos de 2026). El estado "ahora" sale de los datos vivos.
 export function tablero(db: Db, desde: string, hasta: string) {

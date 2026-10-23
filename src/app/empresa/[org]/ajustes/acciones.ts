@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { empresaActual, UUID } from '@/lib/empresa';
+import { anotarDenegado, empresaActual, UUID } from '@/lib/empresa';
 import { avisarError, crearClienteServidor } from '@/lib/supabase/server';
 
 export type EstadoTipo = { error?: string; ok?: string; clave?: number };
@@ -19,6 +19,7 @@ function leer(form: FormData) {
 
 async function soloAdmin(org: string) {
   const { rol } = await empresaActual(org);
+  if (rol !== 'admin') await anotarDenegado(org, 'ajustes');
   return rol === 'admin';
 }
 

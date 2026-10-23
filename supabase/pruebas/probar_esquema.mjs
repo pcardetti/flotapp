@@ -13,7 +13,7 @@ const db = new PGlite();
 await db.exec(`
   create role anon nologin; create role authenticated nologin;
   create schema auth;
-  create table auth.users (id uuid primary key);
+  create table auth.users (id uuid primary key, email text, last_sign_in_at timestamptz);
   create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
   grant usage on schema auth to authenticated, anon;
   grant execute on function auth.uid() to authenticated, anon;
@@ -282,6 +282,79 @@ ok(typeof t.ahora.en_servicio === 'number' && t.ahora.en_viaje === 0, 'Estado ac
 ok(!!(await uno('L', `select tablero($1, current_date - 30, current_date) t`, [f1])).t, 'El rol consulta ve el tablero');
 await debeFallar('D', `select tablero($1, current_date - 30, current_date)`, [f1], 'El chofer no ve el tablero');
 await debeFallar('M', `select tablero($1, current_date - 30, current_date)`, [f1], 'El mecánico no ve el tablero');
+
+console.log('Límite de intentos');
+const comoAnonimo = async (sql, p) => {
+  await db.exec(`reset role; select set_config('request.jwt.claim.sub', '', false); set role anon;`);
+  try { return await db.query(sql, p); } finally { await db.exec('reset role'); }
+};
+const claveMail = 'a'.repeat(64);
+const intentos = [];
+for (let i = 0; i < 11; i++) intentos.push((await comoAnonimo(`select consumir_intento('ingresar_mail', $1) r`, [claveMail])).rows[0].r);
+ok(intentos.slice(0, 10).every(Boolean) && intentos[10] === false, 'Sin sesión se cuentan los intentos: el 11º ingreso con el mismo mail se frena');
+ok((await comoAnonimo(`select consumir_intento('ingresar_mail', $1) r`, ['b'.repeat(64)])).rows[0].r === true, 'Cada mail tiene su propio contador');
+let anonLeeLimites = true;
+try { await comoAnonimo('select count(*) from limites_acceso'); } catch { anonLeeLimites = false; }
+ok(!anonLeeLimites, 'Nadie lee los contadores directo');
+let accionDesconocida = false;
+try { await comoAnonimo(`select consumir_intento('reiniciar', $1)`, [claveMail]); } catch { accionDesconocida = true; }
+ok(accionDesconocida, 'Sólo hay acciones conocidas, con tope y ventana fijos en la base');
+await db.query(`update limites_acceso set desde = now() - interval '16 minutes' where clave = $1`, [claveMail]);
+ok((await comoAnonimo(`select consumir_intento('ingresar_mail', $1) r`, [claveMail])).rows[0].r === true, 'Pasados 15 minutos se puede volver a intentar');
+
+console.log('Auditoría');
+await db.query(`select set_config('request.headers', $1, false)`, [JSON.stringify({ 'x-flotapp-ip': '190.1.2.3', 'x-flotapp-agente': 'Prueba/1.0' })]);
+await db.query(`update auth.users set email = 'admin@flota.test' where id = $1`, [U.A]);
+await como('A', `update miembros set rol = 'mecanico' where organizacion_id = $1 and user_id = $2`, [f1, U.L]);
+const cambio = await uno('A', `select * from auditoria where organizacion_id = $1 and accion = 'miembro.rol' order by id desc limit 1`, [f1]);
+ok(cambio?.user_id === U.A && cambio.rol === 'admin' && cambio.detalle.de === 'lectura' && cambio.detalle.a === 'mecanico'
+  && cambio.ip === '190.1.2.3' && cambio.agente === 'Prueba/1.0' && cambio.categoria === 'equipo',
+  'Un cambio de rol queda anotado: quién, con qué rol, de qué a qué, IP y navegador');
+ok(cambio?.quien === 'admin@flota.test', 'Sin nombre cargado, figura el mail de quien lo hizo');
+await como('A', `update miembros set rol = 'lectura' where organizacion_id = $1 and user_id = $2`, [f1, U.L]);
+const invAud = await uno('A', `insert into invitaciones (organizacion_id, rol, nombre) values ($1, 'chofer', 'Hugo Paz') returning id, token`, [f1]);
+await como('A', `update invitaciones set revocada = true where id = $1`, [invAud.id]);
+const evInv = (await como('A', `select accion, detalle from auditoria where recurso = 'invitaciones' and recurso_id = $1 order by id`, [invAud.id])).rows;
+ok(evInv.map((e) => e.accion).join() === 'invitacion.creada,invitacion.cancelada' && !JSON.stringify(evInv).includes(invAud.token),
+  'Invitaciones creadas y canceladas, sin guardar el token');
+const gastoAud = (await uno('A', `insert into gastos (organizacion_id, categoria, monto) values ($1, 'multa', 98000) returning id`, [f1])).id;
+await como('A', 'delete from gastos where id = $1', [gastoAud]);
+const evGasto = await uno('A', `select detalle from auditoria where accion = 'gasto.borrado' and recurso_id = $1`, [gastoAud]);
+ok(Number(evGasto?.detalle.monto) === 98000 && evGasto.detalle.categoria === 'multa', 'Un gasto borrado queda anotado con su monto');
+const tiposEvento = (await como('A', `select distinct accion from auditoria where organizacion_id = $1`, [f1])).rows.map((r) => r.accion);
+ok(['miembro.alta', 'unidad.borrada', 'orden.cerrada', 'falla.descartada'].every((a) => tiposEvento.includes(a)),
+  'También quedan las altas del equipo, unidades borradas, órdenes cerradas y fallas descartadas');
+ok((await uno('L', 'select count(*)::int n from auditoria')).n === 0, 'El rol consulta no ve la actividad');
+ok((await uno('D', 'select count(*)::int n from auditoria')).n === 0, 'El chofer no ve la actividad');
+ok((await uno('B', 'select count(*)::int n from auditoria where organizacion_id = $1', [f1])).n === 0, 'Otra empresa no ve la actividad');
+await debeFallar('A', `insert into auditoria (organizacion_id, accion, categoria, recurso) values ($1, 'falso', 'equipo', 'x')`, [f1], 'Nadie escribe la auditoría a mano');
+await debeFallar('A', `update auditoria set quien = 'otro' where organizacion_id = $1`, [f1], 'Nadie la edita');
+await debeFallar('A', `delete from auditoria where organizacion_id = $1`, [f1], 'Nadie la borra');
+await como('D', `select auditar_denegado($1, 'equipo')`, [f1]);
+await como('D', `select auditar_denegado($1, 'equipo')`, [f1]);
+await como('B', `select auditar_denegado($1, 'equipo')`, [f1]);
+const denegados = (await como('A', `select user_id from auditoria where organizacion_id = $1 and accion = 'permiso.denegado'`, [f1])).rows;
+ok(denegados.length === 1 && denegados[0].user_id === U.D, 'Un intento sin permiso se anota una vez por minuto, y sólo de quien es miembro');
+await db.query(`update auth.users set last_sign_in_at = now() - interval '2 hours' where id = $1`, [U.D]);
+ok((await como('A', 'select * from ultimos_ingresos($1)', [f1])).rows.some((r) => r.user_id === U.D && r.ultimo_ingreso), 'El administrador ve el último ingreso de cada integrante');
+ok((await como('L', 'select * from ultimos_ingresos($1)', [f1])).rows.length === 0, 'Los demás roles no');
+await db.query(`select set_config('request.headers', '', false)`);
+
+console.log('Al menos un administrador');
+await debeFallar('A', `update miembros set rol = 'jefe_taller' where organizacion_id = $1 and user_id = $2`, [f1, U.A], 'El único administrador no puede dejar el rol');
+await debeFallar('A', `delete from miembros where organizacion_id = $1 and user_id = $2`, [f1, U.A], 'Ni quitarse de la empresa');
+await como('A', `update miembros set rol = 'admin' where organizacion_id = $1 and user_id = $2`, [f1, U.J]);
+await como('A', `update miembros set rol = 'jefe_taller' where organizacion_id = $1 and user_id = $2`, [f1, U.A]);
+ok((await uno('J', `select rol from miembros where organizacion_id = $1 and user_id = $2`, [f1, U.A])).rol === 'jefe_taller', 'Con otra persona como administradora, sí puede dejar el rol');
+U.Y = '78787878-0000-0000-0000-00000000000b';
+U.Z = '90909090-0000-0000-0000-00000000000c';
+for (const id of [U.Y, U.Z]) await db.query('insert into auth.users (id) values ($1)', [id]);
+const orgY = (await uno('Y', `select crear_organizacion('Flota Y', 'flota') id`)).id;
+await uno('Z', `select crear_organizacion('Flota Z', 'flota') id`);
+await db.query('delete from organizaciones where id = $1', [orgY]);
+ok((await db.query('select count(*)::int n from miembros where organizacion_id = $1', [orgY])).rows[0].n === 0, 'Borrar una empresa entera no queda trabado por esta regla');
+await db.query('delete from auth.users where id = $1', [U.Z]);
+ok((await db.query('select count(*)::int n from miembros where user_id = $1', [U.Z])).rows[0].n === 0, 'Ni borrar la cuenta de un administrador');
 
 console.log(fallas ? `\n${fallas} pruebas fallaron` : '\nTodas las pruebas pasaron');
 process.exit(fallas ? 1 : 0);

@@ -1,11 +1,11 @@
 import { randomUUID } from 'node:crypto';
-import { dia, EMAIL_DEMO, hace, itemsDe, ORG, sembrar, tablero, YO, type Db, type Fila } from './datos';
+import { dia, EMAIL_DEMO, hace, itemsDe, ORG, sembrar, tablero, ultimosIngresos, YO, type Db, type Fila } from './datos';
 
 // Cliente de Supabase de mentira para el modo demo: entiende las consultas que hace la app (filtros, orden,
 // relaciones embebidas como "unidad:unidades(dominio)") y las funciones de la base que usa cada pantalla.
 // Los datos viven en memoria mientras corre el servidor de desarrollo.
 
-const VERSION = 1;
+const VERSION = 2;
 const global = globalThis as unknown as { __flotappDemo?: { version: number; db: Db } };
 function base(): Db {
   if (global.__flotappDemo?.version !== VERSION) global.__flotappDemo = { version: VERSION, db: sembrar() };
@@ -325,6 +325,21 @@ function rpc(db: Db, rol: string, nombre: string, a: Fila): Resultado {
 
     case 'crear_organizacion':
       return { data: ORG, error: null };
+
+    case 'consumir_intento':
+      return { data: true, error: null };
+
+    case 'auditar_denegado': {
+      const yoMiembro = db.miembros.find((m) => m.user_id === YO);
+      db.auditoria.push({
+        id: Math.max(0, ...db.auditoria.map((e) => e.id)) + 1, organizacion_id: ORG, user_id: YO, quien: yoMiembro?.nombre ?? EMAIL_DEMO, rol,
+        accion: 'permiso.denegado', categoria: 'seguridad', recurso: 'app', recurso_id: null, detalle: { que: a.p_que }, ip: '127.0.0.1', agente: null, creado_en: ahora(),
+      });
+      return { data: null, error: null };
+    }
+
+    case 'ultimos_ingresos':
+      return { data: rol === 'admin' ? ultimosIngresos() : [], error: null };
 
     default:
       return falla(`La función ${nombre} no está en el modo demo`, 'PGRST202');

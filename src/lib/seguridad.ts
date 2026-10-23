@@ -1,11 +1,14 @@
 // Política de contenido (CSP) de cada página: sólo corre JavaScript propio, marcado con un nonce que cambia
 // en cada pedido; las imágenes y las subidas van únicamente a Supabase; nadie puede incrustar la app.
-export function politicaDeContenido(nonce: string, { supabase, desarrollo }: { supabase: string; desarrollo: boolean }) {
+// Con Turnstile (el CAPTCHA de Cloudflare) se permite su script y el recuadro donde verifica.
+const TURNSTILE = 'https://challenges.cloudflare.com';
+
+export function politicaDeContenido(nonce: string, { supabase, desarrollo, turnstile = false }: { supabase: string; desarrollo: boolean; turnstile?: boolean }) {
   const origenSupabase = supabase ? new URL(supabase).origin : '';
   const reglas: Record<string, string[]> = {
     'default-src': ["'self'"],
     // 'strict-dynamic': lo que cargan los scripts con nonce (los fragmentos de Next) también puede correr.
-    'script-src': ["'self'", `'nonce-${nonce}'`, "'strict-dynamic'", ...(desarrollo ? ["'unsafe-eval'"] : [])],
+    'script-src': ["'self'", `'nonce-${nonce}'`, "'strict-dynamic'", ...(turnstile ? [TURNSTILE] : []), ...(desarrollo ? ["'unsafe-eval'"] : [])],
     // React escribe estilos en línea (style="…"); no ejecutan código.
     'style-src': ["'self'", "'unsafe-inline'"],
     'img-src': ["'self'", 'blob:', 'data:', origenSupabase],
@@ -14,7 +17,7 @@ export function politicaDeContenido(nonce: string, { supabase, desarrollo }: { s
     'media-src': ["'self'", 'blob:'],
     'worker-src': ["'self'", 'blob:'],
     'manifest-src': ["'self'"],
-    'frame-src': ["'none'"],
+    'frame-src': turnstile ? [TURNSTILE] : ["'none'"],
     'frame-ancestors': ["'none'"],
     'object-src': ["'none'"],
     'base-uri': ["'self'"],

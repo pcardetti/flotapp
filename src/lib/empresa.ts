@@ -57,6 +57,17 @@ export const empresaActual = cache(async (orgId: string) => {
 // Igual que empresaActual, pero además exige que el rol pueda ver esa sección.
 export async function abrirSeccion(orgId: string, ruta: string) {
   const empresa = await empresaActual(orgId);
-  if (!puedeVer(ruta, empresa.organizacion.tipo, empresa.rol)) notFound();
+  if (!puedeVer(ruta, empresa.organizacion.tipo, empresa.rol)) {
+    await anotarDenegado(orgId, ruta);
+    notFound();
+  }
   return empresa;
+}
+
+// Deja en la actividad de la empresa un intento de usar una sección que el rol no permite.
+// `seccion` es la ruta de la sección ("equipo", "gastos"…). Si no se puede anotar, no traba nada.
+export async function anotarDenegado(orgId: string, seccion: string) {
+  const supabase = await crearClienteServidor();
+  const { error } = await supabase.rpc('auditar_denegado', { p_org: orgId, p_que: seccion });
+  if (error && error.code !== 'PGRST202') avisarError('anotarDenegado', error);
 }

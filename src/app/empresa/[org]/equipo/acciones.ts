@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { empresaActual, UUID, type Rol } from '@/lib/empresa';
+import { anotarDenegado, empresaActual, UUID, type Rol } from '@/lib/empresa';
 import { avisarError, crearClienteServidor } from '@/lib/supabase/server';
 import { urlBase } from '@/lib/url';
 
@@ -12,7 +12,10 @@ const ROLES_PROVEEDOR: Rol[] = ['operario', 'admin'];
 
 async function soloAdmin(org: string) {
   const e = await empresaActual(org);
-  if (e.rol !== 'admin') throw new Error('Sólo el administrador gestiona el equipo');
+  if (e.rol !== 'admin') {
+    await anotarDenegado(org, 'equipo');
+    throw new Error('Sólo el administrador gestiona el equipo');
+  }
   return e;
 }
 

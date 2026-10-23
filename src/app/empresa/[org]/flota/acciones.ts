@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { empresaActual, type Rol } from '@/lib/empresa';
+import { anotarDenegado, empresaActual, type Rol } from '@/lib/empresa';
 import { hoyISO } from '@/lib/fechas';
 import { leerChofer, leerKm, leerUnidad, mensajeDeError, type Errores } from '@/lib/flota';
 import { avisarError, crearClienteServidor } from '@/lib/supabase/server';
@@ -17,7 +17,10 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 async function verificar(org: string, roles: Rol[], id?: string) {
   const { organizacion, rol } = await empresaActual(org);
   if (organizacion.tipo !== 'flota') return 'Esta acción es sólo para flotas.';
-  if (!roles.includes(rol)) return 'Tu rol no permite hacer este cambio.';
+  if (!roles.includes(rol)) {
+    await anotarDenegado(org, 'flota');
+    return 'Tu rol no permite hacer este cambio.';
+  }
   if (id !== undefined && !UUID.test(id)) return 'No encontramos ese registro.';
   return null;
 }

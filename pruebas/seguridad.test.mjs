@@ -22,6 +22,15 @@ test('en desarrollo permite lo que necesita la recarga en caliente', () => {
   assert.doesNotMatch(csp, /upgrade-insecure-requests/);
 });
 
+test('con Turnstile se permite sólo su script y su recuadro', () => {
+  const sin = politicaDeContenido('N', { supabase: SUPABASE, desarrollo: false });
+  const con = politicaDeContenido('N', { supabase: SUPABASE, desarrollo: false, turnstile: true });
+  assert.match(sin, /frame-src 'none'/);
+  assert.match(con, /frame-src https:\/\/challenges\.cloudflare\.com;/);
+  assert.match(con, /script-src 'self' 'nonce-N' 'strict-dynamic' https:\/\/challenges\.cloudflare\.com;/);
+  assert.match(con, /frame-ancestors 'none'/);
+});
+
 test('sin Supabase configurado no queda una fuente vacía', () => {
   const csp = politicaDeContenido('N', { supabase: '', desarrollo: false });
   assert.match(csp, /img-src 'self' blob: data:;/);

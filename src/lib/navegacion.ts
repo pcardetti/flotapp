@@ -24,6 +24,7 @@ export const SECCIONES: Seccion[] = [
   { ruta: 'proveedores', titulo: 'Talleres y recapadoras', tipos: ['flota'], roles: ['admin', 'jefe_taller'] },
   { ruta: 'clientes', titulo: 'Flotas clientes', tipos: ['taller', 'recapadora'] },
   { ruta: 'equipo', titulo: 'Equipo', tipos: ['flota', 'taller', 'recapadora'], roles: ['admin'] },
+  { ruta: 'actividad', titulo: 'Actividad', tipos: ['flota', 'taller', 'recapadora'], roles: ['admin'] },
   { ruta: 'ajustes', titulo: 'Ajustes', tipos: ['flota'], roles: ['admin'] },
 ];
 

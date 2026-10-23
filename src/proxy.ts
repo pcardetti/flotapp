@@ -11,7 +11,11 @@ const PRIVADAS = ['/empresa', '/empresas', '/chofer', '/taller', '/u', '/imprimi
 // de sesión a quien entra sin estar logueado.
 export async function proxy(request: NextRequest) {
   const nonce = nuevoNonce();
-  const csp = politicaDeContenido(nonce, { supabase: SUPABASE_URL, desarrollo: process.env.NODE_ENV !== 'production' });
+  const csp = politicaDeContenido(nonce, {
+    supabase: SUPABASE_URL,
+    desarrollo: process.env.NODE_ENV !== 'production',
+    turnstile: Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY),
+  });
   // Next toma el nonce de la política que viaja en el pedido y lo pone en sus propios scripts.
   // Se rearma cada vez porque renovar la sesión cambia las cookies del pedido.
   const seguir = () => {

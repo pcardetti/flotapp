@@ -17,6 +17,8 @@ export async function GET() {
     NEXT_PUBLIC_SUPABASE_URL: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL),
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: Boolean(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY),
     NEXT_PUBLIC_SUPABASE_ANON_KEY: Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
+    NEXT_PUBLIC_TURNSTILE_SITE_KEY: Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY),
+    FLOTAPP_SECRETO_LIMITES: Boolean(process.env.FLOTAPP_SECRETO_LIMITES),
   };
   const funciones = process.env.VERCEL_REGION ?? 'local';
   if (!supabaseConfigurado()) return Response.json({ funciones, variables, supabase: 'faltan variables' }, sinCache);
@@ -42,16 +44,18 @@ export async function GET() {
       : tabla.status === 200 ? 'incompleto (el SQL no terminó)'
       : `desconocido (${tabla.status})`;
 
-    // ver_invitacion nace en la 0002 y la 0003 la abre a quien todavía no tiene sesión:
-    // no existe → faltan las dos; existe sin permiso → falta la 0003; responde → al día.
+    // ver_invitacion nace en la 0002 y la 0003 la abre a quien no tiene sesión; la tabla auditoria nace en la 0004
+    // (sin sesión responde "sin permiso" si existe y "no existe" si falta).
     const funcion = await fetch(SUPABASE_URL + '/rest/v1/rpc/ver_invitacion', {
       method: 'POST', headers: { apikey: SUPABASE_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ p_token: '0' }), cache: 'no-store',
     });
+    const auditoria = funcion.ok ? await pedir('/rest/v1/auditoria?select=id&limit=1') : null;
     const migraciones =
-      funcion.ok ? 'al día'
-      : funcion.status === 404 ? 'faltan ejecutar 0002 y 0003'
-      : funcion.status === 401 || funcion.status === 403 ? 'falta ejecutar 0003'
-      : `desconocido (${funcion.status})`;
+      funcion.status === 404 ? 'faltan ejecutar 0002, 0003 y 0004'
+      : funcion.status === 401 || funcion.status === 403 ? 'faltan ejecutar 0003 y 0004'
+      : !funcion.ok ? `desconocido (${funcion.status})`
+      : auditoria?.status === 404 ? 'falta ejecutar 0004'
+      : 'al día';
 
     return Response.json(
       {

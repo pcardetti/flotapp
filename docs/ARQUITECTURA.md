@@ -97,8 +97,11 @@ taller y consulta.
 - **Claves compuestas** `(id, organizacion_id)`: la base rechaza, por ejemplo, un documento de la flota B colgado de una unidad de la flota A.
 - **Operaciones sensibles en funciones de la base**: montar, rotar, desmontar y recapar neumáticos, y las acciones de talleres y recapadoras. Cada una valida permisos y deja el historial en la misma transacción.
 - **Reglas de vínculo**: sólo el proveedor acepta; un vínculo no puede redirigirse a otra flota; no se deriva trabajo a un proveedor sin vínculo activo.
+- **Al menos un administrador**: la base no deja degradar ni quitar al último administrador de una empresa (con bloqueo, para que dos cambios simultáneos no la dejen sin ninguno).
+- **Auditoría** (`auditoria`): triggers anotan cambios del equipo, invitaciones, borrados, renovaciones, órdenes cerradas, fallas descartadas e intentos sin permiso, con quién, rol, hora, IP y navegador (la app los manda en cabeceras propias). Es inmutable y sólo la lee el administrador de cada empresa.
+- **Acceso**: CSP con nonce por pedido, cookies de sesión HttpOnly, fotos subidas con URLs firmadas, límite de intentos de ingreso y registro contado en la base (`consumir_intento`, claves firmadas por el servidor) y CAPTCHA de Cloudflare Turnstile verificado por Supabase.
 
-`supabase/pruebas/probar_esquema.mjs` levanta un Postgres local (PGlite), aplica las migraciones en orden y corre 109 pruebas de aislamiento, roles, vínculos, órdenes, neumáticos, invitaciones, viajes con chequeo, taller, fotos y tablero. Todas pasan.
+`supabase/pruebas/probar_esquema.mjs` levanta un Postgres local (PGlite), aplica las migraciones en orden y corre 133 pruebas de aislamiento, roles, vínculos, órdenes, neumáticos, invitaciones, viajes con chequeo, taller, fotos, tablero, límites de acceso y auditoría. Todas pasan.
 
 Para ver las pantallas sin base ni cuentas está el **modo demo** (`npm run demo`, sólo en desarrollo): un cliente de Supabase de mentira (`src/lib/demo`) que responde con una flota de ejemplo en memoria.
 

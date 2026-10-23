@@ -9,6 +9,7 @@ const require = createRequire(import.meta.url);
 const next = join(dirname(require.resolve('next/package.json')), 'dist', 'bin', 'next');
 const proceso = spawn(process.execPath, [next, 'dev', ...process.argv.slice(2)], {
   stdio: 'inherit',
-  env: { ...process.env, FLOTAPP_DEMO: '1' },
+  // Clave de prueba de Turnstile que publica Cloudflare: siempre aprueba, sirve para ver el formulario.
+  env: { ...process.env, FLOTAPP_DEMO: '1', NEXT_PUBLIC_TURNSTILE_SITE_KEY: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '1x00000000000000000000AA' },
 });
 proceso.on('exit', (codigo) => process.exit(codigo ?? 0));

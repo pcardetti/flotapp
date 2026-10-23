@@ -1,12 +1,16 @@
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import { modoDemo } from '@/lib/demo/activo';
+import { agenteCliente, ipCliente } from '@/lib/peticion';
 import { SUPABASE_KEY, SUPABASE_URL, supabaseConfigurado } from './config';
 import { OPCIONES_COOKIE } from './cookies';
 
-function clienteSupabase(almacen: Awaited<ReturnType<typeof cookies>>) {
+function clienteSupabase(almacen: Awaited<ReturnType<typeof cookies>>, origen: Record<string, string>) {
   return createServerClient(SUPABASE_URL, SUPABASE_KEY, {
     cookieOptions: OPCIONES_COOKIE,
+    // La base anota en la auditoría desde dónde se hizo cada cambio: los pedidos salen de este servidor,
+    // así que la IP y el navegador de la persona viajan en cabeceras propias.
+    global: { headers: origen },
     cookies: {
       getAll: () => almacen.getAll(),
       setAll(aGuardar) {
@@ -27,7 +31,7 @@ export async function crearClienteServidor() {
     const { clienteDemo } = await import('@/lib/demo/cliente');
     return clienteDemo(almacen.get('demo_rol')?.value) as unknown as ReturnType<typeof clienteSupabase>;
   }
-  return clienteSupabase(almacen);
+  return clienteSupabase(almacen, { 'x-flotapp-ip': await ipCliente(), 'x-flotapp-agente': await agenteCliente() });
 }
 
 // Una consulta que falla no debe pasar desapercibida: queda en el registro del servidor.

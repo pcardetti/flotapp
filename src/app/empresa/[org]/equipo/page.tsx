@@ -5,7 +5,7 @@ import { Encabezado } from '@/components/encabezado';
 import { Pantalla } from '@/components/pantalla';
 import { Pildora, Tarjeta } from '@/components/ui';
 import { NOMBRE_ROL, abrirSeccion, type Rol } from '@/lib/empresa';
-import { fechaCorta } from '@/lib/fechas';
+import { cuando, fechaCorta } from '@/lib/fechas';
 import { avisarError, crearClienteServidor } from '@/lib/supabase/server';
 import { urlBase } from '@/lib/url';
 import { cambiarRol, quitarMiembro, revocarInvitacion } from './acciones';
@@ -22,12 +22,14 @@ export default async function Equipo({ params }: { params: Promise<{ org: string
   const { usuario, organizacion } = await abrirSeccion(org, 'equipo');
   const supabase = await crearClienteServidor();
   const esFlota = organizacion.tipo === 'flota';
-  const [{ data: miembros, error }, { data: invitaciones }, { data: choferes }] = await Promise.all([
+  const [{ data: miembros, error }, { data: invitaciones }, { data: choferes }, { data: ingresos }] = await Promise.all([
     supabase.from('miembros').select('user_id, rol, nombre, creado_en, chofer_id, chofer:choferes(nombre)').eq('organizacion_id', org).order('creado_en'),
     supabase.from('invitaciones').select('id, token, rol, nombre, vence, creada_en').eq('organizacion_id', org).is('usada_en', null).eq('revocada', false).gt('vence', new Date().toISOString()).order('creada_en', { ascending: false }),
     esFlota ? supabase.from('choferes').select('id, nombre').eq('organizacion_id', org).order('nombre') : Promise.resolve({ data: [] as { id: string; nombre: string }[] }),
+    supabase.rpc('ultimos_ingresos', { p_org: org }),
   ]);
   avisarError('equipo', error);
+  const ultimoIngreso = new Map(((ingresos ?? []) as { user_id: string; ultimo_ingreso: string | null }[]).map((i) => [i.user_id, i.ultimo_ingreso]));
   // Choferes que todavía no tienen cuenta: se pueden vincular al invitarlos.
   const conCuenta = new Set((miembros ?? []).map((m) => m.chofer_id).filter(Boolean));
   const choferesSinCuenta = (choferes ?? []).filter((c) => !conCuenta.has(c.id));
@@ -79,7 +81,10 @@ export default async function Equipo({ params }: { params: Promise<{ org: string
                 <span className="grid size-10 shrink-0 place-items-center rounded-full bg-accent-soft font-display text-lg font-bold">{nombre.trim()[0]?.toUpperCase()}</span>
                 <span className="flex min-w-0 flex-1 flex-col">
                   <b className="truncate">{nombre}</b>
-                  <span className="text-sm text-ink-3">Desde {fechaCorta(m.creado_en)}{chofer && !yo ? ` · chofer ${chofer.nombre}` : ''}</span>
+                  <span className="text-sm text-ink-3">
+                    Desde {fechaCorta(m.creado_en)}{chofer && !yo ? ` · chofer ${chofer.nombre}` : ''}
+                    {ultimoIngreso.has(m.user_id) && ` · ${ultimoIngreso.get(m.user_id) ? `último ingreso ${cuando(ultimoIngreso.get(m.user_id)!)}` : 'nunca ingresó'}`}
+                  </span>
                 </span>
                 {yo ? (
                   <Pildora tipo="info">{NOMBRE_ROL[m.rol as Rol]}</Pildora>

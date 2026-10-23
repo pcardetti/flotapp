@@ -1,5 +1,5 @@
 import {
-  Building2, CalendarClock, CircleDot, ClipboardList, Handshake, LayoutDashboard, Receipt, Route, Settings, Truck, Users, Wrench,
+  Building2, CalendarClock, CircleDot, ClipboardList, Handshake, LayoutDashboard, Receipt, Route, ScrollText, Settings, Truck, Users, Wrench,
 } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 
 const ICONOS: Record<string, React.ReactNode> = {
   panel: <LayoutDashboard />, flota: <Truck />, viajes: <Route />, taller: <Wrench />, gastos: <Receipt />, vencimientos: <CalendarClock />,
-  trabajos: <ClipboardList />, recapados: <CircleDot />, proveedores: <Handshake />, clientes: <Building2 />, equipo: <Users />, ajustes: <Settings />,
+  trabajos: <ClipboardList />, recapados: <CircleDot />, proveedores: <Handshake />, clientes: <Building2 />, equipo: <Users />, actividad: <ScrollText />, ajustes: <Settings />,
 };
 
 export default async function LayoutEmpresa({ children, params }: { children: React.ReactNode; params: Promise<{ org: string }> }) {

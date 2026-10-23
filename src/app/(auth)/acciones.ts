@@ -2,6 +2,8 @@
 
 import { redirect } from 'next/navigation';
 import { aceptarInvitacionCon, tokenDeInvitacion } from '@/lib/invitaciones';
+import { permitirIntento } from '@/lib/limites';
+import { ipCliente } from '@/lib/peticion';
 import { rutaInterna } from '@/lib/rutas';
 import { crearClienteServidor } from '@/lib/supabase/server';
 import { supabaseConfigurado } from '@/lib/supabase/config';
@@ -11,6 +13,9 @@ export type EstadoForm = { error?: string; ok?: string; email?: string };
 
 // Sólo rutas internas: evita que un enlace manipulado mande al usuario a otro sitio.
 const destinoSeguro = (s: FormDataEntryValue | null) => rutaInterna(s);
+
+// Token de Cloudflare Turnstile que deja el formulario; Supabase lo verifica si tiene el CAPTCHA activado.
+const tokenCaptcha = (form: FormData) => String(form.get('cf-turnstile-response') ?? '') || undefined;
 
 // Con sesión recién abierta: si se llegó desde una invitación (empresa y rol a la vista en el formulario),
 // se acepta en el mismo paso y se entra directo a la app del rol. Si no se puede, la invitación explica por qué.
@@ -42,6 +47,8 @@ function traducir(error: { code?: string; message: string }) {
       return 'Se mandaron demasiados mails en poco tiempo. Esperá un rato y probá de nuevo.';
     case 'over_request_rate_limit':
       return 'Hubo demasiados intentos. Esperá unos minutos y probá de nuevo.';
+    case 'captcha_failed':
+      return 'No pudimos comprobar que no sos un robot. Esperá un momento y probá de nuevo.';
   }
   if (/password should be at least/i.test(error.message)) return 'La contraseña tiene que tener al menos 8 caracteres.';
   return 'No pudimos completar el pedido. Probá de nuevo en unos minutos.';
@@ -52,8 +59,12 @@ export async function ingresar(_: EstadoForm, form: FormData): Promise<EstadoFor
   const email = String(form.get('email') ?? '').trim();
   const password = String(form.get('password') ?? '');
   if (!email || !password) return { error: 'Completá el mail y la contraseña.', email };
+  // Tope por mail (frena a quien prueba contraseñas) y, más alto, por IP (redes compartidas de los celulares).
+  const ip = await ipCliente();
+  const permitidos = await Promise.all([permitirIntento('ingresar_mail', email), permitirIntento('ingresar_ip', ip)]);
+  if (permitidos.includes(false)) return { error: 'Hubo demasiados intentos. Esperá 15 minutos y probá de nuevo.', email };
   const supabase = await crearClienteServidor();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { error } = await supabase.auth.signInWithPassword({ email, password, options: { captchaToken: tokenCaptcha(form) } });
   if (error) return { error: traducir(error), email };
   return entrar(supabase, form.get('siguiente'));
 }
@@ -64,12 +75,18 @@ export async function registrarse(_: EstadoForm, form: FormData): Promise<Estado
   const password = String(form.get('password') ?? '');
   if (!email || !password) return { error: 'Completá el mail y la contraseña.', email };
   if (password.length < 8) return { error: 'La contraseña tiene que tener al menos 8 caracteres.', email };
+  if (!(await permitirIntento('registro_ip', await ipCliente()))) {
+    return { error: 'Se crearon demasiadas cuentas desde esta conexión. Probá de nuevo en una hora.', email };
+  }
   const supabase = await crearClienteServidor();
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    // Después de confirmar el mail vuelve a donde estaba (por ejemplo, a aceptar una invitación).
-    options: { emailRedirectTo: `${await urlBase()}/auth/confirmar?siguiente=${encodeURIComponent(destinoSeguro(form.get('siguiente')))}` },
+    options: {
+      // Después de confirmar el mail vuelve a donde estaba (por ejemplo, a aceptar una invitación).
+      emailRedirectTo: `${await urlBase()}/auth/confirmar?siguiente=${encodeURIComponent(destinoSeguro(form.get('siguiente')))}`,
+      captchaToken: tokenCaptcha(form),
+    },
   });
   if (error) return { error: traducir(error), email };
   // Con la confirmación activada, Supabase no avisa que el mail ya existe: devuelve un usuario sin identidades.

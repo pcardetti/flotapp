@@ -32,6 +32,12 @@ Flota y choferes → **Imprimir QR** para todas). El QR abre `/u/<código>`:
 
 Las etiquetas se imprimen desde la versión publicada, para que el QR apunte a internet y no a la PC.
 
+### Actividad
+
+Equipo → **Actividad** (sólo administradores): quién cambió roles, invitó o quitó personas, borró
+unidades, gastos o documentos, cerró órdenes, descartó fallas o intentó entrar donde su rol no deja, con
+hora, IP y navegador. Lo anota la base con triggers; nadie lo puede editar ni borrar.
+
 ### Invitar al equipo
 
 Equipo → **Invitar a alguien**: se elige el rol y se manda el enlace por WhatsApp, se copia o se muestra
@@ -55,7 +61,16 @@ como QR. El enlace sirve una sola vez y vence en 7 días.
    las `NEXT_PUBLIC_*` se fijan al compilar.
 6. **Región.** `vercel.json` fija las funciones en la misma región que la base de Supabase, para que
    cada consulta no cruce el continente: São Paulo (`gru1` en Vercel, `sa-east-1` en Supabase).
-7. **Chequeo.** `/api/health` responde 200 si la app y la base andan (para monitoreo, sin datos de
+7. **Protección del acceso.**
+   - `FLOTAPP_SECRETO_LIMITES` (sólo servidor, 32+ caracteres al azar) firma las claves del límite de
+     intentos de ingreso y registro.
+   - CAPTCHA con Cloudflare Turnstile: creá el widget en Cloudflare (dominios de Vercel y `localhost`),
+     cargá `NEXT_PUBLIC_TURNSTILE_SITE_KEY` en Vercel y en `.env.local`, publicá, y **recién después**
+     activalo en Supabase → Authentication → Bot and Abuse Protection con la clave secreta. Al revés, el
+     ingreso se traba.
+   - Como el ingreso sale del servidor, Supabase ve la IP de Vercel para todos: subí su límite por IP
+     (Authentication → Rate Limits); el límite por persona lo hace la app.
+8. **Chequeo.** `/api/health` responde 200 si la app y la base andan (para monitoreo, sin datos de
    configuración). `/api/estado`, sólo para administradores, muestra qué variables de Supabase existen
    (sólo los nombres), si las migraciones están al día y la demora a la base. Nunca devuelve claves.
 

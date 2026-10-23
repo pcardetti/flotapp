@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { empresaActual, esGestor, UUID } from '@/lib/empresa';
+import { anotarDenegado, empresaActual, esGestor, UUID } from '@/lib/empresa';
 import { rutasValidas } from '@/lib/fotos';
 import { avisarError, crearClienteServidor } from '@/lib/supabase/server';
 
@@ -11,6 +11,7 @@ const fechaValida = (f: string) => /^\d{4}-\d{2}-\d{2}$/.test(f) && !Number.isNa
 
 async function permitido(org: string) {
   const { rol } = await empresaActual(org);
+  if (!esGestor(rol)) await anotarDenegado(org, 'vencimientos');
   return esGestor(rol);
 }
 

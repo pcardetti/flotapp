@@ -1,6 +1,8 @@
 @import "tailwindcss";
 
-/* Identidad Flotapp: azul ruta, neutros fríos, amarillo de línea vial como detalle. */
+/* Identidad Flotapp: azul ruta, neutros fríos, amarillo de línea vial como detalle.
+   Cada app tiene su acento (Flota azul, Chofer amarillo vial, Taller cian técnico);
+   verde, ámbar y rojo quedan reservados para estados. */
 :root {
   --bg: #f2f4f7;
   --surface: #ffffff;
@@ -12,6 +14,8 @@
   --accent: #1d4f91;
   --accent-ink: #ffffff;
   --accent-soft: #dfe9f7;
+  /* Texto con el color de la app sobre fondos claros (el amarillo del chofer no se lee como texto). */
+  --accent-text: #1d4f91;
   --road: #e0a400;
   --ok: #1d7349;
   --ok-soft: #dcf0e4;
@@ -19,6 +23,14 @@
   --warn-soft: #fbecd0;
   --crit: #b42318;
   --crit-soft: #fbe0dc;
+  /* Series de gráficos (paleta validada para daltonismo, en orden fijo). */
+  --s1: #2a78d6;
+  --s2: #eb6834;
+  --s3: #1baf7a;
+  --s4: #eda100;
+  --s5: #e87ba4;
+  --s6: #008300;
+  --sombra: 0 1px 2px rgb(20 33 51 / 0.06), 0 8px 24px rgb(20 33 51 / 0.08);
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -32,6 +44,7 @@
     --accent: #86b4f2;
     --accent-ink: #0b1320;
     --accent-soft: #1b2d46;
+    --accent-text: #86b4f2;
     --road: #f0bf3a;
     --ok: #62cf95;
     --ok-soft: #12301f;
@@ -39,7 +52,45 @@
     --warn-soft: #3a2a10;
     --crit: #ff8b80;
     --crit-soft: #3f1715;
+    --s1: #3987e5;
+    --s2: #d95926;
+    --s3: #199e70;
+    --s4: #c98500;
+    --s5: #d55181;
+    --s6: #2e9e3a;
+    --sombra: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px rgb(0 0 0 / 0.35);
     color-scheme: dark;
+  }
+}
+
+/* Alto de la barra inferior de las apps de celular: cero cuando un formulario la esconde. */
+[data-app] { --alto-barra: 0px; }
+[data-app]:has(> nav[aria-label="Secciones"]) { --alto-barra: 64px; }
+
+[data-app="chofer"] {
+  --accent: #f2b705;
+  --accent-ink: #17140a;
+  --accent-soft: #fdf3cf;
+  --accent-text: #3d3000;
+}
+[data-app="taller"] {
+  --accent: #0e7490;
+  --accent-ink: #ffffff;
+  --accent-soft: #d6f1f6;
+  --accent-text: #0b5f76;
+}
+@media (prefers-color-scheme: dark) {
+  [data-app="chofer"] {
+    --accent: #f0bf3a;
+    --accent-ink: #141414;
+    --accent-soft: #3a3110;
+    --accent-text: #f0bf3a;
+  }
+  [data-app="taller"] {
+    --accent: #5ad1e6;
+    --accent-ink: #062a31;
+    --accent-soft: #0d3640;
+    --accent-text: #5ad1e6;
   }
 }
 
@@ -54,6 +105,7 @@
   --color-accent: var(--accent);
   --color-accent-ink: var(--accent-ink);
   --color-accent-soft: var(--accent-soft);
+  --color-accent-text: var(--accent-text);
   --color-road: var(--road);
   --color-ok: var(--ok);
   --color-ok-soft: var(--ok-soft);
@@ -63,12 +115,14 @@
   --color-crit-soft: var(--crit-soft);
   --font-sans: var(--font-barlow), "Segoe UI", system-ui, sans-serif;
   --font-display: var(--font-barlow-condensed), "Arial Narrow", sans-serif;
+  --shadow-tarjeta: var(--sombra);
 }
 
 body {
   background: var(--bg);
   color: var(--ink);
   font-variant-numeric: tabular-nums;
+  -webkit-tap-highlight-color: transparent;
 }
 h1, h2, h3 { text-wrap: balance; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
@@ -79,4 +133,73 @@ h1, h2, h3 { text-wrap: balance; }
   text-transform: uppercase;
   letter-spacing: 0.09em;
   color: var(--ink-3);
+}
+
+/* Respuesta al toque: todo lo que se aprieta se hunde apenas. */
+.tap {
+  transition: transform 120ms ease, background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+.tap:active { transform: scale(0.97); }
+
+/* Aparición suave de bloques que llegan después (resultados, avisos). */
+@keyframes aparecer {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+.aparecer { animation: aparecer 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+
+/* Marca lo que falta completar: un anillo con el color de la app que late dos veces. */
+@keyframes senalar {
+  0%, 100% { box-shadow: 0 0 0 0 transparent; }
+  50% { box-shadow: 0 0 0 4px var(--accent); }
+}
+.senalar { animation: senalar 650ms ease-in-out 2; }
+
+@keyframes brillo {
+  from { background-position: -200px 0; }
+  to { background-position: calc(200px + 100%) 0; }
+}
+.esqueleto {
+  background: linear-gradient(90deg, var(--surface-2) 0, var(--line) 80px, var(--surface-2) 160px) no-repeat;
+  background-size: 200px 100%;
+  background-color: var(--surface-2);
+  animation: brillo 1.2s ease-in-out infinite;
+  border-radius: 10px;
+}
+
+/* ───────────── Transiciones entre pantallas (React ViewTransition) ─────────────
+   Hacia adelante el contenido entra desde la derecha; hacia atrás, desde la izquierda.
+   El encabezado y la barra inferior quedan fijos como ancla. */
+::view-transition { pointer-events: none; }
+
+@keyframes vt-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes vt-slide { from { translate: var(--slide-offset) 0; } to { translate: 0 0; } }
+@keyframes vt-rise { from { translate: 0 12px; } to { translate: 0 0; } }
+
+::view-transition-old(.nav-forward) { --slide-offset: -48px; animation: 140ms ease-in both vt-fade reverse, 320ms cubic-bezier(0.3, 0, 0.2, 1) both vt-slide reverse; }
+::view-transition-new(.nav-forward) { --slide-offset: 48px; animation: 200ms ease-out 100ms both vt-fade, 320ms cubic-bezier(0.3, 0, 0.2, 1) both vt-slide; }
+::view-transition-old(.nav-back) { --slide-offset: 48px; animation: 140ms ease-in both vt-fade reverse, 320ms cubic-bezier(0.3, 0, 0.2, 1) both vt-slide reverse; }
+::view-transition-new(.nav-back) { --slide-offset: -48px; animation: 200ms ease-out 100ms both vt-fade, 320ms cubic-bezier(0.3, 0, 0.2, 1) both vt-slide; }
+::view-transition-old(.revelar) { animation: 120ms ease-out both vt-fade reverse; }
+::view-transition-new(.revelar) { animation: 220ms ease-out 80ms both vt-fade, 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both vt-rise; }
+
+::view-transition-group(encabezado),
+::view-transition-group(barra-inferior) { animation: none; z-index: 100; }
+::view-transition-old(encabezado),
+::view-transition-old(barra-inferior) { display: none; }
+::view-transition-new(encabezado),
+::view-transition-new(barra-inferior) { animation: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) { animation-duration: 0s !important; animation-delay: 0s !important; }
+  .aparecer, .esqueleto { animation: none; }
+  .senalar { animation: none; box-shadow: 0 0 0 3px var(--accent); }
+  .tap:active { transform: none; }
+}
+
+@media print {
+  .no-imprimir { display: none !important; }
+  body { background: #fff; }
 }

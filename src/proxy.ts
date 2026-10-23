@@ -1,13 +1,14 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
+import { modoDemo } from '@/lib/demo/activo';
 import { SUPABASE_KEY, SUPABASE_URL, supabaseConfigurado } from '@/lib/supabase/config';
 
-const PRIVADAS = ['/empresa', '/empresas'];
+const PRIVADAS = ['/empresa', '/empresas', '/chofer', '/taller', '/u', '/imprimir'];
 
 // Renueva la sesión en cada pedido y manda al inicio de sesión a quien entra sin estar logueado.
 export async function proxy(request: NextRequest) {
   let respuesta = NextResponse.next({ request });
-  if (!supabaseConfigurado()) return respuesta;
+  if (!supabaseConfigurado() || modoDemo()) return respuesta;
 
   // Si la dirección de confirmación no está autorizada en Supabase, el enlace del mail vuelve a la raíz.
   const params = request.nextUrl.searchParams;
@@ -40,6 +41,7 @@ export async function proxy(request: NextRequest) {
   return respuesta;
 }
 
+// Archivos estáticos, íconos y manifiestos de instalación no pasan por la sesión.
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|icon.svg|.*\\.(?:svg|png|jpg|jpeg|webp)$).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|icon.svg|manifests/|icono/|(?:.*/)?apple-icon|.*\\.(?:svg|png|jpg|jpeg|webp|webmanifest)$).*)'],
 };

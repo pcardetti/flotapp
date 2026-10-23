@@ -1,9 +1,9 @@
 'use server';
 
-import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { crearClienteServidor } from '@/lib/supabase/server';
 import { supabaseConfigurado } from '@/lib/supabase/config';
+import { urlBase } from '@/lib/url';
 
 export type EstadoForm = { error?: string; ok?: string; email?: string };
 
@@ -13,14 +13,6 @@ const destinoSeguro = (s: FormDataEntryValue | null) => {
   return d.startsWith('/') && !d.startsWith('//') ? d : '/empresas';
 };
 
-// En Vercel la dirección sale del pedido; una NEXT_PUBLIC_SITE_URL de localhost copiada por error se ignora.
-async function urlBase() {
-  const sitio = process.env.NEXT_PUBLIC_SITE_URL;
-  if (sitio && !(process.env.VERCEL && /localhost|127\.0\.0\.1/.test(sitio))) return sitio.replace(/\/$/, '');
-  const h = await headers();
-  const host = h.get('x-forwarded-host') ?? h.get('host');
-  return `${h.get('x-forwarded-proto') ?? 'https'}://${host}`;
-}
 
 function traducir(error: { code?: string; message: string }) {
   switch (error.code) {
@@ -67,12 +59,13 @@ export async function registrarse(_: EstadoForm, form: FormData): Promise<Estado
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { emailRedirectTo: `${await urlBase()}/auth/confirmar?siguiente=/empresas` },
+    // Después de confirmar el mail vuelve a donde estaba (por ejemplo, a aceptar una invitación).
+    options: { emailRedirectTo: `${await urlBase()}/auth/confirmar?siguiente=${encodeURIComponent(destinoSeguro(form.get('siguiente')))}` },
   });
   if (error) return { error: traducir(error), email };
   // Con la confirmación activada, Supabase no avisa que el mail ya existe: devuelve un usuario sin identidades.
   if (data.user && data.user.identities?.length === 0) return { error: 'Ya hay una cuenta con ese mail. Ingresá con tu contraseña.', email };
-  if (data.session) redirect('/empresas');
+  if (data.session) redirect(destinoSeguro(form.get('siguiente')));
   return { ok: `Te mandamos un mail a ${email}. Tocá el enlace para confirmar tu cuenta y seguir.`, email };
 }
 

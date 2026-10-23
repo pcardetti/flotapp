@@ -36,6 +36,7 @@ export default async function Flota({ params, searchParams }: { params: Promise<
   return (
     <>
       <Encabezado titulo="Flota y choferes" bajada={`${activas} unidades activas · ${choferes?.length ?? 0} choferes`}>
+        {activas > 0 && <BotonLink href={`/imprimir/qr/${org}`} variante="secundario">Imprimir QR</BotonLink>}
         {edita && (
           <>
             <BotonLink href={`${base}/choferes/nuevo`} variante="secundario">Agregar chofer</BotonLink>

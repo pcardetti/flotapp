@@ -1,0 +1,22 @@
+{
+  "id": "/taller",
+  "name": "Flotapp Taller",
+  "short_name": "Taller",
+  "description": "Fallas pendientes, trabajos y órdenes de la flota, con fotos.",
+  "lang": "es-AR",
+  "start_url": "/taller",
+  "scope": "/taller",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f2f4f7",
+  "theme_color": "#0e7490",
+  "icons": [
+    { "src": "/icono/taller-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icono/taller-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icono/taller-mascara-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Escanear unidad", "short_name": "Escanear", "url": "/taller/escanear" },
+    { "name": "Unidades", "url": "/taller/unidades" }
+  ]
+}

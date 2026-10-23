@@ -1,3 +1,4 @@
+import { Plus } from 'lucide-react';
 import Link from 'next/link';
 
 export function Marca({ chica = false }: { chica?: boolean }) {
@@ -99,8 +100,20 @@ export function Tarjeta({ children, className = '' }: { children: React.ReactNod
   return <section className={`flex min-w-0 flex-col gap-4 rounded-xl border border-line bg-surface p-5 ${className}`}>{children}</section>;
 }
 
+// Tarjeta que se abre con un toque, para los formularios de "agregar": la lista queda a la vista primero.
+export function Desplegable({ titulo, abierto = false, children }: { titulo: string; abierto?: boolean; children: React.ReactNode }) {
+  return (
+    <details open={abierto} className="group rounded-xl border border-line bg-surface">
+      <summary className="tap flex cursor-pointer list-none items-center gap-2 p-5 font-display text-xl font-bold [&::-webkit-details-marker]:hidden">
+        <Plus className="size-5 transition-transform group-open:rotate-45" />{titulo}
+      </summary>
+      <div className="px-5 pb-5">{children}</div>
+    </details>
+  );
+}
+
 export function Pildora({ tipo = 'neutro', children }: { tipo?: 'neutro' | 'ok' | 'warn' | 'crit' | 'info'; children: React.ReactNode }) {
-  const estilos = { neutro: 'bg-surface-2 text-ink-2', ok: 'bg-ok-soft text-ok', warn: 'bg-warn-soft text-warn', crit: 'bg-crit-soft text-crit', info: 'bg-accent-soft text-accent' }[tipo];
+  const estilos = { neutro: 'bg-surface-2 text-ink-2', ok: 'bg-ok-soft text-ok', warn: 'bg-warn-soft text-warn', crit: 'bg-crit-soft text-crit', info: 'bg-accent-soft text-accent-text' }[tipo];
   return <span className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ${estilos}`}>{children}</span>;
 }
 

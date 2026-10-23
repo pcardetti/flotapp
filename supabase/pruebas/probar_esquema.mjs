@@ -178,11 +178,21 @@ for (const id of [U.D, U.E, U.M]) await db.query('insert into auth.users (id) va
 const chD = (await uno('A', `insert into choferes (organizacion_id, nombre) values ($1, 'Darío Ledesma') returning id`, [f1])).id;
 const inv = (await uno('A', `insert into invitaciones (organizacion_id, rol, chofer_id, nombre) values ($1, 'chofer', $2, 'Darío') returning token`, [f1, chD])).token;
 await debeFallar('J', `insert into invitaciones (organizacion_id, rol) values ($1, 'chofer')`, [f1], 'Sólo el administrador crea invitaciones');
+await db.exec(`reset role; select set_config('request.jwt.claim.sub', '', false); set role anon;`);
+const vistaAnonima = (await db.query('select ver_invitacion($1) v', [inv])).rows[0].v;
+await db.exec('reset role');
+ok(vistaAnonima?.empresa === 'Transporte Sur', 'Sin iniciar sesión, el enlace muestra a qué empresa te invitan');
+await db.exec(`reset role; set role anon;`);
+let anonVeTablas = true;
+try { await db.query('select count(*) from invitaciones'); } catch { anonVeTablas = false; }
+await db.exec('reset role');
+ok(!anonVeTablas, 'Pero sin sesión no se puede leer ninguna tabla');
 const vista = (await uno('D', 'select ver_invitacion($1) v', [inv])).v;
 ok(vista?.empresa === 'Transporte Sur' && vista.rol === 'chofer' && vista.estado === 'vigente', 'El invitado ve empresa, rol y que la invitación está vigente');
 const acepta = (await uno('D', 'select aceptar_invitacion($1) r', [inv])).r;
 ok(acepta.rol === 'chofer', 'Al aceptar queda como chofer de la flota');
-ok((await uno('D', 'select chofer_id from miembros where organizacion_id = $1 and user_id = $2', [f1, U.D])).chofer_id === chD, 'Su cuenta queda vinculada al chofer que eligió el administrador');
+const miembroD = await uno('D', 'select chofer_id, nombre from miembros where organizacion_id = $1 and user_id = $2', [f1, U.D]);
+ok(miembroD.chofer_id === chD && miembroD.nombre === 'Darío', 'Su cuenta queda vinculada al chofer que eligió el administrador, con su nombre');
 await debeFallar('E', 'select aceptar_invitacion($1)', [inv], 'Un enlace usado no sirve para otra persona');
 const invAdmin = (await uno('A', `insert into invitaciones (organizacion_id, rol) values ($1, 'chofer') returning token`, [f1])).token;
 ok((await uno('A', 'select aceptar_invitacion($1) r', [invAdmin])).r.rol === 'admin', 'Un administrador que abre un enlace de chofer conserva su rol');
@@ -198,6 +208,8 @@ const claves = ficha.items.map((i) => i.clave);
 ok(claves.includes('enganche') && claves.includes('tacografo') && claves.length === 11, 'Un tractor pide los 11 puntos, incluidos enganche y tacógrafo');
 ok((await uno('B', 'select ficha_qr($1) f', [qr])).f === null, 'Alguien de otra flota no ve nada con ese QR');
 const todoBien = Object.fromEntries(claves.map((c) => [c, { estado: 'ok' }]));
+const qrSemi = (await uno('A', `insert into unidades (organizacion_id, dominio, tipo, marca, modelo) values ($1, 'AD 310 QS', 'semirremolque', 'Helvética', 'Sider') returning qr_token`, [f1])).qr_token;
+await debeFallar('D', 'select iniciar_viaje($1, 0, 75::smallint, $2)', [qrSemi, JSON.stringify(todoBien)], 'Con el QR de un semirremolque no se empieza un viaje');
 await debeFallar('D', 'select iniciar_viaje($1, 520000, 75::smallint, $2)', [qr, JSON.stringify({ neumaticos: { estado: 'ok' } })], 'No se sale sin completar el chequeo');
 await debeFallar('D', 'select iniciar_viaje($1, 100, 75::smallint, $2)', [qr, JSON.stringify(todoBien)], 'No se sale con un kilometraje menor al último');
 const conObs = { ...todoBien, visibilidad: { estado: 'problema', nota: 'Espejo derecho flojo', fotos: [`${f1}/fallas/espejo.jpg`] } };
@@ -233,6 +245,12 @@ ok((await uno('A', 'select estado from unidades where id = $1', [u3])).estado ==
 await como('M', `select cerrar_orden($1, 'Embrague nuevo', $2, 400000, 120000, 521350)`, [otLarga, [`${f1}/ordenes/embrague.jpg`]]);
 ok((await uno('A', 'select estado from unidades where id = $1', [u3])).estado === 'operativa', 'Al cerrarla, la unidad vuelve a servicio');
 ok((await como('M', 'update unidades set km = 1 where id = $1', [u3])).affectedRows === 0, 'El mecánico no edita unidades directamente');
+const errorDeCarga = { ...todoBien, luces: { estado: 'problema', nota: 'Me equivoqué' } };
+await uno('D', 'select iniciar_viaje($1, 521400, 40::smallint, $2) r', [qr, JSON.stringify(errorDeCarga)]);
+const fallaLuces = (await uno('M', `select id from fallas where unidad_id = $1 and sistema = 'luces' and estado = 'abierta'`, [u3])).id;
+await debeFallar('D', 'select descartar_falla($1)', [fallaLuces], 'El chofer no puede descartar fallas');
+await como('M', 'select descartar_falla($1)', [fallaLuces]);
+ok((await uno('A', 'select estado from unidades where id = $1', [u3])).estado === 'operativa', 'Al descartar una falla crítica cargada por error, la unidad vuelve a servicio');
 
 console.log('Gastos y fotos');
 await como('D', `insert into gastos (organizacion_id, categoria, monto, litros, unidad_id, chofer_id, viaje_id) values ($1, 'combustible', 180000, 150, $2, $3, $4)`, [f1, u3, chD, inicio.viaje_id]);
@@ -256,7 +274,8 @@ ok(Number(t.totales.mantenimiento) === mantenimiento && Number(t.totales.litros)
 const fu = t.por_unidad.find((x) => x.dominio === 'AE 902 BX');
 ok(fu && Number(fu.km) > 0 && Number(fu.litros) === 150 && fu.viajes === 1, 'Por unidad: km, litros y viajes (' + JSON.stringify({ km: fu?.km, litros: fu?.litros }) + ')');
 const fc = t.por_chofer.find((x) => x.nombre === 'Darío Ledesma');
-ok(fc && fc.viajes === 1 && Number(fc.km) === 800 && Number(fc.gastos) === 180000 && fc.fallas === 2, 'Por chofer: viajes, km, gastos y fallas reportadas');
+// Fallas reportadas por Darío: espejo, frenos y la de luces que después se descartó.
+ok(fc && fc.viajes === 1 && Number(fc.km) === 800 && Number(fc.gastos) === 180000 && fc.fallas === 3, 'Por chofer: viajes, km, gastos y fallas reportadas');
 ok(t.por_mes.length === 12 && t.por_categoria.length === 3, 'Serie de 12 meses y 3 categorías de costo');
 ok(t.fallas_por_sistema.some((x) => x.sistema === 'frenos'), 'Fallas agrupadas por sistema');
 ok(typeof t.ahora.en_servicio === 'number' && t.ahora.en_viaje === 0, 'Estado actual de la flota');

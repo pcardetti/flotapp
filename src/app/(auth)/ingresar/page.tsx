@@ -21,7 +21,7 @@ export default async function Ingresar({ searchParams }: { searchParams: Promise
       {aviso === 'confirmado' && <Aviso tipo="ok">Tu mail quedó confirmado. Ingresá con tu mail y tu contraseña.</Aviso>}
       <FormularioAcceso modo="ingresar" siguiente={siguiente} />
       <p className="text-sm text-ink-2">
-        ¿No tenés cuenta? <Link className="font-semibold text-accent hover:underline" href="/registrarse">Creá una</Link>
+        ¿No tenés cuenta? <Link className="font-semibold text-accent hover:underline" href={siguiente ? `/registrarse?siguiente=${encodeURIComponent(siguiente)}` : '/registrarse'}>Creá una</Link>
       </p>
     </>
   );

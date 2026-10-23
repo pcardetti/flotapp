@@ -1,8 +1,8 @@
-# Flota al Día · Arquitectura
+# Flotapp · Arquitectura
 
 Sistema de mantenimiento para flotas de camiones, pensado para venderse a varias empresas.
 Cada flota tiene sus datos separados. Talleres y recapadoras participan como proveedores y
-ven sólo lo que cada flota les asigna. "Flota al Día" es el nombre provisorio.
+ven sólo lo que cada flota les asigna.
 
 ## Tecnología
 
@@ -27,10 +27,40 @@ Una persona (usuario) puede pertenecer a varias organizaciones, con un rol en ca
 | Rol | Dónde | Qué puede hacer |
 |---|---|---|
 | Administrador | Flota y proveedores | Todo, incluido invitar personas y vincular proveedores |
-| Jefe de taller | Flota | Unidades, planes, órdenes, documentos y neumáticos |
-| Chofer | Flota | Control diario y lectura de kilometraje |
-| Consulta | Flota | Ver todo, sin modificar |
+| Jefe de taller | Flota | Unidades, planes, órdenes, documentos, gastos y neumáticos |
+| Mecánico | Flota | App Taller: fallas, trabajos y órdenes, con fotos y costos |
+| Chofer | Flota | App Chofer: chequeo de salida con el QR, viajes, gastos y fallas |
+| Consulta | Flota | Ver todo, incluido el tablero, sin modificar |
 | Operario | Taller o recapadora | Trabajar sobre lo que le asignaron |
+
+Las personas se suman con un **enlace de invitación** (un solo uso, vence en 7 días) que el administrador
+manda por WhatsApp o muestra como QR. Si el chofer ya estaba cargado, la cuenta queda vinculada a su ficha.
+
+## Las tres apps
+
+Un solo código sirve tres apps instalables, cada una con su manifiesto, ícono y color:
+
+- **Flotapp** (azul, `/empresa/<id>`): gestión y tablero. Quien es chofer o mecánico no entra acá: va a su app.
+- **Flotapp Chofer** (amarillo, `/chofer`): pensada para una mano, botones grandes, la acción principal fija abajo.
+- **Flotapp Taller** (cian, `/taller`): lo pendiente primero, agrupado por unidad y con las fallas críticas arriba.
+
+En los formularios de las apps de celular la barra de pestañas se esconde y el botón principal guía hasta
+lo que falta completar. Las transiciones entre pantallas usan las View Transitions de React (hacia adelante
+y hacia atrás), y respetan la preferencia de movimiento reducido.
+
+### Viaje con QR
+
+1. Cada unidad tiene un código propio (`unidades.qr_token`, 8 caracteres sin letras confundibles) impreso como QR.
+2. El chofer lo escanea (`/u/<código>`, o desde el escáner de la app) y hace el chequeo de salida:
+   kilometraje, combustible y los puntos de `items_chequeo` que corresponden al tipo de unidad.
+3. `iniciar_viaje` valida todo en la base: la unidad no está en viaje, en taller ni de baja, no es un remolque,
+   el chofer no tiene otro viaje, el kilometraje no baja y no falta ningún punto.
+4. Cada problema marcado crea una falla con sus fotos. Si alguno es crítico, el viaje no empieza y la unidad
+   queda en taller hasta que se resuelva (`registrar_trabajo`, `cerrar_orden` o `descartar_falla`).
+5. `terminar_viaje` registra el kilometraje y el combustible de llegada.
+
+Las fotos se achican en el celular y se suben directo a Storage (balde privado `fotos`, carpeta por empresa);
+para mostrarlas se piden enlaces firmados que vencen en una hora.
 
 ### Vínculo con proveedores
 
@@ -52,7 +82,14 @@ Con el vínculo activo:
 - `tipos_documento`, `documentos`: RTO, seguro, tacógrafo, licencias, con plazos editables por flota
 - `neumaticos`: identidad propia por código, con estado, ubicación, vidas, km y costo acumulado
 - `neumatico_eventos`: historial del neumático; no se puede editar ni borrar
-- `controles_diarios`, `configuracion`
+- `items_chequeo`, `chequeos`, `viajes`: chequeo de salida y viajes con kilometraje y combustible
+- `fallas`: lo que reportan los choferes o sale del chequeo, con gravedad, fotos y estado
+- `gastos`: combustible (con litros), peajes, viáticos, seguros, patentes y otros, por unidad y chofer
+- `invitaciones`, `configuracion`
+
+El **tablero** (`tablero(org, desde, hasta)`) calcula en la base el costo operativo, costo por km, consumo,
+gastos por categoría y por mes, y los totales por unidad y por chofer. Sólo lo ven administración, jefe de
+taller y consulta.
 
 ## Cómo se garantiza el aislamiento
 
@@ -61,18 +98,21 @@ Con el vínculo activo:
 - **Operaciones sensibles en funciones de la base**: montar, rotar, desmontar y recapar neumáticos, y las acciones de talleres y recapadoras. Cada una valida permisos y deja el historial en la misma transacción.
 - **Reglas de vínculo**: sólo el proveedor acepta; un vínculo no puede redirigirse a otra flota; no se deriva trabajo a un proveedor sin vínculo activo.
 
-`supabase/pruebas/probar_esquema.mjs` levanta un Postgres local (PGlite), aplica la migración y corre 36 pruebas de aislamiento, roles, vínculos, órdenes y neumáticos. Todas pasan.
+`supabase/pruebas/probar_esquema.mjs` levanta un Postgres local (PGlite), aplica las migraciones en orden y corre 109 pruebas de aislamiento, roles, vínculos, órdenes, neumáticos, invitaciones, viajes con chequeo, taller, fotos y tablero. Todas pasan.
+
+Para ver las pantallas sin base ni cuentas está el **modo demo** (`npm run demo`, sólo en desarrollo): un cliente de Supabase de mentira (`src/lib/demo`) que responde con una flota de ejemplo en memoria.
 
 ## Etapas
 
-1. **Base**
-   - Inicio de sesión, alta de empresa, invitaciones y roles.
-   - Flota y choferes, plan de mantenimiento, órdenes, vencimientos, neumáticos con historial, control diario y panel.
+1. **Base** (hecho)
+   - Inicio de sesión, alta de empresa, invitaciones por enlace y roles.
+   - Flota y choferes, vencimientos, gastos, tablero de costos.
+   - Apps Chofer y Taller instalables, QR por unidad, chequeo de salida, fallas y trabajos con fotos.
 2. **Proveedores y ruta**
+   - Plan de mantenimiento por km o fecha, neumáticos con historial en pantalla.
    - Portal de talleres y recapadoras.
-   - App del chofer instalable y con carga sin conexión.
-   - Fotos y facturas adjuntas.
-   - Avisos por mail.
+   - Carga sin conexión en la app del chofer.
+   - Avisos por mail o WhatsApp (vencimientos, fallas críticas).
 3. **Negocio**
    - Planes y cobro de suscripciones (por ejemplo Mercado Pago).
    - Combustible, importación de GPS, reportes y exportación a Excel.

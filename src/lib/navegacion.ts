@@ -9,16 +9,16 @@ export type Seccion = {
 
 const GESTION: Rol[] = ['admin', 'jefe_taller', 'lectura'];
 
-// Qué secciones ve cada tipo de empresa y cada rol. El permiso real lo controla la base;
-// esto sólo arma el menú y evita mostrar pantallas que quedarían vacías.
+// Qué secciones ve cada tipo de empresa y cada rol en la app de gestión. Choferes y mecánicos
+// usan sus propias apps. El permiso real lo controla la base; esto arma el menú.
 export const SECCIONES: Seccion[] = [
-  { ruta: 'panel', titulo: 'Panel', tipos: ['flota', 'taller', 'recapadora'] },
+  { ruta: 'panel', titulo: 'Tablero', tipos: ['flota'], roles: GESTION },
+  { ruta: 'panel', titulo: 'Panel', tipos: ['taller', 'recapadora'] },
   { ruta: 'flota', titulo: 'Flota y choferes', tipos: ['flota'], roles: GESTION },
-  { ruta: 'mantenimiento', titulo: 'Plan de mantenimiento', tipos: ['flota'], roles: GESTION },
-  { ruta: 'ordenes', titulo: 'Órdenes de trabajo', tipos: ['flota'], roles: GESTION },
+  { ruta: 'viajes', titulo: 'Viajes', tipos: ['flota'], roles: GESTION },
+  { ruta: 'taller', titulo: 'Taller', tipos: ['flota'], roles: GESTION },
+  { ruta: 'gastos', titulo: 'Gastos', tipos: ['flota'], roles: GESTION },
   { ruta: 'vencimientos', titulo: 'Vencimientos', tipos: ['flota'], roles: GESTION },
-  { ruta: 'neumaticos', titulo: 'Neumáticos', tipos: ['flota'], roles: GESTION },
-  { ruta: 'control-diario', titulo: 'Control diario', tipos: ['flota'], roles: ['admin', 'jefe_taller', 'chofer'] },
   { ruta: 'trabajos', titulo: 'Trabajos asignados', tipos: ['taller'] },
   { ruta: 'recapados', titulo: 'Neumáticos recibidos', tipos: ['recapadora'] },
   { ruta: 'proveedores', titulo: 'Talleres y recapadoras', tipos: ['flota'], roles: ['admin', 'jefe_taller'] },

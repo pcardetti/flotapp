@@ -122,7 +122,7 @@ export function mensajeDeError(error: { code?: string; message: string } | null)
   if (!error) return null;
   if (error.code === '23505' && /dominio/.test(error.message)) return 'Ya hay una unidad con esa patente en tu flota.';
   if (error.code === '23503' && /chofer/.test(error.message)) return 'Ese chofer ya no existe. Recargá la página y elegilo de nuevo.';
-  if (error.code === '23503') return 'No se puede eliminar: la unidad tiene órdenes de trabajo o neumáticos montados. Marcala como "De baja" para conservar su historia.';
+  if (error.code === '23503') return 'No se puede eliminar: la unidad tiene historia (viajes, órdenes de trabajo o neumáticos). Marcala como "De baja" para conservarla.';
   if (error.code === '42501' || /row-level security/i.test(error.message)) return 'Tu rol no permite hacer este cambio.';
   if (error.code === '23514') return 'Algún dato no es válido. Revisá los campos.';
   return 'No pudimos guardar los cambios. Probá de nuevo en unos segundos.';

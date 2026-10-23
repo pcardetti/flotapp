@@ -1,9 +1,9 @@
 export function Encabezado({ titulo, bajada, children }: { titulo: string; bajada?: string; children?: React.ReactNode }) {
   return (
     <div className="flex flex-wrap items-end justify-between gap-3">
-      <div className="flex min-w-0 flex-col gap-1.5">
-        {bajada && <span className="eyebrow">{bajada}</span>}
+      <div className="flex min-w-0 flex-col gap-0.5">
         <h1 className="font-display text-3xl font-bold leading-tight sm:text-4xl">{titulo}</h1>
+        {bajada && <p className="text-sm text-ink-3">{bajada}</p>}
       </div>
       {children && <div className="flex flex-wrap gap-2">{children}</div>}
     </div>

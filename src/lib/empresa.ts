@@ -4,7 +4,7 @@ import { avisarError, crearClienteServidor, usuarioActual } from '@/lib/supabase
 import { puedeVer } from '@/lib/navegacion';
 
 export type TipoOrganizacion = 'flota' | 'taller' | 'recapadora';
-export type Rol = 'admin' | 'jefe_taller' | 'chofer' | 'lectura' | 'operario';
+export type Rol = 'admin' | 'jefe_taller' | 'mecanico' | 'chofer' | 'lectura' | 'operario';
 
 export type Organizacion = { id: string; nombre: string; tipo: TipoOrganizacion };
 export type Membresia = { rol: Rol; organizacion: Organizacion };
@@ -18,6 +18,7 @@ export const NOMBRE_TIPO: Record<TipoOrganizacion, string> = {
 export const NOMBRE_ROL: Record<Rol, string> = {
   admin: 'Administrador',
   jefe_taller: 'Jefe de taller',
+  mecanico: 'Mecánico',
   chofer: 'Chofer',
   lectura: 'Consulta',
   operario: 'Operario',

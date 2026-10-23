@@ -1,0 +1,17 @@
+{
+  "id": "/empresas",
+  "name": "Flotapp",
+  "short_name": "Flotapp",
+  "description": "Tablero de costos, viajes, taller y vencimientos de tu flota.",
+  "lang": "es-AR",
+  "start_url": "/empresas",
+  "scope": "/empresa",
+  "display": "standalone",
+  "background_color": "#f2f4f7",
+  "theme_color": "#1d4f91",
+  "icons": [
+    { "src": "/icono/flota-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icono/flota-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icono/flota-mascara-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

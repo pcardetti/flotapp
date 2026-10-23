@@ -116,5 +116,44 @@ ok((await como('A', `update neumatico_eventos set detalle = 'x' where neumatico_
 ok((await como('A', `delete from neumatico_eventos where neumatico_id = $1`, [n1])).affectedRows === 0, 'El historial no se puede borrar');
 ok((await uno('B', 'select count(*)::int n from neumatico_eventos')).n === 1, 'B sólo ve el historial de su propio neumático');
 
+// Las mismas operaciones que hacen las pantallas de Flota y choferes, con los códigos de error que la app traduce.
+console.log('Carga de unidades y choferes');
+async function esperarError(user, sql, p, codigo, patron, msg) {
+  try { await como(user, sql, p); ok(false, msg + ' (no falló)'); } catch (e) { ok(e.code === codigo && patron.test(e.message), `${msg} → ${e.code} ${e.message.split('\n')[0]}`); }
+}
+U.J = 'ffffffff-0000-0000-0000-000000000006';
+U.L = '99999999-0000-0000-0000-000000000007';
+for (const id of [U.J, U.L]) await db.query('insert into auth.users (id) values ($1)', [id]);
+await como('A', `insert into miembros (organizacion_id, user_id, rol) values ($1, $2, 'jefe_taller'), ($1, $3, 'lectura')`, [f1, U.J, U.L]);
+const ch1 = (await uno('J', `insert into choferes (organizacion_id, nombre) values ($1, 'Ana Paz') returning id`, [f1])).id;
+const chB = (await uno('B', `insert into choferes (organizacion_id, nombre) values ($1, 'Otro chofer') returning id`, [f2])).id;
+const insUnidad = `insert into unidades (organizacion_id, dominio, tipo, marca, modelo, km, chofer_id) values ($1, $2, 'tractor', 'Iveco', 'Hi-Way', $3, $4) returning id`;
+const u3 = (await uno('J', insUnidad, [f1, 'AE 902 BX', 518400, ch1])).id;
+ok(!!u3, 'El jefe de taller carga una unidad con un chofer de su flota');
+await esperarError('J', insUnidad, [f1, 'AA 111 AA', 1000, chB], '23503', /chofer/, 'No se asigna un chofer de otra flota');
+await esperarError('J', insUnidad, [f1, 'AE 902 BX', 1, null], '23505', /dominio/, 'No se repite la patente en la misma flota');
+ok(!!(await uno('B', insUnidad, [f2, 'AE 902 BX', 1, null])).id, 'Otra flota puede tener una unidad con la misma patente');
+await esperarError('L', insUnidad, [f1, 'AB 222 CD', 1, null], '42501', /row-level security/, 'El rol consulta no puede cargar unidades');
+
+await como('J', `insert into lecturas_km (organizacion_id, unidad_id, km, origen) values ($1, $2, 520000, 'manual')`, [f1, u3]);
+ok((await uno('L', 'select km from unidades where id = $1', [u3])).km === 520000, 'Una lectura mayor actualiza el km (y el rol consulta la ve)');
+ok((await como('J', 'update unidades set km = 519000 where id = $1', [u3])).affectedRows === 1, 'El jefe de taller corrige el km desde Editar');
+await como('J', `insert into lecturas_km (organizacion_id, unidad_id, km, origen) values ($1, $2, 519000, 'correccion')`, [f1, u3]);
+ok((await uno('A', 'select km from unidades where id = $1', [u3])).km === 519000, 'La corrección hacia abajo queda en 519.000 km');
+ok((await uno('A', 'select count(*)::int n from lecturas_km where unidad_id = $1', [u3])).n === 2, 'Las lecturas quedan en el historial');
+
+await como('A', `insert into ordenes (organizacion_id, unidad_id, tipo, descripcion) values ($1, $2, 'correctivo', 'Frenos')`, [f1, u3]);
+await esperarError('A', 'delete from unidades where id = $1', [u3], '23503', /ordenes/, 'No se elimina una unidad con órdenes de trabajo');
+const u4 = (await uno('J', `insert into unidades (organizacion_id, dominio, tipo, marca, modelo) values ($1, 'AC 774 SN', 'semirremolque', 'Helvética', 'Sider') returning id, km`, [f1]));
+ok(u4.km === null, 'Un semirremolque se carga sin kilometraje');
+ok((await como('J', 'delete from unidades where id = $1', [u4.id])).affectedRows === 0, 'El jefe de taller no puede eliminar unidades');
+ok((await como('A', 'delete from unidades where id = $1', [u4.id])).affectedRows === 1, 'El administrador elimina una unidad sin historia');
+
+const tipoLic = (await uno('A', `select id from tipos_documento where organizacion_id = $1 and aplica = 'chofer' limit 1`, [f1])).id;
+await como('J', `insert into documentos (organizacion_id, tipo_documento_id, chofer_id, vence) values ($1, $2, $3, current_date + 300)`, [f1, tipoLic, ch1]);
+ok((await como('J', 'delete from choferes where id = $1', [ch1])).affectedRows === 1, 'El jefe de taller elimina un chofer');
+ok((await uno('A', 'select chofer_id from unidades where id = $1', [u3])).chofer_id === null, 'Su unidad queda sin chofer asignado');
+ok((await uno('A', 'select count(*)::int n from documentos where chofer_id = $1', [ch1])).n === 0, 'Sus documentos se borran con él');
+
 console.log(fallas ? `\n${fallas} pruebas fallaron` : '\nTodas las pruebas pasaron');
 process.exit(fallas ? 1 : 0);

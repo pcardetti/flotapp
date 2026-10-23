@@ -23,7 +23,9 @@ export const NOMBRE_ROL: Record<Rol, string> = {
   operario: 'Operario',
 };
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export const esGestor = (rol: Rol) => rol === 'admin' || rol === 'jefe_taller';
 
 export const misEmpresas = cache(async (): Promise<Membresia[]> => {
   const usuario = await usuarioActual();

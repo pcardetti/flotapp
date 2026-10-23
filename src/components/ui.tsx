@@ -24,11 +24,12 @@ export function Patente({ dominio }: { dominio: string }) {
   );
 }
 
-export function Boton({ children, variante = 'primario', className = '', ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variante?: 'primario' | 'secundario' | 'fantasma' }) {
+export function Boton({ children, variante = 'primario', className = '', ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variante?: 'primario' | 'secundario' | 'fantasma' | 'peligro' }) {
   const estilos = {
     primario: 'bg-accent text-accent-ink border-accent hover:brightness-110',
     secundario: 'bg-surface text-ink border-line hover:border-ink-3',
     fantasma: 'bg-transparent text-ink-2 border-transparent hover:bg-surface-2',
+    peligro: 'bg-crit text-bg border-crit hover:brightness-110',
   }[variante];
   return (
     <button {...props} className={`inline-flex items-center justify-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition disabled:cursor-default disabled:opacity-60 ${estilos} ${className}`}>
@@ -46,13 +47,46 @@ export function BotonLink({ href, children, variante = 'primario' }: { href: str
   );
 }
 
-export function Campo({ label, name, ayuda, ...props }: React.InputHTMLAttributes<HTMLInputElement> & { label: string; name: string; ayuda?: string }) {
+const control = (error?: string) =>
+  `w-full min-w-0 rounded-lg border bg-surface px-3 py-2 outline-none focus:border-transparent focus:ring-2 focus:ring-accent ${error ? 'border-crit' : 'border-line'}`;
+
+function Nota({ id, ayuda, error }: { id: string; ayuda?: string; error?: string }) {
+  if (!error && !ayuda) return null;
+  return <span id={id} className={`text-xs ${error ? 'font-semibold text-crit' : 'text-ink-3'}`}>{error ?? ayuda}</span>;
+}
+
+export function Campo({ label, name, ayuda, error, className = '', ...props }: React.InputHTMLAttributes<HTMLInputElement> & { label: string; name: string; ayuda?: string; error?: string }) {
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className={`flex min-w-0 flex-col gap-1.5 ${className}`}>
       <label htmlFor={name} className="text-sm font-semibold text-ink-2">{label}</label>
-      <input id={name} name={name} {...props} className="rounded-lg border border-line bg-surface px-3 py-2 outline-none focus:border-transparent focus:ring-2 focus:ring-accent" />
-      {ayuda && <span className="text-xs text-ink-3">{ayuda}</span>}
+      <input id={name} name={name} aria-invalid={error ? true : undefined} aria-describedby={error || ayuda ? `${name}-nota` : undefined} {...props} className={control(error)} />
+      <Nota id={`${name}-nota`} ayuda={ayuda} error={error} />
     </div>
+  );
+}
+
+export function Seleccion({ label, name, opciones, vacio, ayuda, error, className = '', ...props }: React.SelectHTMLAttributes<HTMLSelectElement> & { label: string; name: string; opciones: { valor: string; texto: string }[]; vacio?: string; ayuda?: string; error?: string }) {
+  return (
+    <div className={`flex min-w-0 flex-col gap-1.5 ${className}`}>
+      <label htmlFor={name} className="text-sm font-semibold text-ink-2">{label}</label>
+      <select id={name} name={name} aria-invalid={error ? true : undefined} aria-describedby={error || ayuda ? `${name}-nota` : undefined} {...props} className={control(error)}>
+        {vacio !== undefined && <option value="">{vacio}</option>}
+        {opciones.map((o) => <option key={o.valor} value={o.valor}>{o.texto}</option>)}
+      </select>
+      <Nota id={`${name}-nota`} ayuda={ayuda} error={error} />
+    </div>
+  );
+}
+
+export function Casilla({ label, name, ayuda, ...props }: React.InputHTMLAttributes<HTMLInputElement> & { label: string; name: string; ayuda?: string }) {
+  return (
+    <label htmlFor={name} className="flex cursor-pointer items-start gap-3">
+      <input id={name} name={name} type="checkbox" {...props} className="mt-0.5 size-[18px] accent-[var(--accent)]" />
+      <span className="flex flex-col">
+        <span className="text-sm font-semibold text-ink-2">{label}</span>
+        {ayuda && <span className="text-xs text-ink-3">{ayuda}</span>}
+      </span>
+    </label>
   );
 }
 

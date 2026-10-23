@@ -28,8 +28,12 @@ function devolver(form: FormData | null, estado: EstadoForm): EstadoForm {
   return { ...estado, valores, clave: Date.now() };
 }
 
+// Patente repetida (23505) y unidad con historia (23503) son errores esperables de carga: se avisan en pantalla,
+// pero no ensucian el registro del servidor, que queda para fallas reales.
+const ESPERABLES = ['23505', '23503'];
+
 function fallo(donde: string, form: FormData | null, error: { code?: string; message: string }): EstadoForm {
-  avisarError(donde, error);
+  if (!ESPERABLES.includes(error.code ?? '')) avisarError(donde, error);
   const mensaje = mensajeDeError(error)!;
   return devolver(form, error.code === '23505' ? { error: mensaje, errores: { dominio: mensaje } } : { error: mensaje });
 }

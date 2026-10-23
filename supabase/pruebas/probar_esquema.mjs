@@ -1,15 +1,15 @@
-// Prueba el esquema en un Postgres local (PGlite): aislamiento entre empresas, roles, vínculos y neumáticos.
-// Desde la raíz del repo:
-//   npm install --no-save @electric-sql/pglite@0.5.8
-//   node supabase/pruebas/probar_esquema.mjs
-import { readFileSync } from 'node:fs';
+// Prueba el esquema en un Postgres local (PGlite): aislamiento entre empresas, roles, vínculos, neumáticos,
+// viajes con chequeo, taller, gastos, fotos, invitaciones y tablero.
+// Desde la raíz del repo: npm run test:db
+import { readdirSync, readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { join } from 'node:path';
 
-const [modDir = join(process.cwd(), 'node_modules'), migracion = join(process.cwd(), 'supabase', 'migrations', '0001_esquema_inicial.sql')] = process.argv.slice(2);
+const [modDir = join(process.cwd(), 'node_modules'), carpeta = join(process.cwd(), 'supabase', 'migrations')] = process.argv.slice(2);
 const { PGlite } = await import(pathToFileURL(join(modDir, '@electric-sql', 'pglite', 'dist', 'index.js')).href);
 const db = new PGlite();
 
+// Lo mínimo de Supabase que usan las migraciones: auth.uid() y el esquema de Storage.
 await db.exec(`
   create role anon nologin; create role authenticated nologin;
   create schema auth;
@@ -18,9 +18,18 @@ await db.exec(`
   grant usage on schema auth to authenticated, anon;
   grant execute on function auth.uid() to authenticated, anon;
   grant usage on schema public to authenticated, anon;
+  create schema storage;
+  create table storage.buckets (id text primary key, name text, public boolean, file_size_limit bigint, allowed_mime_types text[]);
+  create table storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text, name text, owner uuid default auth.uid());
+  alter table storage.objects enable row level security;
+  grant usage on schema storage to authenticated;
+  grant select, insert, delete on storage.objects to authenticated;
 `);
-await db.exec(readFileSync(migracion, 'utf8'));
-console.log('Migración aplicada');
+// Cada archivo en una transacción, como el SQL Editor de Supabase.
+for (const archivo of readdirSync(carpeta).filter((f) => f.endsWith('.sql')).sort()) {
+  await db.exec(readFileSync(join(carpeta, archivo), 'utf8'));
+  console.log('Migración aplicada: ' + archivo);
+}
 
 const U = { A: 'aaaaaaaa-0000-0000-0000-000000000001', B: 'bbbbbbbb-0000-0000-0000-000000000002', C: 'cccccccc-0000-0000-0000-000000000003', T: 'dddddddd-0000-0000-0000-000000000004', R: 'eeeeeeee-0000-0000-0000-000000000005' };
 for (const id of Object.values(U)) await db.query('insert into auth.users (id) values ($1)', [id]);
@@ -154,6 +163,106 @@ await como('J', `insert into documentos (organizacion_id, tipo_documento_id, cho
 ok((await como('J', 'delete from choferes where id = $1', [ch1])).affectedRows === 1, 'El jefe de taller elimina un chofer');
 ok((await uno('A', 'select chofer_id from unidades where id = $1', [u3])).chofer_id === null, 'Su unidad queda sin chofer asignado');
 ok((await uno('A', 'select count(*)::int n from documentos where chofer_id = $1', [ch1])).n === 0, 'Sus documentos se borran con él');
+
+// ───────────── 0002: QR, invitaciones, viajes, taller, gastos, fotos y tablero ─────────────
+console.log('QR por unidad');
+const qr = (await uno('A', 'select qr_token from unidades where id = $1', [u3])).qr_token;
+ok(/^[A-HJ-NP-Z2-9]{8}$/.test(qr), 'Cada unidad tiene un código QR de 8 caracteres sin 0/O ni 1/I');
+ok((await uno('A', 'select count(distinct qr_token) = count(*) iguales from unidades')).iguales, 'Los códigos no se repiten');
+
+console.log('Invitaciones');
+U.D = '12121212-0000-0000-0000-000000000008'; // chofer invitado
+U.E = '34343434-0000-0000-0000-000000000009'; // otra persona con el mismo enlace
+U.M = '56565656-0000-0000-0000-00000000000a'; // mecánico
+for (const id of [U.D, U.E, U.M]) await db.query('insert into auth.users (id) values ($1)', [id]);
+const chD = (await uno('A', `insert into choferes (organizacion_id, nombre) values ($1, 'Darío Ledesma') returning id`, [f1])).id;
+const inv = (await uno('A', `insert into invitaciones (organizacion_id, rol, chofer_id, nombre) values ($1, 'chofer', $2, 'Darío') returning token`, [f1, chD])).token;
+await debeFallar('J', `insert into invitaciones (organizacion_id, rol) values ($1, 'chofer')`, [f1], 'Sólo el administrador crea invitaciones');
+const vista = (await uno('D', 'select ver_invitacion($1) v', [inv])).v;
+ok(vista?.empresa === 'Transporte Sur' && vista.rol === 'chofer' && vista.estado === 'vigente', 'El invitado ve empresa, rol y que la invitación está vigente');
+const acepta = (await uno('D', 'select aceptar_invitacion($1) r', [inv])).r;
+ok(acepta.rol === 'chofer', 'Al aceptar queda como chofer de la flota');
+ok((await uno('D', 'select chofer_id from miembros where organizacion_id = $1 and user_id = $2', [f1, U.D])).chofer_id === chD, 'Su cuenta queda vinculada al chofer que eligió el administrador');
+await debeFallar('E', 'select aceptar_invitacion($1)', [inv], 'Un enlace usado no sirve para otra persona');
+const invAdmin = (await uno('A', `insert into invitaciones (organizacion_id, rol) values ($1, 'chofer') returning token`, [f1])).token;
+ok((await uno('A', 'select aceptar_invitacion($1) r', [invAdmin])).r.rol === 'admin', 'Un administrador que abre un enlace de chofer conserva su rol');
+const invVieja = (await uno('A', `insert into invitaciones (organizacion_id, rol, vence) values ($1, 'chofer', now() - interval '1 day') returning token`, [f1])).token;
+await debeFallar('E', 'select aceptar_invitacion($1)', [invVieja], 'Una invitación vencida no se puede usar');
+const invMec = (await uno('A', `insert into invitaciones (organizacion_id, rol) values ($1, 'mecanico') returning token`, [f1])).token;
+ok((await uno('M', 'select aceptar_invitacion($1) r', [invMec])).r.rol === 'mecanico', 'El mecánico se suma con su invitación');
+
+console.log('Viaje con chequeo previo (QR)');
+const ficha = (await uno('D', 'select ficha_qr($1) f', [qr.toLowerCase()])).f;
+ok(ficha?.unidad?.dominio === 'AE 902 BX' && ficha.mi_rol === 'chofer', 'El chofer escanea el QR y ve la unidad de su flota');
+const claves = ficha.items.map((i) => i.clave);
+ok(claves.includes('enganche') && claves.includes('tacografo') && claves.length === 11, 'Un tractor pide los 11 puntos, incluidos enganche y tacógrafo');
+ok((await uno('B', 'select ficha_qr($1) f', [qr])).f === null, 'Alguien de otra flota no ve nada con ese QR');
+const todoBien = Object.fromEntries(claves.map((c) => [c, { estado: 'ok' }]));
+await debeFallar('D', 'select iniciar_viaje($1, 520000, 75::smallint, $2)', [qr, JSON.stringify({ neumaticos: { estado: 'ok' } })], 'No se sale sin completar el chequeo');
+await debeFallar('D', 'select iniciar_viaje($1, 100, 75::smallint, $2)', [qr, JSON.stringify(todoBien)], 'No se sale con un kilometraje menor al último');
+const conObs = { ...todoBien, visibilidad: { estado: 'problema', nota: 'Espejo derecho flojo', fotos: [`${f1}/fallas/espejo.jpg`] } };
+const inicio = (await uno('D', 'select iniciar_viaje($1, 520500, 75::smallint, $2, $3) r', [qr, JSON.stringify(conObs), 'Rosario'])).r;
+ok(inicio.estado === 'iniciado', 'Con todo revisado y un problema menor, el viaje empieza');
+const fallaEspejo = await uno('M', `select gravedad, fotos, descripcion from fallas where unidad_id = $1 and sistema = 'visibilidad'`, [u3]);
+ok(fallaEspejo?.gravedad === 'moderada' && fallaEspejo.fotos.length === 1 && fallaEspejo.descripcion === 'Espejo derecho flojo', 'El problema menor queda como falla con su foto para el taller');
+await debeFallar('D', 'select iniciar_viaje($1, 520500, 75::smallint, $2)', [qr, JSON.stringify(todoBien)], 'No se puede empezar un segundo viaje');
+await debeFallar('A', 'select iniciar_viaje($1, 520500, 75::smallint, $2)', [qr, JSON.stringify(todoBien)], 'Otra persona no puede salir con una unidad que ya está en viaje');
+ok((await uno('D', 'select count(*)::int n from viajes')).n === 1 && (await uno('C', 'select count(*)::int n from viajes')).n === 0, 'Cada chofer ve sólo sus viajes');
+ok((await uno('M', 'select count(*)::int n from viajes')).n === 1, 'El mecánico ve los viajes de la flota');
+await debeFallar('D', 'select terminar_viaje($1, 500000, 50::smallint)', [inicio.viaje_id], 'No se termina con menos km que al salir');
+await como('D', 'select terminar_viaje($1, 521300, 40::smallint)', [inicio.viaje_id]);
+const fin = await uno('A', 'select v.estado, v.km_fin, u.km from viajes v join unidades u on u.id = v.unidad_id where v.id = $1', [inicio.viaje_id]);
+ok(fin.estado === 'terminado' && fin.km_fin === 521300 && fin.km === 521300, 'Al terminar se registran los km y la unidad queda actualizada');
+
+console.log('Falla crítica');
+const critico = { ...todoBien, frenos: { estado: 'problema', nota: 'Pierde aire', fotos: [`${f1}/fallas/aire.jpg`] } };
+const bloqueo = (await uno('D', 'select iniciar_viaje($1, 521300, 40::smallint, $2) r', [qr, JSON.stringify(critico)])).r;
+ok(bloqueo.estado === 'bloqueado' && bloqueo.fallas_criticas === 1, 'Con una falla crítica el viaje no empieza');
+ok((await uno('A', 'select estado from unidades where id = $1', [u3])).estado === 'taller', 'La unidad pasa sola a "En taller"');
+await debeFallar('D', 'select iniciar_viaje($1, 521300, 40::smallint, $2)', [qr, JSON.stringify(todoBien)], 'Nadie sale con la unidad hasta que el taller la libere');
+await debeFallar('D', 'select liberar_unidad_si_corresponde($1)', [u3], 'Un chofer no puede liberar la unidad por su cuenta');
+const fallaFrenos = (await uno('M', `select id from fallas where unidad_id = $1 and sistema = 'frenos' and estado = 'abierta'`, [u3])).id;
+await debeFallar('D', `select registrar_trabajo($1, 'correctivo', 'Frenos', 'x')`, [u3], 'El chofer no registra trabajos de taller');
+const otFrenos = (await uno('M', `select registrar_trabajo($1, 'correctivo', 'Frenos: pérdida de aire', 'Cambio de pulmón trasero', $2, 85000, 30000, null, $3) id`, [u3, [`${f1}/ordenes/pulmon.jpg`], [fallaFrenos]])).id;
+const otFila = await uno('A', 'select estado, numero, fotos, repuestos::int r from ordenes where id = $1', [otFrenos]);
+ok(otFila.estado === 'cerrada' && otFila.numero > 0 && otFila.fotos.length === 1 && otFila.r === 85000, 'El mecánico resuelve en un paso: orden cerrada con número, foto y costos');
+ok((await uno('A', 'select estado from fallas where id = $1', [fallaFrenos])).estado === 'resuelta', 'La falla queda resuelta y vinculada a la orden');
+ok((await uno('A', 'select estado from unidades where id = $1', [u3])).estado === 'operativa', 'La unidad vuelve sola a "En servicio"');
+const otLarga = (await uno('M', `select abrir_orden($1, 'Cambio de embrague') id`, [u3])).id;
+ok((await uno('A', 'select estado from unidades where id = $1', [u3])).estado === 'taller', 'Una orden larga deja la unidad en el taller');
+await como('M', `select cerrar_orden($1, 'Embrague nuevo', $2, 400000, 120000, 521350)`, [otLarga, [`${f1}/ordenes/embrague.jpg`]]);
+ok((await uno('A', 'select estado from unidades where id = $1', [u3])).estado === 'operativa', 'Al cerrarla, la unidad vuelve a servicio');
+ok((await como('M', 'update unidades set km = 1 where id = $1', [u3])).affectedRows === 0, 'El mecánico no edita unidades directamente');
+
+console.log('Gastos y fotos');
+await como('D', `insert into gastos (organizacion_id, categoria, monto, litros, unidad_id, chofer_id, viaje_id) values ($1, 'combustible', 180000, 150, $2, $3, $4)`, [f1, u3, chD, inicio.viaje_id]);
+const chOtro = (await uno('A', `insert into choferes (organizacion_id, nombre) values ($1, 'Otro chofer') returning id`, [f1])).id;
+await debeFallar('D', `insert into gastos (organizacion_id, categoria, monto, chofer_id) values ($1, 'peaje', 5000, $2)`, [f1, chOtro], 'El chofer no carga gastos a nombre de otro');
+await como('A', `insert into gastos (organizacion_id, categoria, monto) values ($1, 'seguro', 250000)`, [f1]);
+ok((await uno('D', 'select count(*)::int n from gastos')).n === 1, 'El chofer ve sólo sus gastos');
+ok((await uno('L', 'select count(*)::int n from gastos')).n === 2, 'La gerencia ve todos los gastos');
+ok((await uno('M', 'select count(*)::int n from gastos')).n === 0, 'El mecánico no ve gastos');
+await como('D', `insert into storage.objects (bucket_id, name) values ('fotos', $1)`, [`${f1}/fallas/rueda.jpg`]);
+await debeFallar('D', `insert into storage.objects (bucket_id, name) values ('fotos', $1)`, [`${f2}/fallas/rueda.jpg`], 'Nadie sube fotos a la carpeta de otra flota');
+await debeFallar('L', `insert into storage.objects (bucket_id, name) values ('fotos', $1)`, [`${f1}/fallas/x.jpg`], 'El rol consulta no sube fotos');
+ok((await uno('B', 'select count(*)::int n from storage.objects')).n === 0 && (await uno('M', 'select count(*)::int n from storage.objects')).n === 1, 'Las fotos sólo las ve la flota dueña');
+
+console.log('Tablero');
+const t = (await uno('A', `select tablero($1, current_date - 30, current_date) t`, [f1])).t;
+// Mantenimiento: 115.000 + 520.000 de este bloque, más el 1.000.000 que cerró el taller externo más arriba.
+const mantenimiento = 85000 + 30000 + 400000 + 120000 + 1000000;
+ok(Number(t.totales.costo) === 180000 + 250000 + mantenimiento, 'Costo total = combustible + seguro + mantenimiento (' + t.totales.costo + ')');
+ok(Number(t.totales.mantenimiento) === mantenimiento && Number(t.totales.litros) === 150 && t.totales.viajes === 1, 'Mantenimiento, litros y viajes del período');
+const fu = t.por_unidad.find((x) => x.dominio === 'AE 902 BX');
+ok(fu && Number(fu.km) > 0 && Number(fu.litros) === 150 && fu.viajes === 1, 'Por unidad: km, litros y viajes (' + JSON.stringify({ km: fu?.km, litros: fu?.litros }) + ')');
+const fc = t.por_chofer.find((x) => x.nombre === 'Darío Ledesma');
+ok(fc && fc.viajes === 1 && Number(fc.km) === 800 && Number(fc.gastos) === 180000 && fc.fallas === 2, 'Por chofer: viajes, km, gastos y fallas reportadas');
+ok(t.por_mes.length === 12 && t.por_categoria.length === 3, 'Serie de 12 meses y 3 categorías de costo');
+ok(t.fallas_por_sistema.some((x) => x.sistema === 'frenos'), 'Fallas agrupadas por sistema');
+ok(typeof t.ahora.en_servicio === 'number' && t.ahora.en_viaje === 0, 'Estado actual de la flota');
+ok(!!(await uno('L', `select tablero($1, current_date - 30, current_date) t`, [f1])).t, 'El rol consulta ve el tablero');
+await debeFallar('D', `select tablero($1, current_date - 30, current_date)`, [f1], 'El chofer no ve el tablero');
+await debeFallar('M', `select tablero($1, current_date - 30, current_date)`, [f1], 'El mecánico no ve el tablero');
 
 console.log(fallas ? `\n${fallas} pruebas fallaron` : '\nTodas las pruebas pasaron');
 process.exit(fallas ? 1 : 0);

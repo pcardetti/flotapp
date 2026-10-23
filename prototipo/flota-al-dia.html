@@ -1,0 +1,1267 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Flota al Día</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>
+/* Layout: herramienta de taller. Barra lateral fija con módulos + área de trabajo; en celular la barra pasa a pestañas arriba. */
+:root{
+  --bg:#f2f4f7; --surface:#ffffff; --surface-2:#e8ecf1; --ink:#142133; --ink-2:#47566a; --ink-3:#6b7889; --line:#d3dae3;
+  --accent:#1d4f91; --accent-ink:#ffffff; --accent-soft:#dfe9f7; --road:#e0a400;
+  --ok:#1d7349; --ok-soft:#dcf0e4; --warn:#9a5a00; --warn-soft:#fbecd0; --crit:#b42318; --crit-soft:#fbe0dc;
+  --s1:#2a78d6; --s2:#eb6834;
+  --display:"Barlow Condensed","Arial Narrow","Roboto Condensed",sans-serif;
+  --body:"Barlow","Segoe UI",system-ui,sans-serif;
+  --shadow:0 1px 2px rgba(20,33,51,.06),0 4px 16px rgba(20,33,51,.06);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0d131b; --surface:#151d28; --surface-2:#1e2836; --ink:#e6ecf3; --ink-2:#a9b5c3; --ink-3:#8492a3; --line:#2a3646;
+  --accent:#86b4f2; --accent-ink:#0b1320; --accent-soft:#1b2d46; --road:#f0bf3a;
+  --ok:#62cf95; --ok-soft:#12301f; --warn:#f2b65c; --warn-soft:#3a2a10; --crit:#ff8b80; --crit-soft:#3f1715;
+  --s1:#3987e5; --s2:#d95926; --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.25); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0d131b; --surface:#151d28; --surface-2:#1e2836; --ink:#e6ecf3; --ink-2:#a9b5c3; --ink-3:#8492a3; --line:#2a3646;
+  --accent:#86b4f2; --accent-ink:#0b1320; --accent-soft:#1b2d46; --road:#f0bf3a;
+  --ok:#62cf95; --ok-soft:#12301f; --warn:#f2b65c; --warn-soft:#3a2a10; --crit:#ff8b80; --crit-soft:#3f1715;
+  --s1:#3987e5; --s2:#d95926; --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.25); color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--body);font-variant-numeric:tabular-nums}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+h1,h2,h3{font-family:var(--display);font-weight:700;letter-spacing:.01em;text-wrap:balance;margin:0;line-height:1.1}
+h1{font-size:2rem} h2{font-size:1.45rem} h3{font-size:1.1rem;letter-spacing:.03em}
+p{margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+.muted{color:var(--ink-3)} .small{font-size:.85rem}
+.eyebrow{font:600 .75rem/1 var(--body);text-transform:uppercase;letter-spacing:.09em;color:var(--ink-3)}
+
+.app{display:grid;grid-template-columns:220px minmax(0,1fr);gap:28px;max-width:1440px;margin:0 auto;padding-block:20px 56px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.side{position:sticky;top:calc(env(safe-area-inset-top,0px) + 20px);align-self:start;display:flex;flex-direction:column;gap:18px}
+.brand{display:flex;flex-direction:column;gap:6px;padding:4px 10px 14px;border-bottom:2px dashed var(--road)}
+.brand b{font:700 1.6rem/1 var(--display);letter-spacing:.02em}
+.brand span{font-size:.8rem;color:var(--ink-3)}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav button{all:unset;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 12px;border-radius:8px;color:var(--ink-2);font-weight:500}
+.nav button:hover{background:var(--surface-2);color:var(--ink)}
+.nav button[aria-current="page"]{background:var(--accent);color:var(--accent-ink)}
+.nav button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.badge{min-width:22px;padding:1px 7px;border-radius:999px;font-size:.75rem;font-weight:600;text-align:center;background:var(--crit-soft);color:var(--crit)}
+.nav button[aria-current="page"] .badge{background:var(--accent-ink);color:var(--accent)}
+.side-foot{font-size:.78rem;color:var(--ink-3);padding:0 10px}
+
+main{min-width:0;display:flex;flex-direction:column;gap:22px}
+.view-head{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:12px}
+.view-head .t{display:flex;flex-direction:column;gap:6px;min-width:0}
+.actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+
+.banner{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-radius:10px;background:var(--accent-soft);color:var(--ink);font-size:.9rem}
+.banner.warn{background:var(--warn-soft)}
+#banner:empty{display:none}
+#banner{display:flex;flex-direction:column;gap:8px;margin-bottom:-6px}
+
+.btn{cursor:pointer;display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:8px 14px;border-radius:8px;font-weight:600;font-size:.9rem;line-height:1.2;white-space:nowrap}
+.btn:hover{border-color:var(--ink-3)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.ghost{background:transparent}
+.btn.danger{color:var(--crit);border-color:var(--crit)}
+.btn.sm{padding:5px 10px;font-size:.82rem}
+.btn:disabled{opacity:.55;cursor:default}
+.linkbtn{all:unset;cursor:pointer;color:var(--accent);font-weight:600;font-size:.88rem}
+.linkbtn:hover{text-decoration:underline}
+body.readonly .w{display:none!important}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.card-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:8px}
+
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.stat .v{font:700 2rem/1.05 var(--display)}
+.stat .d{font-size:.84rem;color:var(--ink-2)}
+.stat.alert{border-color:var(--crit)}
+.grid2{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:18px;align-items:start}
+.kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.kpi{border-top:1px solid var(--line);padding-top:10px;display:flex;flex-direction:column;gap:2px}
+.kpi b{font:700 1.4rem/1.1 var(--display)}
+.kpi span{font-size:.8rem;color:var(--ink-3)}
+
+.attn{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.attn li{display:grid;grid-template-columns:9.5rem minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.attn li:first-child{border-top:0}
+.attn li>.pill{justify-self:start}
+@media (max-width:520px){.attn li{grid-template-columns:minmax(0,1fr) auto}.attn li>.pill{grid-column:1/-1}}
+.attn .what{display:flex;flex-direction:column;gap:2px;min-width:0}
+.attn .what b{font-weight:600}
+.attn .what span{font-size:.85rem;color:var(--ink-3)}
+
+.pill{display:inline-flex;align-items:center;gap:5px;padding:2px 9px 2px 7px;border-radius:999px;font-size:.78rem;font-weight:600;white-space:nowrap;background:var(--surface-2);color:var(--ink-2)}
+.pill b{font-size:.72rem}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.crit{background:var(--crit-soft);color:var(--crit)}
+.pill.info{background:var(--accent-soft);color:var(--accent)}
+
+.plate{display:inline-flex;align-items:center;justify-content:center;background:#ffffff;color:#111111;border:1.5px solid #1b1b1b;border-top:5px solid #1f4fa8;border-radius:4px;padding:2px 7px 1px;font:600 .92rem/1.2 var(--display);letter-spacing:.09em;white-space:nowrap}
+.plate.old{background:#141414;color:#f1f1f1;border-color:#6d6d6d;border-top-width:1.5px}
+.unit-cell{display:flex;align-items:center;gap:10px;min-width:0}
+.unit-cell .m{display:flex;flex-direction:column;min-width:0}
+.unit-cell .m span{font-size:.82rem;color:var(--ink-3)}
+
+.tbl-wrap{overflow-x:auto;margin:0 -18px;padding:0 18px}
+table{width:100%;border-collapse:collapse;font-size:.9rem}
+th{text-align:left;font-weight:600;font-size:.74rem;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3);padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:10px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right;white-space:nowrap}
+tr.clickable{cursor:pointer}
+tr.clickable:hover td{background:var(--surface-2)}
+td .sub{display:block;font-size:.8rem;color:var(--ink-3)}
+.row-actions{display:flex;gap:6px;justify-content:flex-end;flex-wrap:nowrap}
+
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);border-radius:999px;padding:5px 12px;font-size:.85rem;font-weight:500}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.input,select.input{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 10px;min-width:0}
+.input:focus{outline:2px solid var(--accent);outline-offset:0;border-color:transparent}
+.search{flex:1 1 220px;max-width:340px}
+
+.legend{display:flex;flex-wrap:wrap;gap:16px;font-size:.85rem;color:var(--ink-2)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.chart{position:relative}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.chart .grid{stroke:var(--line);stroke-width:1}
+.chart .base{stroke:var(--ink-3);stroke-width:1}
+.chart .tick{fill:var(--ink-3);font:500 11px var(--body)}
+.chart .dlabel{fill:var(--ink);font:600 12px var(--body)}
+.chart .s1{fill:var(--s1)} .chart .s2{fill:var(--s2)}
+.chart .hit{fill:transparent;cursor:crosshair}
+.chart .hit:hover{fill:var(--ink);fill-opacity:.05}
+.tip{position:absolute;pointer-events:none;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow);border-radius:8px;padding:8px 10px;font-size:.82rem;min-width:170px;transform:translate(-50%,-100%)}
+.tip div{display:flex;justify-content:space-between;gap:12px}
+details summary{cursor:pointer;color:var(--accent);font-weight:600;font-size:.88rem}
+details[open] summary{margin-bottom:8px}
+
+.empty{display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:26px;border:1.5px dashed var(--line);border-radius:12px;background:var(--surface)}
+.empty h2{font-size:1.6rem}
+.empty p{max-width:60ch;color:var(--ink-2)}
+
+/* Neumáticos */
+.truck{display:flex;flex-direction:column;gap:14px;padding:18px 10px;align-items:center;overflow-x:auto}
+.axle{display:grid;grid-template-columns:auto minmax(16px,1fr) auto;align-items:center;gap:8px;width:100%;max-width:400px}
+.axle .bar{height:6px;border-radius:3px;background:var(--line);position:relative}
+.axle .bar span{position:absolute;inset:-18px 0 auto;text-align:center;font:600 .72rem var(--body);color:var(--ink-3);letter-spacing:.06em}
+.side-t{display:flex;gap:4px}
+.tcode{font:600 .9rem/1 var(--display);letter-spacing:.06em;background:var(--surface-2);color:var(--ink);border:1px solid var(--line);border-radius:5px;padding:3px 6px;white-space:nowrap}
+.tcode.big{font-size:1.05rem;padding:4px 8px}
+.tire b small{font:600 .62rem var(--body);margin-left:1px;color:var(--ink-3)}
+.tire em.code{font-size:.66rem;letter-spacing:.03em}
+.tl{list-style:none;margin:0;padding:0 0 0 14px;border-left:2px solid var(--line);display:flex;flex-direction:column;gap:12px}
+.tl li{position:relative;display:grid;grid-template-columns:88px minmax(0,1fr);gap:10px}
+.tl li::before{content:"";position:absolute;left:-20px;top:5px;width:10px;height:10px;border-radius:50%;background:var(--surface);border:2px solid var(--ink-3)}
+.tl li.tl-montaje::before,.tl li.tl-alta::before{border-color:var(--accent);background:var(--accent)}
+.tl li.tl-recapado::before{border-color:var(--ok);background:var(--ok)}
+.tl li.tl-envio::before,.tl li.tl-rotacion::before{border-color:var(--warn)}
+.tl li.tl-baja::before{border-color:var(--crit);background:var(--crit)}
+.tl-f{font-size:.82rem;color:var(--ink-3);padding-top:1px}
+.tl li div{display:flex;flex-direction:column;gap:1px;min-width:0}
+.tl li div span{font-size:.86rem;color:var(--ink-2)}
+.tire{cursor:pointer;width:64px;height:92px;border-radius:9px;border:2px solid var(--ink-2);background:var(--surface);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:4px;font-size:.72rem;color:var(--ink-2);
+  background-image:repeating-linear-gradient(0deg,transparent 0 7px,var(--surface-2) 7px 9px)}
+.tire b{font:700 1.05rem/1 var(--display);color:var(--ink);background:var(--surface);padding:1px 3px;border-radius:3px}
+.tire em{font-style:normal;background:var(--surface);padding:0 3px;border-radius:3px}
+.tire.ok{border-color:var(--ok)} .tire.warn{border-color:var(--warn);background-color:var(--warn-soft)} .tire.crit{border-color:var(--crit);background-color:var(--crit-soft)}
+.tire.none{border-style:dashed;border-color:var(--line);background-image:none;color:var(--ink-3)}
+.cab{font:600 .72rem var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);border:1px solid var(--line);border-radius:8px 8px 3px 3px;padding:6px 26px;background:var(--surface-2)}
+
+/* Control diario */
+.ck-items{display:flex;flex-direction:column}
+.ck-item{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:10px 0;border-top:1px solid var(--line)}
+.ck-item:first-child{border-top:0}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg label{position:relative;cursor:pointer}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg span{display:block;padding:6px 11px;font-size:.82rem;font-weight:600;color:var(--ink-2);border-left:1px solid var(--line)}
+.seg label:first-child span{border-left:0}
+.seg input:checked+span.ok{background:var(--ok-soft);color:var(--ok)}
+.seg input:checked+span.warn{background:var(--warn-soft);color:var(--warn)}
+.seg input:checked+span.crit{background:var(--crit-soft);color:var(--crit)}
+.seg input:focus-visible+span{outline:2px solid var(--accent);outline-offset:-2px}
+.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.field.full{grid-column:1/-1}
+.field label{font-size:.82rem;font-weight:600;color:var(--ink-2)}
+.field .hint{font-size:.78rem;color:var(--ink-3)}
+.field textarea{min-height:76px;resize:vertical}
+.check{flex-direction:row;align-items:center;gap:8px}
+.check input{width:18px;height:18px}
+.form-err{color:var(--crit);font-size:.88rem;font-weight:600}
+.note{background:var(--surface-2);border-radius:8px;padding:10px 12px;font-size:.85rem;color:var(--ink-2)}
+
+/* Modal */
+.modal{position:fixed;inset:0;z-index:50;background:rgba(10,16,25,.55);display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;
+  padding:calc(env(safe-area-inset-top,0px) + 40px) max(16px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 40px) max(16px,env(safe-area-inset-left,0px))}
+.sheet{background:var(--surface);color:var(--ink);border-radius:14px;width:100%;max-width:620px;box-shadow:var(--shadow);border:1px solid var(--line)}
+.sheet.wide{max-width:920px}
+.m-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:18px 20px 12px;border-bottom:1px solid var(--line)}
+.m-head .t{display:flex;flex-direction:column;gap:6px;min-width:0}
+.m-body{padding:18px 20px;display:flex;flex-direction:column;gap:18px}
+.m-body.form-grid{display:grid}
+.m-foot{display:flex;justify-content:flex-end;gap:8px;padding:12px 20px 18px}
+.icon-btn{all:unset;cursor:pointer;width:32px;height:32px;display:grid;place-items:center;border-radius:8px;font-size:1.4rem;color:var(--ink-3)}
+.icon-btn:hover{background:var(--surface-2);color:var(--ink)}
+.dl{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.dl div{display:flex;flex-direction:column;gap:2px}
+.dl dt{font-size:.74rem;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3)}
+.dl dd{margin:0;font-weight:600}
+.sec{display:flex;flex-direction:column;gap:8px}
+.sec-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+
+#toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 20px);transform:translateX(-50%);z-index:60;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:600;font-size:.9rem;box-shadow:var(--shadow);max-width:calc(100% - 32px)}
+#toast:empty{display:none}
+
+@media (max-width:1080px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.grid2{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:860px){
+  .app{grid-template-columns:minmax(0,1fr);gap:16px;padding-top:0}
+  .side{top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);gap:8px;padding-top:12px;margin:0 calc(-1 * max(16px,env(safe-area-inset-right,0px))) 0 calc(-1 * max(16px,env(safe-area-inset-left,0px)));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));border-bottom:1px solid var(--line)}
+  .brand{flex-direction:row;align-items:baseline;gap:10px;padding:0 0 8px;border-bottom:0}
+  .brand b{font-size:1.35rem}
+  .nav{flex-direction:row;overflow-x:auto;padding-bottom:10px;scrollbar-width:none}
+  .nav button{flex:0 0 auto;padding:7px 12px}
+  .side-foot{display:none}
+  .dl{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .kpis{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:520px){
+  h1{font-size:1.7rem}
+  .form-grid{grid-template-columns:minmax(0,1fr)}
+  .stat .v{font-size:1.65rem}
+  .modal{padding-top:calc(env(safe-area-inset-top,0px) + 12px)}
+}
+@media (prefers-reduced-motion:no-preference){.btn,.chip,.nav button{transition:background-color .12s,border-color .12s}}
+</style>
+
+<div class="app">
+  <aside class="side">
+    <div class="brand"><b>Flota al Día</b><span>Mantenimiento de camiones</span></div>
+    <nav class="nav" id="nav" aria-label="Módulos"></nav>
+    <p class="side-foot">Montos en pesos nominales. Plazos normativos editables en Ajustes.</p>
+  </aside>
+  <div style="min-width:0;display:flex;flex-direction:column;gap:22px">
+    <div id="banner"></div>
+    <main id="main"><p class="muted">Conectando con los datos de la flota…</p></main>
+  </div>
+</div>
+<div id="modal" class="modal" hidden><div class="sheet" id="sheet" role="dialog" aria-modal="true"></div></div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ---------- utilidades ---------- */
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const DAY=864e5;
+const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const hoy=()=>iso(new Date());
+const parse=s=>{const [y,m,d]=String(s).split('-').map(Number);return new Date(y,m-1,d)};
+const addDays=(s,n)=>{const d=parse(s);d.setDate(d.getDate()+n);return iso(d)};
+const addMonths=(s,n)=>{const d=parse(s);d.setMonth(d.getMonth()+n);return iso(d)};
+const diff=(a,b)=>Math.round((parse(a)-parse(b))/DAY);
+const fFecha=s=>s?parse(s).toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'}):'—';
+const fNum=n=>Number(n).toLocaleString('es-AR');
+const fKm=n=>n==null||n===''?'—':fNum(n)+' km';
+const ARS=new Intl.NumberFormat('es-AR',{style:'currency',currency:'ARS',maximumFractionDigits:0});
+const fPesos=n=>ARS.format(n||0);
+const fCorto=v=>v>=1e6?'$ '+(v/1e6).toLocaleString('es-AR',{maximumFractionDigits:2})+' M':v>=1e3?'$ '+Math.round(v/1e3)+' mil':'$ '+Math.round(v);
+const plazo=d=>d===0?'hoy':d>0?'en '+d+(d===1?' día':' días'):'hace '+(-d)+(d===-1?' día':' días');
+const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const costo=o=>(+o.repuestos||0)+(+o.manoObra||0);
+
+const TIPOS_UNIDAD={tractor:'Tractor',chasis:'Camión chasis',semirremolque:'Semirremolque',acoplado:'Acoplado'};
+const ESTADO_UNIDAD={operativa:['ok','✓','En servicio'],taller:['warn','!','En taller'],baja:['','–','De baja']};
+const JURIS=['Nacional','Buenos Aires','CABA','Catamarca','Chaco','Chubut','Córdoba','Corrientes','Entre Ríos','Formosa','Jujuy','La Pampa','La Rioja','Mendoza','Misiones','Neuquén','Río Negro','Salta','San Juan','San Luis','Santa Cruz','Santa Fe','Santiago del Estero','Tierra del Fuego','Tucumán'];
+const ITEMS=[['neumaticos','Neumáticos y presión'],['luces','Luces y balizas'],['frenos','Frenos y sistema de aire'],['perdidas','Pérdidas de aceite, gasoil o agua'],['niveles','Niveles de aceite y refrigerante'],['visibilidad','Espejos, parabrisas y limpiaparabrisas'],['seguridad','Matafuego, balizas triangulares y botiquín'],['enganche','Quinta rueda, enganche y perno rey'],['tacografo','Tacógrafo funcionando'],['documentacion','Documentación a bordo']];
+const PLANTILLAS={
+  motor:{nombre:'Tractor o camión',tareas:[['Cambio de aceite y filtros de motor',40000,180],['Filtro de combustible y separador de agua',40000,180],['Engrase general',10000,30],['Revisión de frenos (cintas, tambores, regulación)',50000,180],['Filtro de aire',80000,365],['Aceite de caja y diferencial',160000,730],['Cambio de refrigerante',null,730]]},
+  remolque:{nombre:'Semirremolque o acoplado',tareas:[['Engrase y control de rodamientos',null,90],['Frenos y pulmones de aire',null,180],['Luces, conexiones y patas de apoyo',null,30],['Control de perno rey y suspensión',null,180]]}
+};
+const TIPOS_DOC_SUGERIDOS=[
+  {id:'rto',nombre:'RTO (Revisión Técnica Obligatoria)',aplica:'unidad',vigenciaMeses:12,avisoDias:30,nota:'Ley 24.449, art. 34. Para unidades que superan la antigüedad puede ser semestral. Verificá la norma vigente y tu jurisdicción.'},
+  {id:'seguro',nombre:'Seguro de responsabilidad civil',aplica:'unidad',vigenciaMeses:12,avisoDias:30,nota:''},
+  {id:'tacografo',nombre:'Control del tacógrafo',aplica:'unidad',vigenciaMeses:12,avisoDias:30,nota:'Ley 24.449, art. 53 inc. g. Ajustá el plazo al que indique el taller o la norma.'},
+  {id:'ruta',nombre:'Inscripción RUTA',aplica:'unidad',vigenciaMeses:12,avisoDias:30,nota:'Registro digital y declarativo desde el Decreto 1109/2024. Verificá si aplica a tu operación.'},
+  {id:'licencia',nombre:'Licencia de conducir profesional',aplica:'chofer',vigenciaMeses:12,avisoDias:30,nota:''},
+  {id:'peligrosas',nombre:'Curso de cargas peligrosas',aplica:'chofer',vigenciaMeses:12,avisoDias:30,nota:'Sólo para choferes que transportan mercancías peligrosas.'}
+];
+const COLS=['unidades','choferes','planes','ordenes','documentos','tiposDoc','neumaticos','checklists'];
+
+/* ---------- estado ---------- */
+const S={unidades:[],choferes:[],planes:[],ordenes:[],documentos:[],tiposDoc:[],neumaticos:[],checklists:[],config:null};
+const UI={view:'panel',q:'',tipo:'todos',planF:'todos',planU:'',otF:'abiertas',otU:'',docF:'todos',docE:'todos',neuU:'',neuTab:'unidad',neuF:'todos',neuQ:'',ck:null,ckResult:null};
+let mode='loading', db=null, canWrite=true, modalKind=null, modalId=null, CHART=null;
+const loaded=new Set();
+
+const unitById=id=>S.unidades.find(u=>u.id===id);
+const choferById=id=>S.choferes.find(c=>c.id===id);
+const tipoById=id=>S.tiposDoc.find(t=>t.id===id);
+const cfg=()=>({avisoKm:2000,avisoDias:15,profundidadMin:3,...(S.config||{})});
+const tieneMotor=u=>u&&(u.tipo==='tractor'||u.tipo==='chasis');
+const byDominio=(a,b)=>(a.dominio||'').localeCompare(b.dominio||'');
+
+/* Neumático: identidad propia (código) que conserva su historial entre montajes, rotaciones y recapados.
+   Los registros viejos, atados sólo a una posición, se completan al leerlos. */
+function neu(n){return {...n,codigo:n.codigo||('N-'+String(n.id).slice(-5).toUpperCase()),estado:n.estado||(n.unidadId?'montado':'deposito'),historial:n.historial||[],kmTotal:n.kmTotal||0,kmVida:n.kmVida||0,costoTotal:n.costoTotal||0,recapados:n.recapados||0}}
+const NEU=()=>S.neumaticos.map(neu);
+const neuById=id=>{const n=S.neumaticos.find(x=>x.id===id);return n?neu(n):null};
+function segKm(n){if(n.estado!=='montado')return 0;const u=unitById(n.unidadId);return tieneMotor(u)&&n.kmMontaje!=null&&u.km!=null?Math.max(0,u.km-n.kmMontaje):0}
+const kmTot=n=>n.kmTotal+segKm(n),kmVidaAct=n=>n.kmVida+segKm(n);
+const cerrarSeg=n=>{const s=segKm(n);return {kmTotal:n.kmTotal+s,kmVida:n.kmVida+s}};
+const hist=(n,e)=>[...n.historial,e].slice(-300);
+const costoKm=n=>{const k=kmTot(n);return k>0&&n.costoTotal?n.costoTotal/k:null};
+const fCostoKm=v=>v==null?'—':'$ '+v.toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const sigCodigo=()=>'N-'+String(Math.max(0,...NEU().map(n=>+(n.codigo.match(/^N-(\d+)$/)||[0,0])[1]))+1).padStart(4,'0');
+const TL={alta:'Alta',montaje:'Montaje',desmontaje:'Desmontaje',rotacion:'Rotación',medicion:'Medición',envio:'Enviado a recapar',recapado:'Recapado',baja:'Baja'};
+
+/* ---------- datos de ejemplo ---------- */
+function ejemplo(){
+  const H=hoy(), D=n=>addDays(H,n), E={ejemplo:true};
+  const out={unidades:[],choferes:[],planes:[],ordenes:[],documentos:[],tiposDoc:TIPOS_DOC_SUGERIDOS.map(t=>({...t})),neumaticos:[],checklists:[]};
+  const ch=[['ej-ch1','Ramón Gutiérrez'],['ej-ch2','Darío Ledesma'],['ej-ch3','Claudia Benítez'],['ej-ch4','Sergio Paz']];
+  ch.forEach(([id,nombre])=>out.choferes.push({id,nombre,telefono:'',...E}));
+  const hist=(km,r)=>{const h=[];for(let i=7;i>=0;i--)h.push({f:D(-i*30),km:km-i*r});return h};
+  const U=[
+    ['ej-u1','AF 123 KD','tractor','Mercedes-Benz','Actros 2046',2021,412300,'Nacional','operativa','ej-ch1',11500,false],
+    ['ej-u2','AD 457 TR','tractor','Scania','R 450',2019,655800,'Nacional','taller','ej-ch2',10800,false],
+    ['ej-u3','AE 902 BX','tractor','Iveco','Hi-Way 440',2020,518400,'Nacional','operativa','ej-ch3',12000,true],
+    ['ej-u4','OPQ 318','tractor','Volkswagen','Constellation 19.330',2014,890200,'Buenos Aires','operativa','ej-ch4',8000,false],
+    ['ej-u5','AG 015 LM','chasis','Mercedes-Benz','Atego 1726',2023,98400,'Santa Fe','operativa','',6000,false],
+    ['ej-u6','AC 774 SN','semirremolque','Helvética','Sider 3 ejes',2018,null,'Nacional','operativa','',0,false],
+    ['ej-u7','AD 220 QW','semirremolque','Sola & Brusa','Cisterna 3 ejes',2019,null,'Nacional','operativa','',0,true]
+  ];
+  const ritmo={};
+  U.forEach(([id,dominio,tipo,marca,modelo,anio,km,jur,estado,choferId,r,cp])=>{
+    ritmo[id]=r;
+    out.unidades.push({id,dominio,tipo,marca,modelo,anio,km,jurisdiccion:jur,estado,choferId,cargasPeligrosas:cp,kmHistorial:km?hist(km,r):[],...E});
+  });
+  const kmHace=(id,d)=>{const u=out.unidades.find(x=>x.id===id);return u.km==null?null:Math.round(u.km-d/30*ritmo[id])};
+  const frac={'ej-u1':[.96,.6,.5,.4,.7,.3,.5],'ej-u2':[1.06,1.06,.8,.5,.6,.9,.4],'ej-u3':[.5,.5,.6,1.03,.3,.5,.2],'ej-u4':[.7,.7,1.15,.6,.9,.95,.8],'ej-u5':[.2,.2,.3,.2,.1,.1,.1],'ej-u6':[.8,.95,.5,.3],'ej-u7':[1.1,.4,.7,.6]};
+  out.unidades.forEach(u=>{
+    const pl=tieneMotor(u)?PLANTILLAS.motor:PLANTILLAS.remolque;
+    pl.tareas.forEach(([tarea,cadaKm,cadaDias],j)=>{
+      const f=frac[u.id][j];
+      out.planes.push({id:u.id+'-p'+j,unidadId:u.id,tarea,cadaKm,cadaDias,ultimoKm:cadaKm&&u.km!=null?u.km-Math.round(cadaKm*f):null,ultimaFecha:D(-Math.round(cadaDias*f)),...E});
+    });
+  });
+  const OT=[
+    ['ej-u1','preventivo','Service 40.000 km: aceite y filtros de motor','Taller propio',-165,-165,980000,210000],
+    ['ej-u2','correctivo','Reemplazo de compresor de aire','Concesionario Scania Rosario',-150,-146,2850000,450000],
+    ['ej-u3','preventivo','Service de filtros y engrase','Taller propio',-140,-140,1050000,220000],
+    ['ej-u4','correctivo','Reparación de embrague','Taller Ruta 9',-120,-115,1900000,600000],
+    ['ej-u6','preventivo','Engrase y control de rodamientos','Taller propio',-110,-110,120000,90000],
+    ['ej-u1','correctivo','Cambio de lámparas y conector trasero','Taller propio',-95,-95,85000,40000],
+    ['ej-u5','preventivo','Primer service','Concesionario oficial',-80,-80,720000,180000],
+    ['ej-u3','correctivo','Pérdida de aceite en retén de cigüeñal','Iveco Zárate',-62,-59,640000,380000],
+    ['ej-u7','preventivo','Frenos y pulmones de aire','Taller propio',-55,-55,540000,160000],
+    ['ej-u2','preventivo','Aceite de caja y diferencial','Taller propio',-40,-40,1350000,260000],
+    ['ej-u4','correctivo','Reemplazo de alternador','Electricidad del Sur',-21,-20,780000,150000],
+    ['ej-u1','preventivo','Engrase general','Taller propio',-10,-10,60000,45000],
+    ['ej-u2','correctivo','Falla en inyector del cilindro 4','Concesionario Scania Rosario',-3,null,0,0],
+    ['ej-u6','correctivo','Reparación de lona y parante','Taller propio',-1,null,0,0]
+  ];
+  OT.forEach(([unidadId,tipo,descripcion,taller,fi,fe,rep,mo],i)=>out.ordenes.push({id:'ej-ot'+(i+1),numero:i+1,unidadId,tipo,descripcion,taller,fechaIngreso:D(fi),fechaEgreso:fe==null?null:D(fe),km:kmHace(unidadId,-fi),repuestos:rep,manoObra:mo,estado:fe==null?'abierta':'cerrada',enTaller:unidadId==='ej-u2',planId:null,nota:'',...E}));
+  const DOC=[['ej-u1','rto',140],['ej-u1','seguro',200],['ej-u1','tacografo',18],['ej-u2','rto',-6],['ej-u2','seguro',95],['ej-u2','tacografo',210],['ej-u3','rto',25],['ej-u3','seguro',300],['ej-u3','tacografo',160],['ej-u4','rto',60],['ej-u4','seguro',12],['ej-u4','tacografo',-30],['ej-u5','rto',320],['ej-u5','seguro',180],['ej-u6','rto',88],['ej-u6','seguro',150],['ej-u7','rto',45],['ej-u7','seguro',230]];
+  DOC.forEach(([refId,tipoId,d],i)=>out.documentos.push({id:'ej-d'+i,entidad:'unidad',refId,tipoId,numero:'',vence:D(d),...E}));
+  [['ej-ch1','licencia',400],['ej-ch2','licencia',22],['ej-ch3','licencia',180],['ej-ch4','licencia',-2],['ej-ch3','peligrosas',70]].forEach(([refId,tipoId,d],i)=>out.documentos.push({id:'ej-dc'+i,entidad:'chofer',refId,tipoId,numero:'',vence:D(d),...E}));
+  const RC='Recapados del Litoral',PR=1150000,PRC=340000;let nn=0;
+  const tire=({marca,prof,rec=0,uid=null,pos='',estado='montado',dMont=-150,kmPrev=0,fin=null})=>{
+    nn++;const id='ej-n'+nn,codigo='N-'+String(nn).padStart(4,'0'),u=uid&&out.unidades.find(x=>x.id===uid),alta=-(420+rec*210),h=[];
+    h.push({f:D(alta),tipo:'alta',detalle:marca+' 295/80 R22.5 · '+fPesos(PR)});
+    for(let r=0;r<rec;r++){h.push({f:D(alta+r*210+170),tipo:'envio',detalle:RC});h.push({f:D(alta+r*210+190),tipo:'recapado',detalle:'Vida '+(r+2)+' · '+RC+' · '+fPesos(PRC)})}
+    let kmMontaje=null;
+    if(estado==='montado'){kmMontaje=u.km!=null?Math.round(u.km-(-dMont)/30*ritmo[uid]):null;h.push({f:D(dMont),tipo:'montaje',detalle:'Montado en '+u.dominio+' · '+pos+(kmMontaje!=null?' · '+fKm(kmMontaje):''),unidadId:uid,posicion:pos});h.push({f:D(-12),tipo:'medicion',detalle:fNum(prof)+' mm'})}
+    if(fin)h.push(fin);
+    out.neumaticos.push({id,codigo,marca,medida:'295/80 R22.5',profundidad:prof,recapados:rec,precio:PR,costoTotal:PR+rec*PRC,kmTotal:kmPrev,kmVida:estado==='montado'?0:Math.round(kmPrev/(rec+1)),estado,unidadId:uid||'',posicion:pos,kmMontaje,fechaMontaje:estado==='montado'?D(dMont):null,fechaMedicion:D(-12),proveedor:estado==='recapado'?RC:'',historial:h,...E});
+  };
+  [['E1-I','Michelin',9.5,0,-150,0],['E1-D','Michelin',9.8,0,-150,0],['E2-IE','Fate',6.2,1,-240,118000],['E2-II','Fate',6.0,1,-240,121000],['E2-DI','Fate',2.6,1,-240,124000],['E2-DE','Fate',6.5,1,-240,119500]]
+    .forEach(([pos,marca,prof,rec,dMont,kmPrev])=>tire({marca,prof,rec,uid:'ej-u1',pos,dMont,kmPrev}));
+  [['E1-I','Bridgestone',8.4,0],['E1-D','Bridgestone',8.1,0],['E2-IE','Pirelli',5.9,1],['E2-II','Pirelli',5.7,1],['E2-DI','Pirelli',6.0,1],['E2-DE','Pirelli',6.3,1]]
+    .forEach(([pos,marca,prof,rec],i)=>tire({marca,prof,rec,uid:'ej-u3',pos,dMont:-180,kmPrev:rec?131000+i*900:0}));
+  const posSemi=[];['E1','E2','E3'].forEach(e=>['IE','II','DI','DE'].forEach(s=>posSemi.push(e+'-'+s)));
+  [8.1,8.3,7.9,8.0,5.4,5.1,4.9,5.6,3.6,2.9,4.1,3.8].forEach((prof,i)=>tire({marca:i<4?'Bridgestone':'Pirelli',prof,rec:i<4?1:2,uid:'ej-u6',pos:posSemi[i],dMont:-200}));
+  tire({marca:'Fate',prof:15.5,rec:1,estado:'deposito',kmPrev:236000});
+  tire({marca:'Pirelli',prof:17,estado:'deposito'});
+  tire({marca:'Fate',prof:3.1,rec:1,estado:'recapado',kmPrev:244500,fin:{f:D(-12),tipo:'envio',detalle:'Desde OPQ 318 E2-DI · '+RC}});
+  tire({marca:'Michelin',prof:5.8,estado:'baja',kmPrev:96000,fin:{f:D(-40),tipo:'baja',detalle:'Desde AD 457 TR E1-D · Corte lateral, no recapable'}});
+  const okAll=()=>Object.fromEntries(ITEMS.map(([k])=>[k,'ok']));
+  out.checklists.push({id:'ej-ck1',unidadId:'ej-u1',choferId:'ej-ch1',fecha:H,km:412300,items:okAll(),obs:'',otId:null,...E});
+  out.checklists.push({id:'ej-ck2',unidadId:'ej-u3',choferId:'ej-ch3',fecha:D(-1),km:518100,items:{...okAll(),luces:'obs'},obs:'Faro auxiliar derecho con poca intensidad.',otId:null,...E});
+  out.checklists.push({id:'ej-ck3',unidadId:'ej-u4',choferId:'ej-ch4',fecha:D(-1),km:890050,items:{...okAll(),frenos:'falla'},obs:'Pérdida de aire en pulmón trasero derecho.',otId:null,...E});
+  out.checklists.push({id:'ej-ck4',unidadId:'ej-u1',choferId:'ej-ch1',fecha:D(-2),km:411800,items:okAll(),obs:'',otId:null,...E});
+  out.checklists.push({id:'ej-ck5',unidadId:'ej-u5',choferId:'',fecha:D(-3),km:98200,items:okAll(),obs:'',otId:null,...E});
+  return out;
+}
+
+/* ---------- almacenamiento ---------- */
+async function put(col,id,data){
+  try{
+    if(mode==='demo'){
+      if(col==='config'){S.config={...data};}
+      else{const a=S[col],i=a.findIndex(x=>x.id===id);const doc={id,...data};if(i>=0)a[i]=doc;else a.push(doc);}
+      schedule();return true;
+    }
+    await db.collection(col).doc(id).set(stripId(data));return true;
+  }catch(e){return fail(e)}
+}
+async function patch(col,id,data){
+  try{
+    if(mode==='demo'){
+      if(col==='config'){S.config={...(S.config||{}),...data};}
+      else{const a=S[col],i=a.findIndex(x=>x.id===id);if(i>=0)a[i]={...a[i],...data};}
+      schedule();return true;
+    }
+    await db.collection(col).doc(id).update(stripId(data));return true;
+  }catch(e){return fail(e)}
+}
+async function del(col,id){
+  try{
+    if(mode==='demo'){S[col]=S[col].filter(x=>x.id!==id);schedule();return true;}
+    await db.collection(col).doc(id).delete();return true;
+  }catch(e){return fail(e)}
+}
+function stripId(d){const c={...d};delete c.id;return c}
+function fail(e){
+  const code=e&&e.code;
+  if(code==='invalid_argument'&&mode==='db'){canWrite=false;schedule();toast('No tenés permiso para modificar estos datos.');}
+  else if(code==='quota_exceeded')toast('Se llenó el espacio de datos. Borrá registros viejos para seguir cargando.');
+  else toast('No se pudo guardar. Probá de nuevo en unos segundos.');
+  return false;
+}
+async function setKm(unidadId,km,fecha){
+  const u=unitById(unidadId);if(!u||km==null||km==='')return;
+  km=Number(km);if(!(km>(u.km||0)))return;
+  const h=(u.kmHistorial||[]).slice();h.push({f:fecha||hoy(),km});
+  await patch('unidades',unidadId,{km,kmHistorial:h.slice(-60)});
+}
+
+/* ---------- cálculos ---------- */
+function planEstado(p){
+  const u=unitById(p.unidadId),c=cfg();let kmFalta=null,diasFalta=null;
+  if(p.cadaKm&&u&&u.km!=null&&p.ultimoKm!=null)kmFalta=p.ultimoKm+p.cadaKm-u.km;
+  if(p.cadaDias&&p.ultimaFecha)diasFalta=diff(addDays(p.ultimaFecha,p.cadaDias),hoy());
+  let est='ok';
+  if((kmFalta!=null&&kmFalta<=0)||(diasFalta!=null&&diasFalta<=0))est='vencido';
+  else if((kmFalta!=null&&kmFalta<=c.avisoKm)||(diasFalta!=null&&diasFalta<=c.avisoDias))est='proximo';
+  const r=Math.min(kmFalta!=null?kmFalta/p.cadaKm:9,diasFalta!=null?diasFalta/p.cadaDias:9);
+  return {kmFalta,diasFalta,est,r};
+}
+function docEstado(d){
+  const dias=diff(d.vence,hoy()),t=tipoById(d.tipoId),aviso=t&&t.avisoDias!=null?t.avisoDias:30;
+  return {dias,est:dias<0?'vencido':dias<=aviso?'proximo':'ok'};
+}
+function neuEstado(n){const m=cfg().profundidadMin;return n.profundidad==null?'':n.profundidad<=m?'crit':n.profundidad<=m+2?'warn':'ok'}
+function kmRecorridos(u,desde){
+  const h=(u.kmHistorial||[]).slice().sort((a,b)=>a.f<b.f?-1:1);
+  if(!h.length||u.km==null)return 0;
+  let base=h[0];for(const r of h)if(r.f<=desde)base=r;
+  return Math.max(0,u.km-base.km);
+}
+function kpis(){
+  const H=hoy(),desde=addDays(H,-365);
+  const cerr=S.ordenes.filter(o=>o.estado==='cerrada'&&(o.fechaEgreso||o.fechaIngreso)>=desde);
+  const total=cerr.reduce((a,o)=>a+costo(o),0);
+  const prev=cerr.filter(o=>o.tipo==='preventivo').reduce((a,o)=>a+costo(o),0);
+  const kmRec=S.unidades.filter(tieneMotor).reduce((a,u)=>a+kmRecorridos(u,desde),0);
+  const corr=cerr.filter(o=>o.tipo==='correctivo'&&o.fechaEgreso);
+  const mttr=corr.length?corr.reduce((a,o)=>a+Math.max(0,diff(o.fechaEgreso,o.fechaIngreso)),0)/corr.length:null;
+  const d30=S.ordenes.filter(o=>o.estado==='cerrada'&&(o.fechaEgreso||o.fechaIngreso)>=addDays(H,-30)).reduce((a,o)=>a+costo(o),0);
+  return {total,pctPrev:total?prev/total*100:null,porKm:kmRec?total/kmRec:null,kmRec,mttr,d30};
+}
+function atencion(){
+  const L=[],H=hoy(),c=cfg();
+  S.documentos.forEach(d=>{const e=docEstado(d),t=tipoById(d.tipoId);if(e.est==='ok')return;
+    L.push({sev:e.est==='vencido'?'crit':'warn',lbl:e.est==='vencido'?'Vencido':'Por vencer',t:(t?t.nombre:'Documento')+' · '+titularTxt(d),s:(e.est==='vencido'?'Venció ':'Vence ')+plazo(e.dias)+' ('+fFecha(d.vence)+')',v:'vencimientos',o:e.dias});});
+  S.planes.forEach(p=>{const e=planEstado(p),u=unitById(p.unidadId);if(e.est==='ok'||!u||u.estado==='baja')return;
+    L.push({sev:e.est==='vencido'?'crit':'warn',lbl:e.est==='vencido'?'Service vencido':'Service próximo',t:p.tarea+' · '+u.dominio,s:faltanTxt(e),v:'mantenimiento',o:e.r*100});});
+  S.checklists.forEach(k=>{const f=Object.entries(k.items||{}).filter(([,v])=>v==='falla');if(!f.length||k.otId||k.fecha<addDays(H,-7))return;const u=unitById(k.unidadId);
+    L.push({sev:'crit',lbl:'Falla reportada',t:f.map(([x])=>itemNombre(x)).join(', ')+' · '+(u?u.dominio:''),s:'Control diario del '+fFecha(k.fecha)+(k.obs?': '+k.obs:''),v:'checklist',o:-50});});
+  NEU().forEach(n=>{if(n.estado!=='montado'||neuEstado(n)!=='crit')return;const u=unitById(n.unidadId);
+    L.push({sev:'warn',lbl:'Neumático gastado',t:n.codigo+' en '+n.posicion+' · '+(u?u.dominio:''),s:fNum(n.profundidad)+' mm de dibujo (mínimo configurado '+fNum(c.profundidadMin)+' mm)',v:'neumaticos',o:0,u:n.unidadId});});
+  S.ordenes.forEach(o=>{if(o.estado!=='abierta')return;const d=diff(H,o.fechaIngreso);if(d<7)return;const u=unitById(o.unidadId);
+    L.push({sev:'warn',lbl:'Orden demorada',t:'OT '+o.numero+' · '+(u?u.dominio:''),s:o.descripcion+' · abierta hace '+d+' días',v:'ordenes',o:-d});});
+  return L.sort((a,b)=>(a.sev===b.sev?a.o-b.o:a.sev==='crit'?-1:1));
+}
+const itemNombre=k=>(ITEMS.find(i=>i[0]===k)||[k,k])[1];
+function titularTxt(d){if(d.entidad==='chofer'){const c=choferById(d.refId);return c?c.nombre:'Chofer eliminado'}const u=unitById(d.refId);return u?u.dominio:'Unidad eliminada'}
+function faltanTxt(e){
+  const p=[];
+  if(e.kmFalta!=null)p.push(e.kmFalta>=0?'faltan '+fNum(e.kmFalta)+' km':'pasado por '+fNum(-e.kmFalta)+' km');
+  if(e.diasFalta!=null)p.push(e.diasFalta>=0?(e.diasFalta===0?'vence hoy':'faltan '+e.diasFalta+' días'):'vencido hace '+(-e.diasFalta)+' días');
+  return p.join(' · ')||'Sin datos de último service';
+}
+
+/* ---------- piezas visuales ---------- */
+function plate(dom){const d=String(dom||'S/D').toUpperCase().trim();return `<span class="plate${/^[A-Z]{3}\s?\d{3}$/.test(d)?' old':''}">${esc(d)}</span>`}
+function pill(kind,sym,label){return `<span class="pill ${kind}"><b aria-hidden="true">${sym}</b>${esc(label)}</span>`}
+const EST={vencido:['crit','✕','Vencido'],proximo:['warn','!','Próximo'],ok:['ok','✓','Al día']};
+const estPill=e=>pill(...EST[e]);
+const unitPill=u=>pill(...(ESTADO_UNIDAD[u.estado]||ESTADO_UNIDAD.operativa));
+function unitCell(u,extra){if(!u)return '<span class="muted">Unidad eliminada</span>';return `<div class="unit-cell">${plate(u.dominio)}<div class="m"><b>${esc(u.marca)} ${esc(u.modelo)}</b><span>${esc(extra!=null?extra:TIPOS_UNIDAD[u.tipo]+(u.anio?' · '+u.anio:''))}</span></div></div>`}
+function chips(k,opts){return `<div class="chips" role="group">${opts.map(([v,l])=>`<button class="chip" data-act="filtro" data-k="${k}" data-v="${v}" aria-pressed="${UI[k]===v}">${esc(l)}</button>`).join('')}</div>`}
+function unitOptions(sel,filter,blank){const us=S.unidades.filter(filter||(()=>true)).slice().sort(byDominio);return (blank?`<option value="">${esc(blank)}</option>`:'')+us.map(u=>`<option value="${u.id}"${u.id===sel?' selected':''}>${esc(u.dominio)} · ${esc(u.marca)} ${esc(u.modelo)}</option>`).join('')}
+const uOpts=(f)=>S.unidades.filter(f||(()=>true)).slice().sort(byDominio).map(u=>({v:u.id,l:u.dominio+' · '+u.marca+' '+u.modelo}));
+const cOpts=()=>S.choferes.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(c=>({v:c.id,l:c.nombre}));
+
+/* ---------- vistas ---------- */
+const VIEWS=[['panel','Panel'],['flota','Flota y choferes'],['mantenimiento','Plan de mantenimiento'],['ordenes','Órdenes de trabajo'],['vencimientos','Vencimientos'],['neumaticos','Neumáticos'],['checklist','Control diario'],['ajustes','Ajustes']];
+
+function vacio(){
+  return `<div class="empty"><span class="eyebrow">Primeros pasos</span><h2>Todavía no hay unidades cargadas</h2>
+  <p>Cargá tus camiones, semirremolques y choferes para empezar a seguir services, órdenes de trabajo y vencimientos. Si querés ver cómo funciona, podés cargar una flota de ejemplo y borrarla después desde Ajustes.</p>
+  <div class="actions w"><button class="btn primary" data-act="empezar">Empezar con mi flota</button><button class="btn" data-act="ejemplo-cargar" id="btn-ejemplo">Cargar flota de ejemplo</button></div>
+  <p class="small muted">Los datos se guardan en esta app y los ve todo el equipo con acceso.</p></div>`;
+}
+
+function vPanel(){
+  if(!S.unidades.length)return vacio();
+  const act=S.unidades.filter(u=>u.estado!=='baja'),oper=act.filter(u=>u.estado==='operativa').length;
+  const disp=act.length?Math.round(oper/act.length*100):0;
+  const abiertas=S.ordenes.filter(o=>o.estado==='abierta');
+  const de=S.documentos.map(docEstado),venc=de.filter(x=>x.est==='vencido').length,prox=de.filter(x=>x.est==='proximo').length;
+  const pe=S.planes.map(planEstado),pv=pe.filter(x=>x.est==='vencido').length;
+  const k=kpis(),L=atencion(),fecha=new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});
+  return `<div class="view-head"><div class="t"><span class="eyebrow">${esc(fecha)}</span><h1>Estado de la flota</h1></div>
+    <div class="actions w"><button class="btn" data-act="goto" data-v="checklist">Cargar control diario</button><button class="btn primary" data-act="ot-nueva">Nueva orden de trabajo</button></div></div>
+  <section class="stats">
+    <div class="stat"><span class="eyebrow">Disponibilidad</span><span class="v">${disp}%</span><span class="d">${oper} de ${act.length} unidades en servicio</span></div>
+    <div class="stat"><span class="eyebrow">En taller</span><span class="v">${act.filter(u=>u.estado==='taller').length}</span><span class="d">${abiertas.length} ${abiertas.length===1?'orden abierta':'órdenes abiertas'}</span></div>
+    <div class="stat${venc?' alert':''}"><span class="eyebrow">Documentación</span><span class="v">${venc} ${venc===1?'vencido':'vencidos'}</span><span class="d">${prox} por vencer en los próximos días</span></div>
+    <div class="stat${pv?' alert':''}"><span class="eyebrow">Services</span><span class="v">${pv} ${pv===1?'vencido':'vencidos'}</span><span class="d">${pe.filter(x=>x.est==='proximo').length} próximos según km o fecha</span></div>
+  </section>
+  <div class="grid2">
+    <section class="card"><div class="card-head"><h2>Requiere atención</h2><span class="muted small">${L.length} ${L.length===1?'aviso':'avisos'}</span></div>
+      ${L.length?`<ul class="attn">${L.slice(0,9).map(a=>`<li>${pill(a.sev,a.sev==='crit'?'✕':'!',a.lbl)}<div class="what"><b>${esc(a.t)}</b><span>${esc(a.s)}</span></div><button class="linkbtn" data-act="goto" data-v="${a.v}"${a.u?` data-u="${a.u}"`:''}>Ver</button></li>`).join('')}</ul>${L.length>9?`<p class="small muted">Y ${L.length-9} avisos más en cada módulo.</p>`:''}`:`<p class="muted">Todo al día. No hay vencimientos ni services pendientes.</p>`}
+    </section>
+    <section class="card"><div class="card-head"><h2>Costo de mantenimiento</h2><span class="muted small">Últimos 6 meses</span></div>
+      ${chartCostos()}
+      <div class="kpis">
+        <div class="kpi"><b>${k.porKm!=null?ARS.format(Math.round(k.porKm)):'—'}</b><span>por km recorrido (12 meses, ${fNum(k.kmRec)} km)</span></div>
+        <div class="kpi"><b>${k.pctPrev!=null?Math.round(k.pctPrev)+'%':'—'}</b><span>del gasto fue preventivo</span></div>
+        <div class="kpi"><b>${k.mttr!=null?k.mttr.toLocaleString('es-AR',{maximumFractionDigits:1})+' días':'—'}</b><span>promedio por reparación (MTTR)</span></div>
+      </div>
+    </section>
+  </div>
+  <section class="card"><div class="card-head"><h2>Unidades</h2><button class="linkbtn" data-act="goto" data-v="flota">Ver flota completa</button></div>
+    <div class="tbl-wrap"><table><thead><tr><th>Unidad</th><th class="num">Kilometraje</th><th>Próximo service</th><th>Estado</th></tr></thead><tbody>
+    ${S.unidades.filter(u=>u.estado!=='baja').sort(byDominio).map(u=>{const ps=S.planes.filter(p=>p.unidadId===u.id).map(p=>({p,...planEstado(p)})).sort((a,b)=>a.r-b.r)[0];
+      return `<tr class="clickable" data-act="unidad-ver" data-id="${u.id}"><td>${unitCell(u)}</td><td class="num">${fKm(u.km)}</td><td>${ps?`${esc(ps.p.tarea)}<span class="sub">${esc(faltanTxt(ps))}</span>`:'<span class="muted">Sin plan cargado</span>'}</td><td>${unitPill(u)}</td></tr>`}).join('')}
+    </tbody></table></div></section>`;
+}
+
+function niceMax(v){const p=10**Math.floor(Math.log10(v));for(const m of [1,2,2.5,5,10])if(m*p>=v)return m*p;return v}
+function topRound(x,y,w,h,r){r=Math.min(r,h,w/2);return `M${x},${y+h}V${y+r}Q${x},${y} ${x+r},${y}H${x+w-r}Q${x+w},${y} ${x+w},${y+r}V${y+h}Z`}
+function chartCostos(){
+  const base=parse(hoy()),M=[];
+  for(let i=5;i>=0;i--){const d=new Date(base.getFullYear(),base.getMonth()-i,1);M.push({y:d.getFullYear(),m:d.getMonth(),label:d.toLocaleDateString('es-AR',{month:'short'}).replace('.',''),largo:d.toLocaleDateString('es-AR',{month:'long',year:'numeric'}),prev:0,corr:0})}
+  S.ordenes.filter(o=>o.estado==='cerrada').forEach(o=>{const f=parse(o.fechaEgreso||o.fechaIngreso),k=M.find(x=>x.y===f.getFullYear()&&x.m===f.getMonth());if(k)k[o.tipo==='preventivo'?'prev':'corr']+=costo(o)});
+  const max=Math.max(...M.map(x=>x.prev+x.corr));CHART=M;
+  if(!max)return `<p class="muted">Todavía no hay órdenes cerradas con costos en los últimos 6 meses.</p>`;
+  const top=niceMax(max),W=640,Hh=230,pl=62,pr=8,pt=22,pb=28,pw=W-pl-pr,ph=Hh-pt-pb,slot=pw/6,bw=Math.min(46,slot*.5),y=v=>pt+ph-(v/top)*ph;
+  let g='';
+  for(let t=0;t<=4;t++){const v=top*t/4,yy=y(v);if(t)g+=`<line x1="${pl}" x2="${W-pr}" y1="${yy}" y2="${yy}" class="grid"/>`;g+=`<text x="${pl-8}" y="${yy+4}" text-anchor="end" class="tick">${fCorto(v)}</text>`}
+  M.forEach((k,i)=>{const cx=pl+slot*i+slot/2,x=cx-bw/2,yb=y(0),hp=k.prev/top*ph,hc=k.corr/top*ph;
+    if(k.prev>0)g+=k.corr>0?`<rect x="${x}" y="${yb-hp}" width="${bw}" height="${hp}" class="s1"/>`:`<path d="${topRound(x,yb-hp,bw,hp,4)}" class="s1"/>`;
+    if(k.corr>0){const yc=yb-hp-(k.prev>0?2:0)-hc;g+=`<path d="${topRound(x,yc,bw,hc,4)}" class="s2"/>`}
+    g+=`<text x="${cx}" y="${Hh-8}" text-anchor="middle" class="tick">${esc(k.label)}</text>`});
+  g+=`<line x1="${pl}" x2="${W-pr}" y1="${y(0)}" y2="${y(0)}" class="base"/>`;
+  const lt=M[5].prev+M[5].corr;if(lt>0)g+=`<text x="${pl+slot*5.5}" y="${y(lt)-8}" text-anchor="middle" class="dlabel">${fCorto(lt)}</text>`;
+  M.forEach((k,i)=>g+=`<rect x="${pl+slot*i}" y="${pt}" width="${slot}" height="${ph}" class="hit" data-i="${i}"/>`);
+  return `<div class="legend"><span><i style="background:var(--s1)"></i>Preventivo</span><span><i style="background:var(--s2)"></i>Correctivo</span></div>
+  <div class="chart" id="chart"><svg viewBox="0 0 ${W} ${Hh}" role="img" aria-label="Costo mensual de mantenimiento, preventivo y correctivo, últimos 6 meses">${g}</svg><div class="tip" id="tip" hidden></div></div>
+  <details><summary>Ver como tabla</summary><div class="tbl-wrap"><table><thead><tr><th>Mes</th><th class="num">Preventivo</th><th class="num">Correctivo</th><th class="num">Total</th></tr></thead><tbody>${M.map(k=>`<tr><td>${esc(k.largo)}</td><td class="num">${fPesos(k.prev)}</td><td class="num">${fPesos(k.corr)}</td><td class="num">${fPesos(k.prev+k.corr)}</td></tr>`).join('')}</tbody></table></div></details>`;
+}
+function wireChart(){
+  const ch=document.getElementById('chart');if(!ch||!CHART)return;const tip=document.getElementById('tip'),svg=ch.querySelector('svg');
+  ch.querySelectorAll('.hit').forEach(r=>{
+    r.addEventListener('mouseenter',()=>{const k=CHART[+r.dataset.i],bb=r.getBoundingClientRect(),cb=ch.getBoundingClientRect();
+      tip.innerHTML=`<b>${esc(k.largo)}</b><div><span>Preventivo</span><span>${fPesos(k.prev)}</span></div><div><span>Correctivo</span><span>${fPesos(k.corr)}</span></div><div><span>Total</span><b>${fPesos(k.prev+k.corr)}</b></div>`;
+      tip.hidden=false;const left=Math.min(Math.max(bb.left-cb.left+bb.width/2,90),cb.width-90);tip.style.left=left+'px';tip.style.top=(bb.top-cb.top+8)+'px'});
+    r.addEventListener('mouseleave',()=>tip.hidden=true)});
+}
+
+function vFlota(){
+  if(!S.unidades.length&&!S.choferes.length)return vacio();
+  const q=UI.q.trim().toLowerCase();
+  const us=S.unidades.filter(u=>(UI.tipo==='todos'||u.tipo===UI.tipo)&&(!q||[u.dominio,u.marca,u.modelo,(choferById(u.choferId)||{}).nombre].join(' ').toLowerCase().includes(q))).sort(byDominio);
+  return `<div class="view-head"><div class="t"><span class="eyebrow">${S.unidades.length} unidades · ${S.choferes.length} choferes</span><h1>Flota y choferes</h1></div>
+    <div class="actions w"><button class="btn" data-act="chofer-nuevo">Agregar chofer</button><button class="btn primary" data-act="unidad-nueva">Agregar unidad</button></div></div>
+  <section class="card">
+    <div class="toolbar"><input class="input search" id="q-flota" data-ui="q" type="search" placeholder="Buscar por patente, marca o chofer" value="${esc(UI.q)}" aria-label="Buscar unidad">
+      ${chips('tipo',[['todos','Todas'],['tractor','Tractores'],['chasis','Chasis'],['semirremolque','Semirremolques'],['acoplado','Acoplados']])}</div>
+    ${us.length?`<div class="tbl-wrap"><table><thead><tr><th>Unidad</th><th>Tipo</th><th class="num">Kilometraje</th><th>Chofer</th><th>Avisos</th><th>Estado</th></tr></thead><tbody>
+    ${us.map(u=>{const n=avisosUnidad(u.id);return `<tr class="clickable" data-act="unidad-ver" data-id="${u.id}"><td>${unitCell(u,(u.anio||'')+(u.cargasPeligrosas?' · Cargas peligrosas':''))}</td><td>${esc(TIPOS_UNIDAD[u.tipo]||u.tipo)}<span class="sub">${esc(u.jurisdiccion||'')}</span></td><td class="num">${fKm(u.km)}</td><td>${esc((choferById(u.choferId)||{}).nombre||'—')}</td><td>${n.crit?pill('crit','✕',n.crit+(n.crit===1?' vencido':' vencidos')):''} ${n.warn?pill('warn','!',n.warn+' por vencer'):''}${!n.crit&&!n.warn?'<span class="muted small">Sin avisos</span>':''}</td><td>${unitPill(u)}</td></tr>`}).join('')}
+    </tbody></table></div>`:`<p class="muted">No hay unidades que coincidan con la búsqueda.</p>`}
+  </section>
+  <section class="card"><div class="card-head"><h2>Choferes</h2></div>
+    ${S.choferes.length?`<div class="tbl-wrap"><table><thead><tr><th>Nombre</th><th>Unidad asignada</th><th>Documentación</th><th>Teléfono</th><th></th></tr></thead><tbody>
+    ${S.choferes.slice().sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(c=>{const u=S.unidades.find(x=>x.choferId===c.id),ds=S.documentos.filter(d=>d.entidad==='chofer'&&d.refId===c.id).map(d=>({d,...docEstado(d)}));
+      const worst=ds.find(x=>x.est==='vencido')||ds.find(x=>x.est==='proximo');
+      return `<tr><td><b>${esc(c.nombre)}</b></td><td>${u?plate(u.dominio):'<span class="muted">—</span>'}</td><td>${worst?estPill(worst.est)+` <span class="small muted">${esc((tipoById(worst.d.tipoId)||{}).nombre||'')}</span>`:ds.length?estPill('ok'):'<span class="muted small">Sin documentos</span>'}</td><td>${esc(c.telefono||'—')}</td><td><div class="row-actions w"><button class="btn sm" data-act="chofer-editar" data-id="${c.id}">Editar</button><button class="btn sm ghost" data-act="chofer-borrar" data-id="${c.id}">Eliminar</button></div></td></tr>`}).join('')}
+    </tbody></table></div>`:`<p class="muted">Agregá choferes para asignarlos a unidades y seguir sus licencias.</p>`}
+  </section>`;
+}
+function avisosUnidad(id){
+  let crit=0,warn=0;
+  S.documentos.filter(d=>d.entidad==='unidad'&&d.refId===id).forEach(d=>{const e=docEstado(d).est;if(e==='vencido')crit++;else if(e==='proximo')warn++});
+  S.planes.filter(p=>p.unidadId===id).forEach(p=>{const e=planEstado(p).est;if(e==='vencido')crit++;else if(e==='proximo')warn++});
+  return {crit,warn};
+}
+
+function vMantenimiento(){
+  if(!S.unidades.length)return vacio();
+  const rows=S.planes.map(p=>({p,u:unitById(p.unidadId),...planEstado(p)})).filter(x=>x.u&&(!UI.planU||x.p.unidadId===UI.planU)&&(UI.planF==='todos'||x.est===UI.planF)).sort((a,b)=>a.r-b.r);
+  const freq=p=>[p.cadaKm?'cada '+fNum(p.cadaKm)+' km':null,p.cadaDias?'cada '+p.cadaDias+' días':null].filter(Boolean).join(' o ');
+  return `<div class="view-head"><div class="t"><span class="eyebrow">Preventivo por km o por fecha, lo que llegue primero</span><h1>Plan de mantenimiento</h1></div>
+    <div class="actions w"><button class="btn" data-act="plantilla">Aplicar plantilla</button><button class="btn primary" data-act="plan-nuevo">Agregar tarea</button></div></div>
+  <section class="card">
+    <div class="toolbar">${chips('planF',[['todos','Todas'],['vencido','Vencidas'],['proximo','Próximas'],['ok','Al día']])}
+      <select class="input" id="sel-planU" data-ui="planU" aria-label="Filtrar por unidad">${unitOptions(UI.planU,null,'Todas las unidades')}</select></div>
+    ${rows.length?`<div class="tbl-wrap"><table><thead><tr><th>Unidad</th><th>Tarea</th><th>Último service</th><th>Faltan</th><th>Estado</th><th></th></tr></thead><tbody>
+    ${rows.map(x=>`<tr><td>${plate(x.u.dominio)}</td><td><b>${esc(x.p.tarea)}</b><span class="sub">${esc(freq(x.p))}</span></td><td>${fFecha(x.p.ultimaFecha)}<span class="sub">${x.p.ultimoKm!=null?fKm(x.p.ultimoKm):''}</span></td><td>${esc(faltanTxt(x))}</td><td>${estPill(x.est)}</td>
+      <td><div class="row-actions w"><button class="btn sm${x.est!=='ok'?' primary':''}" data-act="plan-hecho" data-id="${x.p.id}">Registrar service</button><button class="btn sm" data-act="plan-ot" data-id="${x.p.id}">Abrir OT</button><button class="btn sm ghost" data-act="plan-editar" data-id="${x.p.id}">Editar</button></div></td></tr>`).join('')}
+    </tbody></table></div>`:`<p class="muted">${S.planes.length?'No hay tareas con este filtro.':'Todavía no hay tareas. Aplicá una plantilla a cada unidad para arrancar rápido.'}</p>`}
+    <p class="note">Los intervalos de las plantillas son orientativos. Ajustalos al manual del fabricante y al uso real de cada unidad (ruta, ciudad, ripio, carga).</p>
+  </section>`;
+}
+
+function vOrdenes(){
+  const rows=S.ordenes.filter(o=>(UI.otF==='todas'||(UI.otF==='abiertas'?o.estado==='abierta':o.estado==='cerrada'))&&(!UI.otU||o.unidadId===UI.otU)).sort((a,b)=>(b.fechaIngreso||'').localeCompare(a.fechaIngreso||'')||b.numero-a.numero);
+  const tot=rows.filter(o=>o.estado==='cerrada').reduce((a,o)=>a+costo(o),0);
+  return `<div class="view-head"><div class="t"><span class="eyebrow">${S.ordenes.filter(o=>o.estado==='abierta').length} abiertas</span><h1>Órdenes de trabajo</h1></div>
+    <div class="actions w"><button class="btn primary" data-act="ot-nueva">Nueva orden</button></div></div>
+  <section class="card">
+    <div class="toolbar">${chips('otF',[['abiertas','Abiertas'],['cerradas','Cerradas'],['todas','Todas']])}
+      <select class="input" id="sel-otU" data-ui="otU" aria-label="Filtrar por unidad">${unitOptions(UI.otU,null,'Todas las unidades')}</select></div>
+    ${rows.length?`<div class="tbl-wrap"><table><thead><tr><th>N.º</th><th>Ingreso</th><th>Unidad</th><th>Trabajo</th><th>Tipo</th><th>Estado</th><th class="num">Costo</th><th></th></tr></thead><tbody>
+    ${rows.map(o=>{const u=unitById(o.unidadId),dias=o.estado==='abierta'?diff(hoy(),o.fechaIngreso):(o.fechaEgreso?diff(o.fechaEgreso,o.fechaIngreso):null);
+      return `<tr><td><b>${o.numero}</b></td><td>${fFecha(o.fechaIngreso)}<span class="sub">${o.km!=null?fKm(o.km):''}</span></td><td>${u?plate(u.dominio):'—'}</td><td><b>${esc(o.descripcion)}</b><span class="sub">${esc(o.taller||'')}</span></td>
+      <td>${o.tipo==='preventivo'?pill('info','◆','Preventivo'):pill('','▲','Correctivo')}</td>
+      <td>${o.estado==='abierta'?pill('warn','!','Abierta')+`<span class="sub">hace ${dias} ${dias===1?'día':'días'}</span>`:pill('ok','✓','Cerrada')+`<span class="sub">${fFecha(o.fechaEgreso)}</span>`}</td>
+      <td class="num">${o.estado==='cerrada'?fPesos(costo(o)):'<span class="muted">—</span>'}</td>
+      <td><div class="row-actions w">${o.estado==='abierta'?`<button class="btn sm primary" data-act="ot-cerrar" data-id="${o.id}">Cerrar</button>`:''}<button class="btn sm" data-act="ot-editar" data-id="${o.id}">Editar</button><button class="btn sm ghost" data-act="ot-borrar" data-id="${o.id}">Eliminar</button></div></td></tr>`}).join('')}
+    </tbody></table></div>${tot?`<p class="small" style="text-align:right">Total de órdenes cerradas en la lista: <b>${fPesos(tot)}</b></p>`:''}`:`<p class="muted">No hay órdenes ${UI.otF==='abiertas'?'abiertas':'con este filtro'}.</p>`}
+  </section>`;
+}
+
+function vVencimientos(){
+  const rows=S.documentos.map(d=>({d,...docEstado(d)})).filter(x=>(UI.docF==='todos'||x.est===UI.docF)&&(UI.docE==='todos'||x.d.entidad===UI.docE)).sort((a,b)=>a.dias-b.dias);
+  return `<div class="view-head"><div class="t"><span class="eyebrow">RTO, seguros, tacógrafo, licencias</span><h1>Vencimientos</h1></div>
+    <div class="actions w"><button class="btn primary" data-act="doc-nuevo">Agregar documento</button></div></div>
+  <section class="card">
+    <div class="toolbar">${chips('docF',[['todos','Todos'],['vencido','Vencidos'],['proximo','Por vencer'],['ok','Al día']])}${chips('docE',[['todos','Unidades y choferes'],['unidad','Unidades'],['chofer','Choferes']])}</div>
+    ${rows.length?`<div class="tbl-wrap"><table><thead><tr><th>Documento</th><th>Titular</th><th>Vence</th><th>Estado</th><th></th></tr></thead><tbody>
+    ${rows.map(x=>{const t=tipoById(x.d.tipoId);return `<tr><td><b>${esc(t?t.nombre:'Tipo eliminado')}</b>${x.d.numero?`<span class="sub">N.º ${esc(x.d.numero)}</span>`:''}</td><td>${x.d.entidad==='chofer'?esc(titularTxt(x.d)):(unitById(x.d.refId)?plate(unitById(x.d.refId).dominio):'Unidad eliminada')}</td><td>${fFecha(x.d.vence)}<span class="sub">${esc(plazo(x.dias))}</span></td><td>${estPill(x.est)}</td>
+      <td><div class="row-actions w"><button class="btn sm${x.est!=='ok'?' primary':''}" data-act="doc-renovar" data-id="${x.d.id}">Renovar</button><button class="btn sm" data-act="doc-editar" data-id="${x.d.id}">Editar</button><button class="btn sm ghost" data-act="doc-borrar" data-id="${x.d.id}">Eliminar</button></div></td></tr>`}).join('')}
+    </tbody></table></div>`:`<p class="muted">${S.documentos.length?'No hay documentos con este filtro.':'Cargá la RTO, el seguro y las licencias para recibir avisos antes de que venzan.'}</p>`}
+    <p class="note">Los plazos de vigencia y aviso de cada tipo de documento se editan en Ajustes. La normativa cambió varias veces entre 2024 y 2026: verificá los plazos vigentes para tu jurisdicción.</p>
+  </section>`;
+}
+
+function ejes(u){
+  if(!u)return [];
+  if(u.tipo==='tractor'||u.tipo==='chasis')return [['E1',false],['E2',true]];
+  if(u.tipo==='acoplado')return [['E1',true],['E2',true]];
+  return [['E1',true],['E2',true],['E3',true]];
+}
+function vNeumaticos(){
+  if(!S.unidades.length&&!S.neumaticos.length)return vacio();
+  return `<div class="view-head"><div class="t"><span class="eyebrow">Cada neumático con su código y su historia</span><h1>Neumáticos</h1></div>
+    <div class="actions w"><button class="btn primary" data-act="neu-alta">Alta de neumático</button></div></div>
+  <div class="toolbar">${chips('neuTab',[['unidad','Por unidad'],['inventario','Inventario']])}</div>
+  ${UI.neuTab==='inventario'?neuInventario():neuPorUnidad()}`;
+}
+function neuUbic(n){
+  if(n.estado==='montado'){const u=unitById(n.unidadId);return u?`<span class="unit-cell">${plate(u.dominio)}<span>${esc(n.posicion)}</span></span>`:'—'}
+  if(n.estado==='deposito')return pill('info','■','En depósito');
+  if(n.estado==='recapado')return pill('warn','↻','En recapadora')+(n.proveedor?`<span class="sub">${esc(n.proveedor)}</span>`:'');
+  return pill('','–','De baja');
+}
+const vidaTxt=n=>'Vida '+(n.recapados+1)+(n.recapados?' · '+n.recapados+(n.recapados===1?' recapado':' recapados'):' · nuevo');
+function neuPorUnidad(){
+  if(!S.unidades.length)return '<p class="muted">Cargá unidades para ver sus ejes.</p>';
+  const all=NEU();
+  if(!UI.neuU||!unitById(UI.neuU)){const conN=S.unidades.slice().sort(byDominio).find(u=>all.some(n=>n.estado==='montado'&&n.unidadId===u.id));UI.neuU=(conN||S.unidades.slice().sort(byDominio)[0]).id}
+  const u=unitById(UI.neuU),ns=all.filter(n=>n.estado==='montado'&&n.unidadId===u.id),c=cfg();
+  const tire=pos=>{const n=ns.find(x=>x.posicion===pos);if(!n)return `<button class="tire none" data-act="neu-pos" data-pos="${pos}" aria-label="Montar neumático en ${pos}"><em>${pos}</em><span class="w">Montar</span></button>`;
+    return `<button class="tire ${neuEstado(n)}" data-act="neu-ver" data-id="${n.id}" aria-label="${pos}: ${esc(n.codigo)}, ${fNum(n.profundidad)} milímetros"><em>${pos}</em><b>${n.profundidad!=null?fNum(n.profundidad):'?'}<small>mm</small></b><em class="code">${esc(n.codigo)}</em></button>`};
+  const axles=ejes(u).map(([e,dual])=>`<div class="axle"><div class="side-t">${dual?tire(e+'-IE')+tire(e+'-II'):tire(e+'-I')}</div><div class="bar"><span>${e}</span></div><div class="side-t">${dual?tire(e+'-DI')+tire(e+'-DE'):tire(e+'-D')}</div></div>`).join('');
+  const bajos=all.filter(n=>n.estado==='montado'&&neuEstado(n)==='crit').map(n=>({n,u:unitById(n.unidadId)})).filter(x=>x.u);
+  return `<div class="grid2">
+    <section class="card"><div class="card-head"><div>${unitCell(u)}</div><select class="input" id="sel-neuU" data-ui="neuU" aria-label="Elegir unidad">${unitOptions(UI.neuU)}</select></div>
+      <div class="truck">${tieneMotor(u)?'<div class="cab">Cabina</div>':'<div class="cab">Perno rey</div>'}${axles}</div>
+      <div class="legend"><span>${pill('ok','✓','Más de '+fNum(c.profundidadMin+2)+' mm')}</span><span>${pill('warn','!','Hasta '+fNum(c.profundidadMin+2)+' mm')}</span><span>${pill('crit','✕','Mínimo '+fNum(c.profundidadMin)+' mm o menos')}</span></div>
+      <p class="small muted">Tocá un neumático para ver su historia, medirlo, rotarlo o desmontarlo. I = izquierdo, D = derecho; en duales, E = exterior e I = interior.</p>
+    </section>
+    <section class="card"><div class="card-head"><h2>Para reemplazar o recapar</h2><span class="small muted">Toda la flota</span></div>
+      ${bajos.length?`<div class="tbl-wrap"><table><thead><tr><th>Código</th><th>Ubicación</th><th class="num">Dibujo</th><th>Vida</th></tr></thead><tbody>${bajos.map(x=>`<tr class="clickable" data-act="neu-ver" data-id="${x.n.id}"><td><b class="tcode">${esc(x.n.codigo)}</b><span class="sub">${esc(x.n.marca||'')}</span></td><td>${neuUbic(x.n)}</td><td class="num">${fNum(x.n.profundidad)} mm</td><td>${x.n.recapados+1}</td></tr>`).join('')}</tbody></table></div>`:`<p class="muted">Ningún neumático montado está por debajo del mínimo configurado.</p>`}
+      <p class="note">El mínimo de alerta (${fNum(c.profundidadMin)} mm) se cambia en Ajustes. No reemplaza el control del límite legal ni la recomendación del fabricante.</p>
+    </section>
+  </div>`;
+}
+function neuInventario(){
+  const all=NEU(),q=UI.neuQ.trim().toLowerCase(),cnt=k=>all.filter(n=>n.estado===k).length;
+  const rows=all.filter(n=>(UI.neuF==='todos'||n.estado===UI.neuF)&&(!q||[n.codigo,n.marca,n.medida].join(' ').toLowerCase().includes(q))).sort((a,b)=>a.codigo.localeCompare(b.codigo,'es',{numeric:true}));
+  const conKm=all.filter(n=>costoKm(n)!=null),prom=conKm.length?conKm.reduce((a,n)=>a+costoKm(n),0)/conKm.length:null;
+  return `<section class="card">
+    <div class="toolbar"><input class="input search" id="q-neu" data-ui="neuQ" type="search" placeholder="Buscar por código, marca o medida" value="${esc(UI.neuQ)}" aria-label="Buscar neumático">
+      ${chips('neuF',[['todos','Todos ('+all.length+')'],['montado','Montados ('+cnt('montado')+')'],['deposito','En depósito ('+cnt('deposito')+')'],['recapado','En recapadora ('+cnt('recapado')+')'],['baja','De baja ('+cnt('baja')+')']])}</div>
+    ${rows.length?`<div class="tbl-wrap"><table><thead><tr><th>Código</th><th>Neumático</th><th>Ubicación</th><th>Vida</th><th class="num">Dibujo</th><th class="num">Km totales</th><th class="num">Costo por km</th></tr></thead><tbody>
+    ${rows.map(n=>`<tr class="clickable" data-act="neu-ver" data-id="${n.id}"><td><b class="tcode">${esc(n.codigo)}</b></td><td>${esc(n.marca)}<span class="sub">${esc(n.medida||'')}</span></td><td>${neuUbic(n)}</td><td>${esc(vidaTxt(n))}</td>
+      <td class="num">${n.profundidad!=null?fNum(n.profundidad)+' mm':'—'}</td><td class="num">${kmTot(n)?fKm(kmTot(n)):'—'}</td><td class="num">${fCostoKm(costoKm(n))}</td></tr>`).join('')}
+    </tbody></table></div>`:`<p class="muted">${all.length?'No hay neumáticos con este filtro.':'Todavía no hay neumáticos. Dales de alta con su código (el número marcado a fuego o uno propio).'}</p>`}
+    ${prom!=null?`<p class="small muted">Costo promedio por km de los neumáticos con kilómetros registrados: <b>${fCostoKm(prom)}</b>. Incluye compra y recapados. Los semirremolques sin hubodómetro no suman km.</p>`:''}
+  </section>`;
+}
+
+function ckDraft(){if(!UI.ck)UI.ck={unidadId:'',choferId:'',km:'',obs:'',items:Object.fromEntries(ITEMS.map(([k])=>[k,'ok']))};return UI.ck}
+function vChecklist(){
+  if(!S.unidades.length)return vacio();
+  const d=ckDraft(),hist=S.checklists.slice().sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,15);
+  const res=k=>{const v=Object.values(k.items||{});return v.includes('falla')?pill('crit','✕','Con fallas'):v.includes('obs')?pill('warn','!','Con observaciones'):pill('ok','✓','Sin novedades')};
+  const R=UI.ckResult&&S.checklists.find(k=>k.id===UI.ckResult);
+  return `<div class="view-head"><div class="t"><span class="eyebrow">Lo completa el chofer antes de salir</span><h1>Control diario</h1></div></div>
+  <div class="grid2">
+    <section class="card w"><h2>Nuevo control</h2>
+      ${R?`<div class="banner ${Object.values(R.items).includes('falla')?'warn':''}"><span>Control guardado para ${esc((unitById(R.unidadId)||{}).dominio||'')}. ${Object.values(R.items).includes('falla')?'Se reportaron fallas.':'Sin fallas.'}</span>${Object.values(R.items).includes('falla')&&!R.otId?`<button class="btn sm primary" data-act="ck-ot" data-id="${R.id}">Abrir orden correctiva</button>`:''}</div>`:''}
+      <div class="form-grid">
+        <div class="field"><label for="ck-unidad">Unidad</label><select class="input" id="ck-unidad" data-ck="unidadId">${unitOptions(d.unidadId,u=>u.estado!=='baja','Elegí una unidad')}</select></div>
+        <div class="field"><label for="ck-chofer">Chofer</label><select class="input" id="ck-chofer" data-ck="choferId"><option value="">Sin indicar</option>${cOpts().map(o=>`<option value="${o.v}"${o.v===d.choferId?' selected':''}>${esc(o.l)}</option>`).join('')}</select></div>
+        <div class="field full"><label for="ck-km">Kilometraje del tablero</label><input class="input" id="ck-km" data-ck="km" type="number" inputmode="numeric" min="0" value="${esc(d.km)}" placeholder="${d.unidadId&&unitById(d.unidadId)&&unitById(d.unidadId).km!=null?'Último registrado: '+fNum(unitById(d.unidadId).km):'Opcional en semirremolques'}"></div>
+      </div>
+      <div class="ck-items">${ITEMS.map(([k,l])=>`<div class="ck-item"><span>${esc(l)}</span><div class="seg" role="radiogroup" aria-label="${esc(l)}">
+        ${[['ok','Bien','ok'],['obs','Observar','warn'],['falla','Falla','crit']].map(([v,t,c])=>`<label><input type="radio" name="ck-${k}" id="ck-${k}-${v}" value="${v}" data-ck-item="${k}"${d.items[k]===v?' checked':''}><span class="${c}">${t}</span></label>`).join('')}</div></div>`).join('')}</div>
+      <div class="field"><label for="ck-obs">Observaciones</label><textarea class="input" id="ck-obs" data-ck="obs" placeholder="Describí cualquier novedad: ruido, pérdida, golpe, testigo encendido">${esc(d.obs)}</textarea></div>
+      <p class="form-err" id="ck-err" hidden></p>
+      <div class="actions"><button class="btn primary" data-act="ck-guardar">Guardar control</button><span class="small muted">Si el kilometraje es mayor al registrado, se actualiza la unidad.</span></div>
+    </section>
+    <section class="card"><div class="card-head"><h2>Últimos controles</h2></div>
+      ${hist.length?`<ul class="attn">${hist.map(k=>{const u=unitById(k.unidadId),f=Object.entries(k.items||{}).filter(([,v])=>v!=='ok');
+        return `<li>${res(k)}<div class="what"><b>${u?esc(u.dominio):'Unidad eliminada'} · ${fFecha(k.fecha)}</b><span>${esc((choferById(k.choferId)||{}).nombre||'Chofer sin indicar')}${k.km?' · '+fKm(k.km):''}${f.length?' · '+esc(f.map(([x])=>itemNombre(x)).join(', ')):''}${k.obs?' · '+esc(k.obs):''}</span></div>
+        ${f.some(([,v])=>v==='falla')?(k.otId?'<span class="small muted">OT abierta</span>':`<button class="linkbtn w" data-act="ck-ot" data-id="${k.id}">Abrir OT</button>`):'<span></span>'}</li>`}).join('')}</ul>`:'<p class="muted">Todavía no hay controles cargados.</p>'}
+    </section>
+  </div>`;
+}
+
+function vAjustes(){
+  const c=cfg(),nEj=COLS.reduce((a,k)=>a+S[k].filter(x=>x.ejemplo).length,0);
+  return `<div class="view-head"><div class="t"><span class="eyebrow">Plazos, umbrales y datos</span><h1>Ajustes</h1></div></div>
+  <section class="card"><h2>Umbrales de aviso</h2>
+    <div class="form-grid" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+      <div class="field"><label for="aj-km">Avisar services a</label><input class="input" id="aj-km" type="number" min="0" value="${c.avisoKm}"><span class="hint">km antes del vencimiento</span></div>
+      <div class="field"><label for="aj-dias">Avisar services a</label><input class="input" id="aj-dias" type="number" min="0" value="${c.avisoDias}"><span class="hint">días antes del vencimiento</span></div>
+      <div class="field"><label for="aj-prof">Dibujo mínimo de neumáticos</label><input class="input" id="aj-prof" type="number" min="0" step="0.1" value="${c.profundidadMin}"><span class="hint">mm; por debajo se marca para reemplazo</span></div>
+    </div>
+    <div class="actions w"><button class="btn primary" data-act="aj-guardar">Guardar umbrales</button></div>
+  </section>
+  <section class="card"><div class="card-head"><h2>Tipos de documento</h2><div class="actions w">${S.tiposDoc.length?'':'<button class="btn" data-act="tipos-sugeridos">Cargar tipos sugeridos</button>'}<button class="btn primary" data-act="tipo-nuevo">Agregar tipo</button></div></div>
+    ${S.tiposDoc.length?`<div class="tbl-wrap"><table><thead><tr><th>Documento</th><th>Para</th><th class="num">Vigencia</th><th class="num">Aviso</th><th></th></tr></thead><tbody>
+    ${S.tiposDoc.slice().sort((a,b)=>a.aplica.localeCompare(b.aplica)||a.nombre.localeCompare(b.nombre)).map(t=>`<tr><td><b>${esc(t.nombre)}</b>${t.nota?`<span class="sub">${esc(t.nota)}</span>`:''}</td><td>${t.aplica==='chofer'?'Choferes':'Unidades'}</td><td class="num">${t.vigenciaMeses} meses</td><td class="num">${t.avisoDias} días</td><td><div class="row-actions w"><button class="btn sm" data-act="tipo-editar" data-id="${t.id}">Editar</button><button class="btn sm ghost" data-act="tipo-borrar" data-id="${t.id}">Eliminar</button></div></td></tr>`).join('')}
+    </tbody></table></div>`:'<p class="muted">No hay tipos de documento. Cargá los sugeridos o creá los tuyos.</p>'}
+  </section>
+  <section class="card"><h2>Referencias normativas</h2>
+    <ul class="small" style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;color:var(--ink-2)">
+      <li>Ley 24.449 de Tránsito, art. 34: Revisión Técnica Obligatoria. Para vehículos que no son de uso particular, la vigencia no supera los 12 meses.</li>
+      <li>Ley 24.449, art. 53 inc. g y Decreto 779/95: dispositivo registrador (tacógrafo) en vehículos de transporte de carga.</li>
+      <li>Decreto 196/2025: modificó los plazos de la RTO. Decreto 1109/2024: RUTA digital y declarativo.</li>
+      <li>La RTO de jurisdicción nacional la fiscaliza la CNRT. Las provincias pueden tener regímenes propios.</li>
+    </ul>
+    <p class="note">Esta lista es orientativa y puede estar desactualizada. Verificá siempre en el Boletín Oficial o con la CNRT.</p>
+  </section>
+  ${nEj?`<section class="card w"><h2>Datos de ejemplo</h2><p class="muted">Hay ${nEj} registros de ejemplo. Borralos cuando empieces a cargar tu flota real. Tus propios registros no se tocan.</p><div class="actions"><button class="btn danger" data-act="ejemplo-borrar" id="btn-borrar-ej">Borrar datos de ejemplo</button></div></section>`:''}`;
+}
+
+/* ---------- modal y formularios ---------- */
+const modal=document.getElementById('modal'),sheet=document.getElementById('sheet');
+function openModal(wide){sheet.className='sheet'+(wide?' wide':'');modal.hidden=false;document.body.style.overflow='hidden';setTimeout(()=>{const f=sheet.querySelector('input:not([type=hidden]),select,textarea,button.btn.primary');if(f)f.focus()},20)}
+function closeModal(){modal.hidden=true;modalKind=null;modalId=null;sheet.innerHTML='';document.body.style.overflow=''}
+modal.addEventListener('mousedown',e=>{if(e.target===modal)closeModal()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!modal.hidden)closeModal()});
+
+function fieldHTML(f){
+  const id='f-'+f.name,v=f.value==null?'':f.value,cls='field'+(f.full?' full':'');
+  if(f.type==='note')return `<p class="note field full">${f.html}</p>`;
+  if(f.type==='checkbox')return `<label class="${cls} check" for="${id}"><input type="checkbox" id="${id}"${v?' checked':''}><span>${esc(f.label)}</span></label>`;
+  let inp;
+  if(f.type==='select'){
+    const opt=o=>`<option value="${esc(o.v)}"${String(o.v)===String(v)?' selected':''}>${esc(o.l)}</option>`;
+    inp=`<select class="input" id="${id}">${f.blank!=null?`<option value="">${esc(f.blank)}</option>`:''}${f.groups?f.groups.filter(g=>g.options.length).map(g=>`<optgroup label="${esc(g.label)}">${g.options.map(opt).join('')}</optgroup>`).join(''):f.options.map(opt).join('')}</select>`;
+  }else if(f.type==='textarea')inp=`<textarea class="input" id="${id}" placeholder="${esc(f.ph||'')}">${esc(v)}</textarea>`;
+  else inp=`<input class="input" id="${id}" type="${f.type||'text'}" value="${esc(v)}"${f.type==='number'?` inputmode="decimal" step="${f.step||'any'}" min="0"`:''} placeholder="${esc(f.ph||'')}">`;
+  return `<div class="${cls}"><label for="${id}">${esc(f.label)}${f.required?'':' <span class="muted">(opcional)</span>'}</label>${inp}${f.hint?`<span class="hint">${esc(f.hint)}</span>`:''}</div>`;
+}
+function openForm({title,sub,fields,submit,onSubmit,validate}){
+  modalKind='form';
+  sheet.innerHTML=`<form id="mform" novalidate><header class="m-head"><div class="t"><h2>${esc(title)}</h2>${sub?`<p class="muted small">${sub}</p>`:''}</div><button type="button" class="icon-btn" data-act="close" aria-label="Cerrar">×</button></header>
+    <div class="m-body form-grid">${fields.map(fieldHTML).join('')}</div><p class="form-err" id="mform-err" hidden style="padding:0 20px"></p>
+    <footer class="m-foot"><button type="button" class="btn ghost" data-act="close">Cancelar</button><button class="btn primary" type="submit" id="mform-ok">${esc(submit||'Guardar')}</button></footer></form>`;
+  openModal();
+  const form=document.getElementById('mform');
+  form.addEventListener('submit',async e=>{
+    e.preventDefault();const vals={};
+    fields.forEach(f=>{if(f.type==='note')return;const el=document.getElementById('f-'+f.name);vals[f.name]=f.type==='checkbox'?el.checked:f.type==='number'?(el.value===''?null:Number(el.value)):el.value.trim()});
+    const miss=fields.find(f=>f.required&&(vals[f.name]===''||vals[f.name]==null));
+    const err=miss?'Completá el campo "'+miss.label+'".':validate?validate(vals):null;
+    const box=document.getElementById('mform-err');
+    if(err){box.textContent=err;box.hidden=false;return}
+    const ok=document.getElementById('mform-ok');ok.disabled=true;
+    const r=await onSubmit(vals);
+    if(r===false){ok.disabled=false;return}
+    closeModal();
+  });
+}
+function openConfirm({title,text,ok,onOk}){
+  modalKind='form';
+  sheet.innerHTML=`<header class="m-head"><div class="t"><h2>${esc(title)}</h2></div><button type="button" class="icon-btn" data-act="close" aria-label="Cerrar">×</button></header>
+    <div class="m-body"><p>${text}</p></div><footer class="m-foot"><button class="btn ghost" data-act="close">Cancelar</button><button class="btn danger" id="cf-ok">${esc(ok||'Eliminar')}</button></footer>`;
+  openModal();
+  document.getElementById('cf-ok').addEventListener('click',async e=>{e.target.disabled=true;await onOk();closeModal()});
+}
+
+/* Unidades */
+function formUnidad(u){
+  const e=u||{};
+  openForm({title:u?'Editar unidad':'Agregar unidad',fields:[
+    {name:'dominio',label:'Patente',value:e.dominio,required:true,ph:'AF 123 KD'},
+    {name:'tipo',label:'Tipo',type:'select',value:e.tipo||'tractor',required:true,options:Object.entries(TIPOS_UNIDAD).map(([v,l])=>({v,l}))},
+    {name:'marca',label:'Marca',value:e.marca,required:true,ph:'Mercedes-Benz'},
+    {name:'modelo',label:'Modelo',value:e.modelo,required:true,ph:'Actros 2046'},
+    {name:'anio',label:'Año',type:'number',value:e.anio,step:1},
+    {name:'km',label:'Kilometraje actual',type:'number',value:e.km,step:1,hint:'Dejalo vacío en semirremolques sin hubodómetro.'},
+    {name:'jurisdiccion',label:'Jurisdicción',type:'select',value:e.jurisdiccion||'Nacional',required:true,options:JURIS.map(j=>({v:j,l:j}))},
+    {name:'choferId',label:'Chofer asignado',type:'select',value:e.choferId,blank:'Sin asignar',options:cOpts()},
+    {name:'estado',label:'Estado',type:'select',value:e.estado||'operativa',required:true,options:Object.entries(ESTADO_UNIDAD).map(([v,x])=>({v,l:x[2]}))},
+    {name:'cargasPeligrosas',label:'Transporta cargas peligrosas',type:'checkbox',value:e.cargasPeligrosas}
+  ],onSubmit:async v=>{
+    v.dominio=v.dominio.toUpperCase().replace(/\s+/g,' ');
+    if(u){const ok=await patch('unidades',u.id,{...v,km:u.km});if(ok&&v.km!=null)await setKm(u.id,v.km);toast('Unidad actualizada');return ok}
+    const id=newId();const ok=await put('unidades',id,{...v,kmHistorial:v.km!=null?[{f:hoy(),km:v.km}]:[]});
+    if(ok)toast('Unidad agregada. Aplicale una plantilla de mantenimiento.');return ok;
+  }});
+}
+function formKm(u){
+  openForm({title:'Actualizar kilometraje',sub:esc(u.dominio)+' · último registrado: '+fKm(u.km),fields:[{name:'km',label:'Kilometraje actual',type:'number',required:true,step:1},{name:'fecha',label:'Fecha de lectura',type:'date',value:hoy(),required:true}],
+    validate:v=>v.km<=(u.km||0)?'El kilometraje tiene que ser mayor al último registrado.':null,
+    onSubmit:async v=>{await setKm(u.id,v.km,v.fecha);toast('Kilometraje actualizado')}});
+}
+function borrarUnidad(id){
+  const u=unitById(id);
+  openConfirm({title:'Eliminar '+u.dominio,text:'Se eliminan la unidad, su plan de mantenimiento y sus documentos. Sus neumáticos pasan al depósito con su historia. Las órdenes de trabajo y los controles quedan en el historial.',onOk:async()=>{
+    for(const p of S.planes.filter(x=>x.unidadId===id))await del('planes',p.id);
+    for(const d of S.documentos.filter(x=>x.entidad==='unidad'&&x.refId===id))await del('documentos',d.id);
+    for(const n of NEU().filter(x=>x.estado==='montado'&&x.unidadId===id))await sacarNeu(n,'deposito',{motivo:'Unidad eliminada'});
+    await del('unidades',id);toast('Unidad eliminada');}});
+}
+function openUnidad(id){modalKind='unidad';modalId=id;renderUnidadModal();openModal(true)}
+function renderUnidadModal(){
+  const u=unitById(modalId);if(!u){closeModal();return}
+  const ps=S.planes.filter(p=>p.unidadId===u.id).map(p=>({p,...planEstado(p)})).sort((a,b)=>a.r-b.r);
+  const ds=S.documentos.filter(d=>d.entidad==='unidad'&&d.refId===u.id).map(d=>({d,...docEstado(d)})).sort((a,b)=>a.dias-b.dias);
+  const os=S.ordenes.filter(o=>o.unidadId===u.id).sort((a,b)=>b.fechaIngreso.localeCompare(a.fechaIngreso)).slice(0,6);
+  const ns=NEU().filter(n=>n.estado==='montado'&&n.unidadId===u.id),gastados=ns.filter(n=>neuEstado(n)==='crit').length;
+  const gasto=S.ordenes.filter(o=>o.unidadId===u.id&&o.estado==='cerrada'&&(o.fechaEgreso||o.fechaIngreso)>=addDays(hoy(),-365)).reduce((a,o)=>a+costo(o),0);
+  sheet.innerHTML=`<header class="m-head"><div class="t"><div class="unit-cell">${plate(u.dominio)}<h2>${esc(u.marca)} ${esc(u.modelo)}</h2></div><div>${unitPill(u)} <span class="small muted">${esc(TIPOS_UNIDAD[u.tipo])}${u.anio?' · '+u.anio:''} · ${esc(u.jurisdiccion||'')}${u.cargasPeligrosas?' · Cargas peligrosas':''}</span></div></div><button type="button" class="icon-btn" data-act="close" aria-label="Cerrar">×</button></header>
+  <div class="m-body">
+    <dl class="dl" style="margin:0"><div><dt>Kilometraje</dt><dd>${fKm(u.km)}</dd></div><div><dt>Chofer</dt><dd>${esc((choferById(u.choferId)||{}).nombre||'Sin asignar')}</dd></div><div><dt>Gasto 12 meses</dt><dd>${fPesos(gasto)}</dd></div><div><dt>Neumáticos</dt><dd>${ns.length} montados${gastados?` · ${gastados} gastados`:''}</dd></div></dl>
+    <div class="actions w">${tieneMotor(u)||u.km!=null?`<button class="btn" data-act="unidad-km" data-id="${u.id}">Actualizar km</button>`:''}<button class="btn" data-act="ot-nueva" data-unidad="${u.id}">Nueva OT</button><button class="btn" data-act="doc-nuevo" data-unidad="${u.id}">Agregar documento</button><button class="btn" data-act="unidad-editar" data-id="${u.id}">Editar</button><button class="btn ghost danger" data-act="unidad-borrar" data-id="${u.id}">Eliminar</button></div>
+    <div class="sec"><div class="sec-head"><h3>Plan de mantenimiento</h3><span class="actions w"><button class="linkbtn" data-act="plantilla" data-unidad="${u.id}">Aplicar plantilla</button><button class="linkbtn" data-act="plan-nuevo" data-unidad="${u.id}">Agregar tarea</button></span></div>
+      ${ps.length?`<div class="tbl-wrap"><table><tbody>${ps.map(x=>`<tr><td><b>${esc(x.p.tarea)}</b><span class="sub">${esc(faltanTxt(x))}</span></td><td>${estPill(x.est)}</td><td><div class="row-actions w"><button class="btn sm" data-act="plan-hecho" data-id="${x.p.id}">Registrar service</button></div></td></tr>`).join('')}</tbody></table></div>`:'<p class="muted small">Sin tareas. Aplicá una plantilla para cargar las habituales.</p>'}</div>
+    <div class="sec"><div class="sec-head"><h3>Documentación</h3></div>
+      ${ds.length?`<div class="tbl-wrap"><table><tbody>${ds.map(x=>`<tr><td><b>${esc((tipoById(x.d.tipoId)||{}).nombre||'Tipo eliminado')}</b><span class="sub">Vence ${fFecha(x.d.vence)} · ${esc(plazo(x.dias))}</span></td><td>${estPill(x.est)}</td><td><div class="row-actions w"><button class="btn sm" data-act="doc-renovar" data-id="${x.d.id}">Renovar</button></div></td></tr>`).join('')}</tbody></table></div>`:'<p class="muted small">Sin documentos cargados.</p>'}</div>
+    <div class="sec"><div class="sec-head"><h3>Últimas órdenes</h3></div>
+      ${os.length?`<div class="tbl-wrap"><table><tbody>${os.map(o=>`<tr><td>${fFecha(o.fechaIngreso)}</td><td><b>${esc(o.descripcion)}</b><span class="sub">${esc(o.taller||'')}</span></td><td>${o.estado==='abierta'?pill('warn','!','Abierta'):pill('ok','✓','Cerrada')}</td><td class="num">${o.estado==='cerrada'?fPesos(costo(o)):''}</td></tr>`).join('')}</tbody></table></div>`:'<p class="muted small">Sin órdenes registradas.</p>'}</div>
+  </div>`;
+}
+
+/* Choferes */
+function formChofer(c){
+  openForm({title:c?'Editar chofer':'Agregar chofer',fields:[{name:'nombre',label:'Nombre y apellido',value:c&&c.nombre,required:true,full:true},{name:'telefono',label:'Teléfono',value:c&&c.telefono,full:true}],
+    onSubmit:async v=>{const ok=c?await patch('choferes',c.id,v):await put('choferes',newId(),v);if(ok)toast(c?'Chofer actualizado':'Chofer agregado');return ok}});
+}
+function borrarChofer(id){const c=choferById(id);openConfirm({title:'Eliminar a '+c.nombre,text:'También se eliminan sus documentos. Las unidades que tenía asignadas quedan sin chofer.',onOk:async()=>{
+  for(const d of S.documentos.filter(x=>x.entidad==='chofer'&&x.refId===id))await del('documentos',d.id);
+  for(const u of S.unidades.filter(x=>x.choferId===id))await patch('unidades',u.id,{choferId:''});
+  await del('choferes',id);toast('Chofer eliminado')}})}
+
+/* Plan */
+function formPlan(p,unidadId){
+  const e=p||{unidadId:unidadId||'',ultimaFecha:hoy()};const u=unitById(e.unidadId);
+  openForm({title:p?'Editar tarea':'Agregar tarea',fields:[
+    {name:'unidadId',label:'Unidad',type:'select',value:e.unidadId,required:true,blank:'Elegí una unidad',options:uOpts(),full:true},
+    {name:'tarea',label:'Tarea',value:e.tarea,required:true,full:true,ph:'Cambio de aceite y filtros de motor'},
+    {name:'cadaKm',label:'Cada (km)',type:'number',value:e.cadaKm,step:1},
+    {name:'cadaDias',label:'Cada (días)',type:'number',value:e.cadaDias,step:1},
+    {name:'ultimoKm',label:'Km del último service',type:'number',value:p?e.ultimoKm:(u?u.km:null),step:1},
+    {name:'ultimaFecha',label:'Fecha del último service',type:'date',value:e.ultimaFecha,required:true}
+  ],validate:v=>!v.cadaKm&&!v.cadaDias?'Indicá cada cuántos km o cada cuántos días se hace.':null,
+  onSubmit:async v=>{const ok=p?await patch('planes',p.id,v):await put('planes',newId(),v);if(ok)toast(p?'Tarea actualizada':'Tarea agregada');return ok}});
+  if(p){const f=sheet.querySelector('.m-foot');f.insertAdjacentHTML('afterbegin',`<button type="button" class="btn ghost danger" data-act="plan-borrar" data-id="${p.id}" style="margin-right:auto">Eliminar tarea</button>`)}
+}
+function formPlantilla(unidadId){
+  const u=unitById(unidadId);
+  openForm({title:'Aplicar plantilla de mantenimiento',sub:'Crea las tareas habituales para la unidad. Después podés ajustar cada una.',fields:[
+    {name:'unidadId',label:'Unidad',type:'select',value:unidadId||'',required:true,blank:'Elegí una unidad',options:uOpts(),full:true},
+    {name:'plantilla',label:'Plantilla',type:'select',value:u&&!tieneMotor(u)?'remolque':'motor',required:true,options:Object.entries(PLANTILLAS).map(([v,x])=>({v,l:x.nombre+' ('+x.tareas.length+' tareas)'})),full:true},
+    {name:'fecha',label:'Fecha del último service completo',type:'date',value:hoy(),required:true},
+    {name:'km',label:'Km del último service completo',type:'number',value:u?u.km:null,step:1,hint:'Si lo dejás vacío se usa el kilometraje actual.'}
+  ],onSubmit:async v=>{const un=unitById(v.unidadId),km=v.km!=null?v.km:(un?un.km:null);
+    for(const [tarea,cadaKm,cadaDias] of PLANTILLAS[v.plantilla].tareas){if(S.planes.some(p=>p.unidadId===v.unidadId&&p.tarea===tarea))continue;
+      if(!await put('planes',newId(),{unidadId:v.unidadId,tarea,cadaKm:km!=null?cadaKm:null,cadaDias:cadaDias||(cadaKm?365:null),ultimoKm:km,ultimaFecha:v.fecha}))return false}
+    toast('Plantilla aplicada')}});
+}
+function formHecho(p){
+  const u=unitById(p.unidadId);
+  openForm({title:'Registrar service',sub:esc(p.tarea)+' · '+esc(u?u.dominio:''),fields:[
+    {name:'fecha',label:'Fecha',type:'date',value:hoy(),required:true},
+    {name:'km',label:'Kilometraje',type:'number',value:u?u.km:null,step:1},
+    {name:'taller',label:'Taller',value:'Taller propio',required:true,full:true},
+    {name:'repuestos',label:'Repuestos ($)',type:'number',step:1},
+    {name:'manoObra',label:'Mano de obra ($)',type:'number',step:1}
+  ],onSubmit:async v=>{
+    const n=Math.max(0,...S.ordenes.map(o=>o.numero||0))+1;
+    const ok=await put('ordenes',newId(),{numero:n,unidadId:p.unidadId,tipo:'preventivo',descripcion:p.tarea,taller:v.taller,fechaIngreso:v.fecha,fechaEgreso:v.fecha,km:v.km,repuestos:v.repuestos||0,manoObra:v.manoObra||0,estado:'cerrada',enTaller:false,planId:p.id,nota:''});
+    if(!ok)return false;
+    await patch('planes',p.id,{ultimaFecha:v.fecha,ultimoKm:v.km!=null?v.km:p.ultimoKm});
+    if(v.km!=null)await setKm(p.unidadId,v.km,v.fecha);
+    toast('Service registrado (OT '+n+')');
+  }});
+}
+
+/* Órdenes */
+function formOT(pre){
+  const e=pre||{};const u=unitById(e.unidadId);
+  openForm({title:'Nueva orden de trabajo',sub:e.planId?'Vinculada a la tarea del plan: '+esc((S.planes.find(p=>p.id===e.planId)||{}).tarea||''):'',fields:[
+    {name:'unidadId',label:'Unidad',type:'select',value:e.unidadId||'',required:true,blank:'Elegí una unidad',options:uOpts(x=>x.estado!=='baja'),full:true},
+    {name:'tipo',label:'Tipo',type:'select',value:e.tipo||'correctivo',required:true,options:[{v:'correctivo',l:'Correctivo (reparación)'},{v:'preventivo',l:'Preventivo (service)'}]},
+    {name:'fechaIngreso',label:'Fecha de ingreso',type:'date',value:hoy(),required:true},
+    {name:'descripcion',label:'Trabajo a realizar',type:'textarea',value:e.descripcion,required:true,full:true,ph:'Describí la falla o el service'},
+    {name:'taller',label:'Taller',value:e.taller||'Taller propio',required:true},
+    {name:'km',label:'Kilometraje',type:'number',value:u?u.km:null,step:1},
+    {name:'enTaller',label:'La unidad queda fuera de servicio mientras esté abierta',type:'checkbox',value:e.enTaller!=null?e.enTaller:(e.tipo||'correctivo')==='correctivo'}
+  ],onSubmit:async v=>{
+    const n=Math.max(0,...S.ordenes.map(o=>o.numero||0))+1,id=newId();
+    const ok=await put('ordenes',id,{numero:n,...v,fechaEgreso:null,repuestos:0,manoObra:0,estado:'abierta',planId:e.planId||null,nota:''});
+    if(!ok)return false;
+    if(v.enTaller)await patch('unidades',v.unidadId,{estado:'taller'});
+    if(v.km!=null)await setKm(v.unidadId,v.km,v.fechaIngreso);
+    if(e.checklistId)await patch('checklists',e.checklistId,{otId:id});
+    toast('Orden '+n+' abierta');
+  }});
+}
+function formCerrar(o){
+  const u=unitById(o.unidadId);
+  openForm({title:'Cerrar orden '+o.numero,sub:esc(o.descripcion)+' · '+esc(u?u.dominio:''),fields:[
+    {name:'fechaEgreso',label:'Fecha de egreso',type:'date',value:hoy(),required:true},
+    {name:'km',label:'Kilometraje',type:'number',value:o.km!=null?o.km:(u?u.km:null),step:1},
+    {name:'repuestos',label:'Repuestos ($)',type:'number',value:o.repuestos||null,step:1},
+    {name:'manoObra',label:'Mano de obra ($)',type:'number',value:o.manoObra||null,step:1},
+    {name:'nota',label:'Trabajo realizado',type:'textarea',value:o.nota,full:true}
+  ],validate:v=>v.fechaEgreso<o.fechaIngreso?'La fecha de egreso no puede ser anterior al ingreso ('+fFecha(o.fechaIngreso)+').':null,
+  onSubmit:async v=>{
+    const ok=await patch('ordenes',o.id,{...v,repuestos:v.repuestos||0,manoObra:v.manoObra||0,estado:'cerrada'});if(!ok)return false;
+    if(o.planId&&S.planes.some(p=>p.id===o.planId))await patch('planes',o.planId,{ultimaFecha:v.fechaEgreso,...(v.km!=null?{ultimoKm:v.km}:{})});
+    const otras=S.ordenes.some(x=>x.id!==o.id&&x.unidadId===o.unidadId&&x.estado==='abierta'&&x.enTaller);
+    if(u&&u.estado==='taller'&&!otras)await patch('unidades',u.id,{estado:'operativa'});
+    if(v.km!=null)await setKm(o.unidadId,v.km,v.fechaEgreso);
+    toast('Orden '+o.numero+' cerrada');
+  }});
+}
+function formEditarOT(o){
+  openForm({title:'Editar orden '+o.numero,fields:[
+    {name:'tipo',label:'Tipo',type:'select',value:o.tipo,required:true,options:[{v:'correctivo',l:'Correctivo (reparación)'},{v:'preventivo',l:'Preventivo (service)'}]},
+    {name:'taller',label:'Taller',value:o.taller,required:true},
+    {name:'descripcion',label:'Trabajo',type:'textarea',value:o.descripcion,required:true,full:true},
+    {name:'fechaIngreso',label:'Fecha de ingreso',type:'date',value:o.fechaIngreso,required:true},
+    {name:'km',label:'Kilometraje',type:'number',value:o.km,step:1},
+    ...(o.estado==='cerrada'?[{name:'fechaEgreso',label:'Fecha de egreso',type:'date',value:o.fechaEgreso,required:true},{name:'repuestos',label:'Repuestos ($)',type:'number',value:o.repuestos,step:1},{name:'manoObra',label:'Mano de obra ($)',type:'number',value:o.manoObra,step:1},{name:'nota',label:'Trabajo realizado',type:'textarea',value:o.nota,full:true}]:[])
+  ],onSubmit:async v=>{const ok=await patch('ordenes',o.id,v);if(ok)toast('Orden actualizada');return ok}});
+}
+
+/* Documentos */
+function titularGroups(){return [{label:'Unidades',options:S.unidades.slice().sort(byDominio).map(u=>({v:'unidad:'+u.id,l:u.dominio+' · '+u.marca+' '+u.modelo}))},{label:'Choferes',options:cOpts().map(o=>({v:'chofer:'+o.v,l:o.l}))}]}
+function formDoc(d,pre){
+  const e=d||{};const tit=e.entidad?e.entidad+':'+e.refId:(pre?'unidad:'+pre:'');
+  openForm({title:d?'Editar documento':'Agregar documento',fields:[
+    {name:'titular',label:'Titular',type:'select',value:tit,required:true,blank:'Elegí unidad o chofer',groups:titularGroups(),full:true},
+    {name:'tipoId',label:'Documento',type:'select',value:e.tipoId,required:true,blank:'Elegí el tipo',options:S.tiposDoc.map(t=>({v:t.id,l:t.nombre+(t.aplica==='chofer'?' (chofer)':' (unidad)')})),full:true},
+    {name:'numero',label:'Número o póliza',value:e.numero},
+    {name:'vence',label:'Vence el',type:'date',value:e.vence,required:true}
+  ],validate:v=>{const t=tipoById(v.tipoId),ent=v.titular.split(':')[0];return t&&t.aplica!==ent?'Ese documento es para '+(t.aplica==='chofer'?'choferes':'unidades')+'.':null},
+  onSubmit:async v=>{const [entidad,refId]=v.titular.split(':');const data={entidad,refId,tipoId:v.tipoId,numero:v.numero,vence:v.vence};
+    const ok=d?await patch('documentos',d.id,data):await put('documentos',newId(),data);if(ok)toast(d?'Documento actualizado':'Documento agregado');return ok}});
+  if(!S.tiposDoc.length){document.getElementById('mform-err').textContent='Primero cargá los tipos de documento en Ajustes.';document.getElementById('mform-err').hidden=false}
+}
+function formRenovar(d){
+  const t=tipoById(d.tipoId),base=d.vence>hoy()?d.vence:hoy();
+  openForm({title:'Renovar '+(t?t.nombre:'documento'),sub:esc(titularTxt(d))+' · vencía el '+fFecha(d.vence),fields:[
+    {name:'vence',label:'Nuevo vencimiento',type:'date',value:addMonths(hoy(),t?t.vigenciaMeses:12),required:true,hint:'Sugerido: '+(t?t.vigenciaMeses:12)+' meses desde hoy. Corregilo con la fecha real del certificado.'},
+    {name:'numero',label:'Número o póliza',value:d.numero}
+  ],validate:v=>v.vence<=hoy()?'La nueva fecha tiene que ser posterior a hoy.':null,
+  onSubmit:async v=>{const ok=await patch('documentos',d.id,v);if(ok)toast('Vencimiento renovado al '+fFecha(v.vence));return ok}});
+}
+
+/* Neumáticos */
+const posiciones=u=>ejes(u).flatMap(([e,dual])=>dual?[e+'-IE',e+'-II',e+'-DI',e+'-DE']:[e+'-I',e+'-D']);
+const ocupante=(uid,pos)=>NEU().find(x=>x.estado==='montado'&&x.unidadId===uid&&x.posicion===pos);
+const kmUnidad=u=>tieneMotor(u)&&u.km!=null?u.km:null;
+/* Posición vacía: elegir uno del depósito o dar de alta uno nuevo */
+function tireClick(pos){
+  if(!canWrite)return;
+  const u=unitById(UI.neuU),dep=NEU().filter(n=>n.estado==='deposito').sort((a,b)=>a.codigo.localeCompare(b.codigo,'es',{numeric:true}));
+  modalKind='form';
+  sheet.innerHTML=`<header class="m-head"><div class="t"><h2>Montar en ${esc(pos)}</h2><p class="small muted">${esc(u.dominio)} · ${esc(u.marca)} ${esc(u.modelo)}</p></div><button type="button" class="icon-btn" data-act="close" aria-label="Cerrar">×</button></header>
+  <div class="m-body"><div class="sec"><h3>Desde el depósito</h3>
+    ${dep.length?`<div class="tbl-wrap"><table><tbody>${dep.map(n=>`<tr><td><b class="tcode">${esc(n.codigo)}</b><span class="sub">${esc(n.marca)} ${esc(n.medida||'')}</span></td><td>${esc(vidaTxt(n))}<span class="sub">${n.profundidad!=null?fNum(n.profundidad)+' mm':''}</span></td><td><div class="row-actions"><button class="btn sm primary" data-act="neu-montar-dep" data-id="${n.id}" data-pos="${pos}">Montar</button></div></td></tr>`).join('')}</tbody></table></div>`:'<p class="muted small">No hay neumáticos en el depósito.</p>'}</div></div>
+  <footer class="m-foot"><button class="btn ghost" data-act="close">Cancelar</button><button class="btn" data-act="neu-alta" data-pos="${pos}">Alta de neumático nuevo</button></footer>`;
+  openModal();
+}
+async function montarNeu(n,uid,pos,fecha){
+  const u=unitById(uid),f=fecha||hoy(),km=kmUnidad(u);
+  return patch('neumaticos',n.id,{estado:'montado',unidadId:uid,posicion:pos,kmMontaje:km,fechaMontaje:f,proveedor:'',
+    historial:hist(n,{f,tipo:'montaje',detalle:'Montado en '+u.dominio+' · '+pos+(km!=null?' · '+fKm(km):''),unidadId:uid,posicion:pos})});
+}
+async function moverNeu(n,uid,pos){
+  const f=hoy(),u=unitById(uid),un=unitById(n.unidadId),o=ocupante(uid,pos);
+  const reubicar=(x,uu,p,txt)=>({...cerrarSeg(x),unidadId:uu.id,posicion:p,kmMontaje:kmUnidad(uu),fechaMontaje:f,historial:hist(x,{f,tipo:'rotacion',detalle:txt,unidadId:uu.id,posicion:p})});
+  if(!await patch('neumaticos',n.id,reubicar(n,u,pos,'De '+(un?un.dominio:'')+' '+n.posicion+' a '+u.dominio+' '+pos+(o?' (intercambio con '+o.codigo+')':''))))return false;
+  if(o)await patch('neumaticos',o.id,reubicar(o,un,n.posicion,'De '+u.dominio+' '+pos+' a '+un.dominio+' '+n.posicion+' (intercambio con '+n.codigo+')'));
+  return true;
+}
+async function sacarNeu(n,destino,v){
+  const f=v.fecha||hoy(),u=unitById(n.unidadId),s=segKm(n);
+  const txt=[destino==='deposito'?'Al depósito':null,n.estado==='montado'&&u?'Desde '+u.dominio+' '+n.posicion:null,v.motivo||null,s?fKm(s)+' en este montaje':null].filter(Boolean).join(' · ')||'Sin detalle';
+  return patch('neumaticos',n.id,{...cerrarSeg(n),estado:destino,unidadId:'',posicion:'',kmMontaje:null,
+    profundidad:v.profundidad!=null?v.profundidad:(n.profundidad??null),proveedor:destino==='recapado'?(v.motivo||''):'',
+    historial:hist(n,{f,tipo:destino==='baja'?'baja':destino==='recapado'?'envio':'desmontaje',detalle:txt})});
+}
+function openNeu(id){modalKind='neu';modalId=id;renderNeuModal();openModal(true)}
+function renderNeuModal(){
+  const n=neuById(modalId);if(!n){closeModal();return}
+  const est={ok:['ok','✓','Buen estado'],warn:['warn','!','Cerca del mínimo'],crit:['crit','✕','Bajo el mínimo']}[neuEstado(n)];
+  const acc={
+    montado:`<button class="btn" data-act="neu-mover" data-id="${n.id}">Mover o rotar</button><button class="btn" data-act="neu-sacar" data-id="${n.id}">Desmontar</button><button class="btn primary" data-act="neu-medir" data-id="${n.id}">Registrar medición</button>`,
+    deposito:`<button class="btn" data-act="neu-sacar" data-id="${n.id}" data-dest="recapado">Enviar a recapar</button><button class="btn" data-act="neu-sacar" data-id="${n.id}" data-dest="baja">Dar de baja</button><button class="btn primary" data-act="neu-mover" data-id="${n.id}">Montar</button>`,
+    recapado:`<button class="btn primary" data-act="neu-recibir" data-id="${n.id}">Recibir de la recapadora</button>`,
+    baja:''}[n.estado];
+  sheet.innerHTML=`<header class="m-head"><div class="t"><div class="unit-cell"><span class="tcode big">${esc(n.codigo)}</span><h2>${esc(n.marca)} ${esc(n.medida||'')}</h2></div><div>${neuUbic(n)} ${est&&n.estado!=='baja'?pill(...est):''}</div></div><button type="button" class="icon-btn" data-act="close" aria-label="Cerrar">×</button></header>
+  <div class="m-body">
+    <dl class="dl" style="margin:0"><div><dt>Vida</dt><dd>${esc(vidaTxt(n))}</dd></div><div><dt>Dibujo</dt><dd>${n.profundidad!=null?fNum(n.profundidad)+' mm':'—'}<span class="small muted"> · ${fFecha(n.fechaMedicion)}</span></dd></div><div><dt>Km totales</dt><dd>${kmTot(n)?fKm(kmTot(n)):'—'}<span class="small muted"> · esta vida ${fKm(kmVidaAct(n))}</span></dd></div><div><dt>Costo por km</dt><dd>${fCostoKm(costoKm(n))}<span class="small muted"> · ${fPesos(n.costoTotal)} invertidos</span></dd></div></dl>
+    <div class="actions w" style="flex-wrap:wrap">${acc}<button class="btn ghost" data-act="neu-editar" data-id="${n.id}">Editar datos</button></div>
+    <div class="sec"><div class="sec-head"><h3>Historia</h3><span class="small muted">${n.historial.length} eventos</span></div>
+      ${n.historial.length?`<ol class="tl">${n.historial.slice().reverse().map(e=>`<li class="tl-${esc(e.tipo)}"><span class="tl-f">${fFecha(e.f)}</span><div><b>${esc(TL[e.tipo]||e.tipo)}</b><span>${esc(e.detalle||'')}</span></div></li>`).join('')}</ol>`:'<p class="muted small">Sin eventos registrados. Los neumáticos cargados antes de esta versión empiezan su historia con el próximo movimiento.</p>'}
+    </div>
+  </div>`;
+}
+function formAltaNeu(pos){
+  const u=pos?unitById(UI.neuU):null;
+  openForm({title:pos?'Alta y montaje en '+pos:'Alta de neumático',sub:pos?esc(u.dominio):'Queda en el depósito hasta que lo montes.',fields:[
+    {name:'codigo',label:'Código',value:sigCodigo(),required:true,hint:'El número marcado a fuego o uno propio. No se puede repetir.'},
+    {name:'marca',label:'Marca',required:true,ph:'Fate, Pirelli, Bridgestone…'},
+    {name:'medida',label:'Medida',value:'295/80 R22.5',required:true},
+    {name:'profundidad',label:'Profundidad de dibujo (mm)',type:'number',required:true,step:'0.1'},
+    {name:'recapados',label:'Recapados previos',type:'number',value:0,step:1,hint:'Si es usado y ya fue recapado.'},
+    {name:'precio',label:'Precio de compra ($)',type:'number',step:1}
+  ],validate:v=>NEU().some(n=>n.codigo.toUpperCase()===v.codigo.toUpperCase())?'Ya existe un neumático con el código '+v.codigo+'.':null,
+  onSubmit:async v=>{
+    const f=hoy(),id=newId(),codigo=v.codigo.toUpperCase();
+    const base={codigo,marca:v.marca,medida:v.medida,profundidad:v.profundidad,recapados:v.recapados||0,precio:v.precio||0,costoTotal:v.precio||0,kmTotal:0,kmVida:0,estado:'deposito',unidadId:'',posicion:'',kmMontaje:null,fechaMontaje:null,fechaMedicion:f,proveedor:'',
+      historial:[{f,tipo:'alta',detalle:v.marca+' '+v.medida+(v.recapados?' · '+v.recapados+' recapados previos':'')+(v.precio?' · '+fPesos(v.precio):'')}]};
+    if(!await put('neumaticos',id,base))return false;
+    if(pos)await montarNeu({id,...base},u.id,pos,f);
+    toast(pos?codigo+' montado en '+pos:codigo+' dado de alta');
+  }});
+}
+function formMoverNeu(n){
+  const groups=S.unidades.filter(u=>u.estado!=='baja').sort(byDominio).map(u=>({label:u.dominio+' · '+u.marca+' '+u.modelo,options:posiciones(u).map(p=>{
+    if(n.unidadId===u.id&&n.posicion===p)return null;const o=ocupante(u.id,p);
+    if(!o)return {v:u.id+'|'+p,l:p+' · libre'};
+    return n.estado==='montado'&&o.unidadId===n.unidadId?{v:u.id+'|'+p,l:p+' · intercambiar con '+o.codigo}:null}).filter(Boolean)}));
+  openForm({title:n.estado==='montado'?'Mover o rotar '+n.codigo:'Montar '+n.codigo,sub:n.estado==='montado'?'Si elegís una posición ocupada de la misma unidad, los dos neumáticos se intercambian.':'',fields:[
+    {name:'destino',label:'Posición',type:'select',required:true,blank:'Elegí unidad y posición',groups,full:true}
+  ],onSubmit:async v=>{const [uid,pos]=v.destino.split('|');const ok=n.estado==='montado'?await moverNeu(n,uid,pos):await montarNeu(n,uid,pos);if(ok)toast(n.codigo+' en '+unitById(uid).dominio+' '+pos);return ok}});
+}
+function formSacarNeu(n,dest){
+  const opts=[{v:'deposito',l:'Al depósito'},{v:'recapado',l:'A la recapadora'},{v:'baja',l:'Dar de baja'}].filter(o=>n.estado==='montado'||o.v!=='deposito');
+  openForm({title:n.estado==='montado'?'Desmontar '+n.codigo:(dest==='baja'?'Dar de baja '+n.codigo:'Enviar a recapar '+n.codigo),fields:[
+    {name:'destino',label:'Destino',type:'select',value:dest||'deposito',required:true,options:opts},
+    {name:'fecha',label:'Fecha',type:'date',value:hoy(),required:true},
+    {name:'profundidad',label:'Dibujo al desmontar (mm)',type:'number',step:'0.1',value:n.profundidad},
+    {name:'motivo',label:'Recapadora o motivo',full:true,ph:'Ej.: Recapados del Litoral · Corte lateral · Rotación de eje'}
+  ],onSubmit:async v=>{const ok=await sacarNeu(n,v.destino,v);if(ok)toast(n.codigo+': '+{deposito:'al depósito',recapado:'enviado a recapar',baja:'dado de baja'}[v.destino]);return ok}});
+}
+function formRecibirNeu(n){
+  openForm({title:'Recibir '+n.codigo+' de la recapadora',sub:'Empieza la vida '+(n.recapados+2)+'. Queda en el depósito.',fields:[
+    {name:'proveedor',label:'Recapadora',value:n.proveedor,required:true},
+    {name:'fecha',label:'Fecha',type:'date',value:hoy(),required:true},
+    {name:'profundidad',label:'Dibujo nuevo (mm)',type:'number',required:true,step:'0.1'},
+    {name:'costo',label:'Costo del recapado ($)',type:'number',step:1}
+  ],onSubmit:async v=>{const ok=await patch('neumaticos',n.id,{estado:'deposito',recapados:n.recapados+1,kmVida:0,profundidad:v.profundidad,fechaMedicion:v.fecha,costoTotal:n.costoTotal+(v.costo||0),proveedor:'',
+    historial:hist(n,{f:v.fecha,tipo:'recapado',detalle:'Vida '+(n.recapados+2)+' · '+v.proveedor+(v.costo?' · '+fPesos(v.costo):'')+' · '+fNum(v.profundidad)+' mm'})});if(ok)toast(n.codigo+' recapado, en el depósito');return ok}});
+}
+function formMedir(n){
+  openForm({title:'Registrar medición de '+n.codigo,sub:n.estado==='montado'?'Posición '+esc(n.posicion):'',fields:[
+    {name:'profundidad',label:'Profundidad de dibujo (mm)',type:'number',required:true,step:'0.1',value:n.profundidad},{name:'fecha',label:'Fecha',type:'date',value:hoy(),required:true}
+  ],onSubmit:async v=>{const ok=await patch('neumaticos',n.id,{profundidad:v.profundidad,fechaMedicion:v.fecha,historial:hist(n,{f:v.fecha,tipo:'medicion',detalle:fNum(v.profundidad)+' mm'+(n.estado==='montado'?' en '+n.posicion:'')})});if(ok)toast('Medición registrada');return ok}});
+}
+function formEditarNeu(n){
+  openForm({title:'Editar '+n.codigo,fields:[
+    {name:'codigo',label:'Código',value:n.codigo,required:true},{name:'marca',label:'Marca',value:n.marca,required:true},
+    {name:'medida',label:'Medida',value:n.medida,required:true},{name:'precio',label:'Precio de compra ($)',type:'number',value:n.precio||null,step:1}
+  ],validate:v=>NEU().some(x=>x.id!==n.id&&x.codigo.toUpperCase()===v.codigo.toUpperCase())?'Ya existe un neumático con el código '+v.codigo+'.':null,
+  onSubmit:async v=>{const dp=(v.precio||0)-(n.precio||0);const ok=await patch('neumaticos',n.id,{codigo:v.codigo.toUpperCase(),marca:v.marca,medida:v.medida,precio:v.precio||0,costoTotal:Math.max(0,n.costoTotal+dp)});if(ok)toast('Datos actualizados');return ok}});
+}
+
+/* Control diario */
+async function guardarChecklist(){
+  const d=ckDraft(),err=document.getElementById('ck-err');
+  if(!d.unidadId){err.textContent='Elegí la unidad que controlaste.';err.hidden=false;return}
+  const km=d.km===''?null:Number(d.km),id=newId();
+  const ok=await put('checklists',id,{unidadId:d.unidadId,choferId:d.choferId,fecha:hoy(),km,items:{...d.items},obs:d.obs.trim(),otId:null});
+  if(!ok)return;
+  if(km!=null)await setKm(d.unidadId,km);
+  UI.ck=null;UI.ckResult=id;toast('Control guardado');schedule();
+}
+function otDesdeChecklist(id){
+  const k=S.checklists.find(x=>x.id===id);if(!k)return;
+  const f=Object.entries(k.items).filter(([,v])=>v==='falla').map(([x])=>itemNombre(x));
+  formOT({unidadId:k.unidadId,tipo:'correctivo',descripcion:'Falla en control diario: '+f.join(', ')+(k.obs?'. '+k.obs:''),checklistId:k.id,enTaller:true});
+}
+
+/* Tipos de documento */
+function formTipo(t){
+  openForm({title:t?'Editar tipo de documento':'Agregar tipo de documento',fields:[
+    {name:'nombre',label:'Nombre',value:t&&t.nombre,required:true,full:true},
+    {name:'aplica',label:'Se carga para',type:'select',value:t?t.aplica:'unidad',required:true,options:[{v:'unidad',l:'Unidades'},{v:'chofer',l:'Choferes'}]},
+    {name:'vigenciaMeses',label:'Vigencia (meses)',type:'number',value:t?t.vigenciaMeses:12,required:true,step:1},
+    {name:'avisoDias',label:'Avisar con anticipación (días)',type:'number',value:t?t.avisoDias:30,required:true,step:1},
+    {name:'nota',label:'Nota o norma de referencia',type:'textarea',value:t&&t.nota,full:true}
+  ],onSubmit:async v=>{const ok=t?await patch('tiposDoc',t.id,v):await put('tiposDoc',newId(),v);if(ok)toast(t?'Tipo actualizado':'Tipo agregado');return ok}});
+}
+
+/* Datos de ejemplo */
+async function cargarEjemplo(btn){
+  const ex=ejemplo(),tareas=[];
+  for(const col of COLS)for(const doc of ex[col]){if(col==='tiposDoc'&&S.tiposDoc.some(t=>t.id===doc.id))continue;tareas.push([col,doc])}
+  if(!S.config)tareas.push(['config',{id:'general',avisoKm:2000,avisoDias:15,profundidadMin:3}]);
+  let i=0;const b=btn||document.getElementById('btn-ejemplo');if(b)b.disabled=true;
+  const worker=async()=>{while(i<tareas.length){const [col,doc]=tareas[i++];if(!await put(col,doc.id,stripId(doc)))throw 0;if(b)b.textContent='Cargando… '+Math.min(i,tareas.length)+' de '+tareas.length}};
+  try{await Promise.all([worker(),worker(),worker()]);toast('Flota de ejemplo cargada');go('panel')}catch(e){if(b){b.disabled=false;b.textContent='Cargar flota de ejemplo'}}
+}
+async function borrarEjemplo(){
+  openConfirm({title:'Borrar datos de ejemplo',text:'Se eliminan las unidades, choferes, órdenes, documentos, neumáticos y controles de ejemplo. Lo que cargaste vos no se toca. Los tipos de documento se conservan.',ok:'Borrar',onOk:async()=>{
+    for(const col of COLS){if(col==='tiposDoc')continue;for(const d of S[col].filter(x=>x.ejemplo).slice())await del(col,d.id)}
+    toast('Datos de ejemplo borrados')}});
+}
+async function empezar(){
+  for(const t of TIPOS_DOC_SUGERIDOS)if(!S.tiposDoc.some(x=>x.id===t.id))await put('tiposDoc',t.id,stripId(t));
+  if(!S.config)await put('config','general',{avisoKm:2000,avisoDias:15,profundidadMin:3});
+  go('flota');formUnidad();
+}
+
+/* ---------- acciones ---------- */
+const findO=id=>S.ordenes.find(o=>o.id===id),findP=id=>S.planes.find(p=>p.id===id),findD=id=>S.documentos.find(d=>d.id===id),findN=id=>S.neumaticos.find(n=>n.id===id);
+const ACT={
+  nav:el=>go(el.dataset.v),
+  goto:el=>{closeModal();if(el.dataset.u){UI.neuU=el.dataset.u;UI.neuTab='unidad'}go(el.dataset.v)},
+  close:closeModal,
+  filtro:el=>{UI[el.dataset.k]=el.dataset.v;render()},
+  'unidad-ver':el=>openUnidad(el.dataset.id),
+  'unidad-nueva':()=>formUnidad(),
+  'unidad-editar':el=>formUnidad(unitById(el.dataset.id)),
+  'unidad-km':el=>formKm(unitById(el.dataset.id)),
+  'unidad-borrar':el=>borrarUnidad(el.dataset.id),
+  'chofer-nuevo':()=>formChofer(),
+  'chofer-editar':el=>formChofer(choferById(el.dataset.id)),
+  'chofer-borrar':el=>borrarChofer(el.dataset.id),
+  'plan-nuevo':el=>formPlan(null,el.dataset.unidad||UI.planU),
+  'plan-editar':el=>formPlan(findP(el.dataset.id)),
+  'plan-borrar':el=>{const p=findP(el.dataset.id);openConfirm({title:'Eliminar tarea',text:'Se elimina "'+esc(p.tarea)+'" del plan. Las órdenes ya registradas no se tocan.',onOk:async()=>{await del('planes',p.id);toast('Tarea eliminada')}})},
+  'plan-hecho':el=>formHecho(findP(el.dataset.id)),
+  'plan-ot':el=>{const p=findP(el.dataset.id);formOT({unidadId:p.unidadId,tipo:'preventivo',descripcion:p.tarea,planId:p.id,enTaller:false})},
+  plantilla:el=>formPlantilla(el.dataset.unidad||UI.planU),
+  'ot-nueva':el=>formOT({unidadId:el.dataset.unidad||UI.otU}),
+  'ot-cerrar':el=>formCerrar(findO(el.dataset.id)),
+  'ot-editar':el=>formEditarOT(findO(el.dataset.id)),
+  'ot-borrar':el=>{const o=findO(el.dataset.id);openConfirm({title:'Eliminar orden '+o.numero,text:'Se elimina la orden y su costo deja de contar en los indicadores.',onOk:async()=>{await del('ordenes',o.id);const u=unitById(o.unidadId);if(o.estado==='abierta'&&u&&u.estado==='taller'&&!S.ordenes.some(x=>x.id!==o.id&&x.unidadId===u.id&&x.estado==='abierta'&&x.enTaller))await patch('unidades',u.id,{estado:'operativa'});toast('Orden eliminada')}})},
+  'doc-nuevo':el=>formDoc(null,el.dataset.unidad),
+  'doc-renovar':el=>formRenovar(findD(el.dataset.id)),
+  'doc-editar':el=>formDoc(findD(el.dataset.id)),
+  'doc-borrar':el=>{const d=findD(el.dataset.id);openConfirm({title:'Eliminar documento',text:'Se elimina el vencimiento de '+esc(titularTxt(d))+'.',onOk:async()=>{await del('documentos',d.id);toast('Documento eliminado')}})},
+  'neu-pos':el=>tireClick(el.dataset.pos),
+  'neu-ver':el=>openNeu(el.dataset.id),
+  'neu-alta':el=>formAltaNeu(el.dataset.pos),
+  'neu-montar-dep':async el=>{el.disabled=true;const n=neuById(el.dataset.id);if(await montarNeu(n,UI.neuU,el.dataset.pos)){toast(n.codigo+' montado en '+el.dataset.pos);closeModal()}else el.disabled=false},
+  'neu-mover':el=>formMoverNeu(neuById(el.dataset.id)),
+  'neu-sacar':el=>formSacarNeu(neuById(el.dataset.id),el.dataset.dest),
+  'neu-recibir':el=>formRecibirNeu(neuById(el.dataset.id)),
+  'neu-medir':el=>formMedir(neuById(el.dataset.id)),
+  'neu-editar':el=>formEditarNeu(neuById(el.dataset.id)),
+  'ck-guardar':()=>guardarChecklist(),
+  'ck-ot':el=>otDesdeChecklist(el.dataset.id),
+  'tipo-nuevo':()=>formTipo(),
+  'tipo-editar':el=>formTipo(tipoById(el.dataset.id)),
+  'tipo-borrar':el=>{const t=tipoById(el.dataset.id),n=S.documentos.filter(d=>d.tipoId===t.id).length;openConfirm({title:'Eliminar '+t.nombre,text:n?'Hay '+n+' documentos cargados de este tipo. Van a quedar como "Tipo eliminado".':'No hay documentos cargados de este tipo.',onOk:async()=>{await del('tiposDoc',t.id);toast('Tipo eliminado')}})},
+  'tipos-sugeridos':async()=>{for(const t of TIPOS_DOC_SUGERIDOS)if(!tipoById(t.id))await put('tiposDoc',t.id,stripId(t));toast('Tipos sugeridos cargados')},
+  'aj-guardar':async()=>{const v=id=>{const x=document.getElementById(id).value;return x===''?null:Number(x)};const d={avisoKm:v('aj-km')??2000,avisoDias:v('aj-dias')??15,profundidadMin:v('aj-prof')??3};if(await put('config','general',d))toast('Umbrales guardados')},
+  'ejemplo-cargar':el=>cargarEjemplo(el),
+  'ejemplo-borrar':()=>borrarEjemplo(),
+  empezar:()=>empezar()
+};
+document.addEventListener('click',e=>{const el=e.target.closest('[data-act]');if(!el)return;const f=ACT[el.dataset.act];if(f){e.preventDefault();f(el)}});
+document.addEventListener('input',e=>{const t=e.target;
+  if(t.dataset.ui&&t.type==='search'){UI[t.dataset.ui]=t.value;render()}
+  else if(t.dataset.ck){ckDraft()[t.dataset.ck]=t.value}});
+document.addEventListener('change',e=>{const t=e.target;
+  if(t.dataset.ui&&t.type!=='search'){UI[t.dataset.ui]=t.value;render()}
+  else if(t.dataset.ckItem){ckDraft().items[t.dataset.ckItem]=t.value}
+  else if(t.dataset.ck){ckDraft()[t.dataset.ck]=t.value;if(t.dataset.ck==='unidadId'){UI.ckResult=null;render()}}});
+
+/* ---------- render ---------- */
+const main=document.getElementById('main'),nav=document.getElementById('nav'),bannerEl=document.getElementById('banner');
+const VIEW_FN={panel:vPanel,flota:vFlota,mantenimiento:vMantenimiento,ordenes:vOrdenes,vencimientos:vVencimientos,neumaticos:vNeumaticos,checklist:vChecklist,ajustes:vAjustes};
+function go(v){if(!VIEW_FN[v])v='panel';UI.view=v;if(v!=='checklist')UI.ckResult=null;try{history.replaceState(null,'','#'+v)}catch(e){}render();window.scrollTo({top:0})}
+let pend=false;function schedule(){if(pend)return;pend=true;requestAnimationFrame(()=>{pend=false;render()})}
+function render(){
+  document.body.classList.toggle('readonly',!canWrite);
+  const vencidos=S.documentos.filter(d=>docEstado(d).est==='vencido').length,pv=S.planes.filter(p=>planEstado(p).est==='vencido').length,ab=S.ordenes.filter(o=>o.estado==='abierta').length;
+  const badge={vencimientos:vencidos,mantenimiento:pv,ordenes:ab};
+  nav.innerHTML=VIEWS.map(([v,l])=>`<button data-act="nav" data-v="${v}"${UI.view===v?' aria-current="page"':''}><span>${l}</span>${badge[v]?`<span class="badge"${v==='ordenes'?' style="background:var(--surface-2);color:var(--ink-2)"':''}>${badge[v]}</span>`:''}</button>`).join('');
+  const b=[];
+  if(mode==='demo')b.push(`<div class="banner warn"><span><b>Modo demostración.</b> Estás viendo una flota de ejemplo y los cambios no se guardan. Abrí la app publicada en claude.ai para guardar los datos de tu flota.</span></div>`);
+  else if(mode==='db'&&COLS.some(k=>S[k].some(x=>x.ejemplo)))b.push(`<div class="banner"><span>Estás viendo <b>datos de ejemplo</b>. Borralos desde Ajustes cuando empieces a cargar tu flota.</span><button class="linkbtn w" data-act="nav" data-v="ajustes">Ir a Ajustes</button></div>`);
+  if(!canWrite)b.push(`<div class="banner"><span>Tenés acceso de lectura. Para cargar datos, pedile al dueño de la app acceso de colaborador.</span></div>`);
+  bannerEl.innerHTML=b.join('');
+  if(mode==='loading'){main.innerHTML='<p class="muted">Conectando con los datos de la flota…</p>';return}
+  const a=document.activeElement,aid=a&&a.id&&main.contains(a)?a.id:null;let s1=null,s2=null;try{s1=a.selectionStart;s2=a.selectionEnd}catch(e){}
+  main.innerHTML=VIEW_FN[UI.view]();
+  wireChart();
+  if(aid){const n=document.getElementById(aid);if(n){n.focus({preventScroll:true});try{if(s1!=null)n.setSelectionRange(s1,s2)}catch(e){}}}
+  if(modalKind==='unidad')renderUnidadModal();
+  else if(modalKind==='neu')renderNeuModal();
+}
+let toastT;function toast(t){const el=document.getElementById('toast');el.textContent=t;clearTimeout(toastT);toastT=setTimeout(()=>el.textContent='',3200)}
+
+/* ---------- arranque ---------- */
+(async function init(){
+  const h=(location.hash||'').slice(1);if(VIEW_FN[h])UI.view=h;
+  render();
+  let cdb=null;
+  try{cdb=window.claude&&window.claude.use?await window.claude.use('db'):null}catch(e){cdb=null}
+  if(!cdb){mode='demo';const ex=ejemplo();COLS.forEach(k=>S[k]=ex[k]);S.config={avisoKm:2000,avisoDias:15,profundidadMin:3};render();return}
+  db=cdb;
+  try{const user=await window.claude.use('user');if(user&&user.can){const c=await user.can('data.write');if(c===false)canWrite=false}}catch(e){}
+  const done=()=>{if(loaded.size>=COLS.length+1&&mode==='loading'){mode='db'}schedule()};
+  COLS.forEach(c=>db.collection(c).onSnapshot(s=>{S[c]=s.docs.map(d=>({id:d.id,...d.data()}));loaded.add(c);done()},e=>{loaded.add(c);done()}));
+  db.doc('config/general').onSnapshot(s=>{S.config=s.exists?{...s.data()}:null;loaded.add('config');done()},e=>{loaded.add('config');done()});
+})();
+</script>

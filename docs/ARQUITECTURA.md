@@ -12,7 +12,7 @@ ven sólo lo que cada flota les asigna. "Flota al Día" es el nombre provisorio.
 | Base de datos | Supabase (Postgres) | Datos, usuarios, archivos (fotos, facturas) |
 | Seguridad | Row Level Security de Postgres | El aislamiento entre empresas lo hace la base, no la pantalla |
 | Publicación | Vercel, conectado a GitHub | Cada cambio subido se publica solo |
-| Región | São Paulo (Supabase y Vercel) | Menor demora desde Argentina |
+| Región | La misma para Supabase y Vercel (hoy Virginia: `us-east-1` / `iad1`) | Las consultas no cruzan el continente |
 
 ## Empresas, personas y roles
 

@@ -22,8 +22,9 @@ separados, y talleres y recapadoras como proveedores vinculados.
    Vercel → Settings → Environment Variables. `NEXT_PUBLIC_SITE_URL` no hace falta: en Vercel la app
    toma su dirección de cada pedido. Si cambiás una variable, volvé a publicar (Redeploy), porque
    las `NEXT_PUBLIC_*` se fijan al compilar.
-5. **Región.** `vercel.json` fija las funciones en São Paulo (`gru1`), la misma región que la base de
-   Supabase (`sa-east-1`). Si la base está en otra región, cambiá `gru1` por la equivalente.
+5. **Región.** `vercel.json` fija las funciones en la misma región que la base de Supabase, para que
+   cada consulta no cruce el continente. Hoy la base está en Virginia (`us-east-1`), así que las
+   funciones van en Washington (`iad1`). Si la base se mueve a São Paulo (`sa-east-1`), usá `gru1`.
 
 ## Desarrollo
 

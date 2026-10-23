@@ -1,0 +1,37 @@
+import { NextResponse, type NextRequest } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
+import { SUPABASE_KEY, SUPABASE_URL, supabaseConfigurado } from '@/lib/supabase/config';
+
+const PRIVADAS = ['/empresa', '/empresas'];
+
+// Renueva la sesión en cada pedido y manda al inicio de sesión a quien entra sin estar logueado.
+export async function proxy(request: NextRequest) {
+  let respuesta = NextResponse.next({ request });
+  if (!supabaseConfigurado()) return respuesta;
+
+  const supabase = createServerClient(SUPABASE_URL, SUPABASE_KEY, {
+    cookies: {
+      getAll: () => request.cookies.getAll(),
+      setAll(aGuardar, encabezados) {
+        aGuardar.forEach(({ name, value }) => request.cookies.set(name, value));
+        respuesta = NextResponse.next({ request });
+        aGuardar.forEach(({ name, value, options }) => respuesta.cookies.set(name, value, options));
+        Object.entries(encabezados).forEach(([clave, valor]) => respuesta.headers.set(clave, valor));
+      },
+    },
+  });
+
+  const { data } = await supabase.auth.getClaims();
+  const ruta = request.nextUrl.pathname;
+  if (!data?.claims && PRIVADAS.some((p) => ruta === p || ruta.startsWith(p + '/'))) {
+    const destino = request.nextUrl.clone();
+    destino.pathname = '/ingresar';
+    destino.search = '?siguiente=' + encodeURIComponent(ruta + request.nextUrl.search);
+    return NextResponse.redirect(destino);
+  }
+  return respuesta;
+}
+
+export const config = {
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|icon.svg|.*\\.(?:svg|png|jpg|jpeg|webp)$).*)'],
+};

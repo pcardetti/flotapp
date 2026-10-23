@@ -5,4 +5,7 @@ out/
 .env
 .env*.local
 *.log
+*.tsbuildinfo
+next-env.d.ts
+.claude/
 .DS_Store

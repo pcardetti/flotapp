@@ -1,0 +1,82 @@
+@import "tailwindcss";
+
+/* Identidad Flotapp: azul ruta, neutros fríos, amarillo de línea vial como detalle. */
+:root {
+  --bg: #f2f4f7;
+  --surface: #ffffff;
+  --surface-2: #e8ecf1;
+  --ink: #142133;
+  --ink-2: #47566a;
+  --ink-3: #66748a;
+  --line: #d3dae3;
+  --accent: #1d4f91;
+  --accent-ink: #ffffff;
+  --accent-soft: #dfe9f7;
+  --road: #e0a400;
+  --ok: #1d7349;
+  --ok-soft: #dcf0e4;
+  --warn: #9a5a00;
+  --warn-soft: #fbecd0;
+  --crit: #b42318;
+  --crit-soft: #fbe0dc;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d131b;
+    --surface: #151d28;
+    --surface-2: #1e2836;
+    --ink: #e6ecf3;
+    --ink-2: #a9b5c3;
+    --ink-3: #8492a3;
+    --line: #2a3646;
+    --accent: #86b4f2;
+    --accent-ink: #0b1320;
+    --accent-soft: #1b2d46;
+    --road: #f0bf3a;
+    --ok: #62cf95;
+    --ok-soft: #12301f;
+    --warn: #f2b65c;
+    --warn-soft: #3a2a10;
+    --crit: #ff8b80;
+    --crit-soft: #3f1715;
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-road: var(--road);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-crit: var(--crit);
+  --color-crit-soft: var(--crit-soft);
+  --font-sans: var(--font-barlow), "Segoe UI", system-ui, sans-serif;
+  --font-display: var(--font-barlow-condensed), "Arial Narrow", sans-serif;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+h1, h2, h3 { text-wrap: balance; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+.eyebrow {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--ink-3);
+}

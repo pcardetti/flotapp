@@ -22,16 +22,18 @@ export default async function Unidad({ params, searchParams }: { params: Promise
   const { rol } = await abrirSeccion(org, 'flota');
   if (!UUID.test(id)) notFound();
   const supabase = await crearClienteServidor();
-  const { data: u, error } = await supabase
-    .from('unidades')
-    .select('id, dominio, tipo, marca, modelo, anio, km, jurisdiccion, estado, cargas_peligrosas, chofer:choferes(id, nombre, telefono)')
-    .eq('id', id)
-    .eq('organizacion_id', org)
-    .maybeSingle();
+  const [{ data: u, error }, { data: lecturas, error: e2 }] = await Promise.all([
+    supabase
+      .from('unidades')
+      .select('id, dominio, tipo, marca, modelo, anio, km, jurisdiccion, estado, cargas_peligrosas, chofer:choferes(id, nombre, telefono)')
+      .eq('id', id)
+      .eq('organizacion_id', org)
+      .maybeSingle(),
+    supabase.from('lecturas_km').select('id, km, fecha, origen').eq('unidad_id', id).eq('organizacion_id', org).order('fecha', { ascending: false }).order('creado_en', { ascending: false }).limit(12),
+  ]);
   avisarError('unidad', error);
-  if (!u) notFound();
-  const { data: lecturas, error: e2 } = await supabase.from('lecturas_km').select('id, km, fecha, origen').eq('unidad_id', id).order('fecha', { ascending: false }).order('creado_en', { ascending: false }).limit(12);
   avisarError('unidad/lecturas', e2);
+  if (!u) notFound();
 
   const chofer = Array.isArray(u.chofer) ? u.chofer[0] : u.chofer;
   const edita = esGestor(rol);

@@ -49,7 +49,12 @@ export type DatosUnidad = {
 export type Errores = Partial<Record<string, string>>;
 
 const texto = (v: FormDataEntryValue | null) => (typeof v === 'string' ? v.trim() : '');
-const entero = (v: string) => (/^\d+$/.test(v.replace(/\./g, '')) ? Number(v.replace(/\./g, '')) : NaN);
+// Acepta "412300", "412.300", "412 300" y "412.300 km". La coma no se acepta: en Argentina marca decimales.
+const entero = (v: string) => {
+  const limpio = v.toLowerCase().replace(/km\.?$/, '').replace(/[\s.]/g, '');
+  return /^\d+$/.test(limpio) ? Number(limpio) : NaN;
+};
+const KM_INVALIDO = 'Escribí el kilometraje sólo con números, sin coma ni decimales (por ejemplo 412300 o 412.300).';
 
 // Lee y valida el formulario de unidad. Devuelve los datos listos para guardar o los errores por campo.
 export function leerUnidad(form: FormData, anioActual = new Date().getFullYear()): { datos?: DatosUnidad; errores: Errores } {
@@ -73,7 +78,7 @@ export function leerUnidad(form: FormData, anioActual = new Date().getFullYear()
 
   const kmTxt = texto(form.get('km'));
   const km = kmTxt ? entero(kmTxt) : null;
-  if (km !== null && (Number.isNaN(km) || km > 5_000_000)) errores.km = 'Escribí el kilometraje sólo con números, sin decimales.';
+  if (km !== null && (Number.isNaN(km) || km > 5_000_000)) errores.km = KM_INVALIDO;
   else if (km === null && tieneMotor(tipo)) errores.km = 'Escribí el kilometraje del tablero.';
 
   const jurisdiccion = texto(form.get('jurisdiccion')) || 'Nacional';
@@ -106,7 +111,7 @@ export function leerChofer(form: FormData): { datos?: { nombre: string; telefono
 export function leerKm(form: FormData, kmActual: number | null): { km?: number; errores: Errores } {
   const t = texto(form.get('km'));
   const km = t ? entero(t) : NaN;
-  if (Number.isNaN(km)) return { errores: { km: 'Escribí el kilometraje sólo con números, sin decimales.' } };
+  if (Number.isNaN(km) || km > 5_000_000) return { errores: { km: KM_INVALIDO } };
   if (kmActual !== null && km < kmActual)
     return { errores: { km: `No puede ser menor al último registrado (${kmActual.toLocaleString('es-AR')} km). Si hubo un error de carga, corregilo en Editar.` } };
   return { km, errores: {} };

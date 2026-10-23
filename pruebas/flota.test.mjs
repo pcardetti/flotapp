@@ -51,6 +51,12 @@ test('chofer: nombre obligatorio y teléfono con caracteres válidos', () => {
   assert.equal(leerChofer(form({ nombre: 'Ana', telefono: '' })).datos.telefono, null);
 });
 
+test('el kilometraje acepta espacios, puntos de miles y "km", pero no coma', () => {
+  for (const km of ['412300', '412.300', '412 300', '412.300 km', '412300KM']) assert.equal(leerUnidad(form({ ...tractor, km }), 2026).datos?.km, 412300, km);
+  for (const km of ['412,5', '150,000', 'mucho', '-5']) assert.match(leerUnidad(form({ ...tractor, km }), 2026).errores.km, /sin coma/, km);
+  assert.match(leerKm(form({ km: '9.000.000' }), 1).errores.km, /sin coma/);
+});
+
 test('una lectura de km no puede bajar', () => {
   assert.ok(leerKm(form({ km: '400000' }), 412300).errores.km);
   assert.equal(leerKm(form({ km: '412.300' }), 412300).km, 412300);

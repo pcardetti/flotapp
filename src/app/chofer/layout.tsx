@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   title: { default: 'Chofer', template: '%s · Flotapp Chofer' },
   manifest: '/manifests/chofer.webmanifest',
   appleWebApp: { capable: true, title: 'Chofer', statusBarStyle: 'default' },
+  robots: { index: false, follow: false },
 };
 
 export const viewport: Viewport = { themeColor: '#f2b705' };

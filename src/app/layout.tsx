@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Barlow, Barlow_Condensed } from 'next/font/google';
+import { connection } from 'next/server';
 import './globals.css';
 
 const barlow = Barlow({ subsets: ['latin'], weight: ['400', '500', '600'], variable: '--font-barlow' });
@@ -17,7 +18,10 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // La política de contenido usa un nonce distinto en cada pedido: ninguna página se sirve prearmada,
+  // porque sus scripts no tendrían el nonce y el navegador los bloquearía.
+  await connection();
   return (
     // suppressHydrationWarning: algunas extensiones del navegador (por ejemplo, modos oscuros) modifican <html> antes de que cargue la app.
     <html lang="es-AR" className={`${barlow.variable} ${barlowCondensed.variable}`} suppressHydrationWarning>

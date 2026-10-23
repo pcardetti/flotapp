@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   title: { default: 'Taller', template: '%s · Flotapp Taller' },
   manifest: '/manifests/taller.webmanifest',
   appleWebApp: { capable: true, title: 'Taller', statusBarStyle: 'default' },
+  robots: { index: false, follow: false },
 };
 
 export const viewport: Viewport = { themeColor: '#0e7490' };

@@ -9,6 +9,6 @@ const require = createRequire(import.meta.url);
 const next = join(dirname(require.resolve('next/package.json')), 'dist', 'bin', 'next');
 const proceso = spawn(process.execPath, [next, 'dev', ...process.argv.slice(2)], {
   stdio: 'inherit',
-  env: { ...process.env, FLOTAPP_DEMO: '1', NEXT_PUBLIC_FLOTAPP_DEMO: '1' },
+  env: { ...process.env, FLOTAPP_DEMO: '1' },
 });
 proceso.on('exit', (codigo) => process.exit(codigo ?? 0));

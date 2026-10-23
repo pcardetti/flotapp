@@ -2,9 +2,11 @@ import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import { modoDemo } from '@/lib/demo/activo';
 import { SUPABASE_KEY, SUPABASE_URL, supabaseConfigurado } from './config';
+import { OPCIONES_COOKIE } from './cookies';
 
 function clienteSupabase(almacen: Awaited<ReturnType<typeof cookies>>) {
   return createServerClient(SUPABASE_URL, SUPABASE_KEY, {
+    cookieOptions: OPCIONES_COOKIE,
     cookies: {
       getAll: () => almacen.getAll(),
       setAll(aGuardar) {

@@ -362,6 +362,8 @@ export function clienteDemo(rolCookie: string | undefined) {
       from: () => ({
         createSignedUrls: async (rutas: string[]) => ({ data: rutas.map((path) => ({ path, signedUrl: fotoDemo(path), error: null })), error: null }),
         createSignedUrl: async (ruta: string) => ({ data: { signedUrl: fotoDemo(ruta) }, error: null }),
+        // La "subida" va a una ruta local que sólo existe en el modo demo.
+        createSignedUploadUrl: async (ruta: string) => ({ data: { signedUrl: '/api/demo/subida', token: 'demo', path: ruta }, error: null }),
         upload: async (ruta: string) => ({ data: { path: ruta }, error: null }),
         remove: async () => ({ data: [], error: null }),
       }),

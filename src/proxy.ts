@@ -1,13 +1,29 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { modoDemo } from '@/lib/demo/activo';
+import { nuevoNonce, politicaDeContenido } from '@/lib/seguridad';
 import { SUPABASE_KEY, SUPABASE_URL, supabaseConfigurado } from '@/lib/supabase/config';
+import { OPCIONES_COOKIE } from '@/lib/supabase/cookies';
 
 const PRIVADAS = ['/empresa', '/empresas', '/chofer', '/taller', '/u', '/imprimir'];
 
-// Renueva la sesión en cada pedido y manda al inicio de sesión a quien entra sin estar logueado.
+// En cada pedido: arma la política de contenido con un nonce nuevo, renueva la sesión y manda al inicio
+// de sesión a quien entra sin estar logueado.
 export async function proxy(request: NextRequest) {
-  let respuesta = NextResponse.next({ request });
+  const nonce = nuevoNonce();
+  const csp = politicaDeContenido(nonce, { supabase: SUPABASE_URL, desarrollo: process.env.NODE_ENV !== 'production' });
+  // Next toma el nonce de la política que viaja en el pedido y lo pone en sus propios scripts.
+  // Se rearma cada vez porque renovar la sesión cambia las cookies del pedido.
+  const seguir = () => {
+    const cabeceras = new Headers(request.headers);
+    cabeceras.set('x-nonce', nonce);
+    cabeceras.set('content-security-policy', csp);
+    const r = NextResponse.next({ request: { headers: cabeceras } });
+    r.headers.set('Content-Security-Policy', csp);
+    return r;
+  };
+
+  let respuesta = seguir();
   if (!supabaseConfigurado() || modoDemo()) return respuesta;
 
   // Si la dirección de confirmación no está autorizada en Supabase, el enlace del mail vuelve a la raíz.
@@ -19,11 +35,12 @@ export async function proxy(request: NextRequest) {
   }
 
   const supabase = createServerClient(SUPABASE_URL, SUPABASE_KEY, {
+    cookieOptions: OPCIONES_COOKIE,
     cookies: {
       getAll: () => request.cookies.getAll(),
       setAll(aGuardar, encabezados) {
         aGuardar.forEach(({ name, value }) => request.cookies.set(name, value));
-        respuesta = NextResponse.next({ request });
+        respuesta = seguir();
         aGuardar.forEach(({ name, value, options }) => respuesta.cookies.set(name, value, options));
         Object.entries(encabezados).forEach(([clave, valor]) => respuesta.headers.set(clave, valor));
       },

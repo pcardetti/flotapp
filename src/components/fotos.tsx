@@ -2,7 +2,7 @@
 
 import { Camera, ImagePlus, Loader2, RotateCcw, X } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
-import { clienteNavegador } from '@/lib/supabase/navegador';
+import { pedirSubida, type Carpeta } from '@/lib/subida-fotos';
 
 type Foto = { id: string; vista: string; estado: 'subiendo' | 'lista' | 'error'; ruta?: string; archivo: File };
 
@@ -22,11 +22,11 @@ async function comprimir(archivo: File): Promise<Blob> {
   return new Promise((ok, mal) => lienzo.toBlob((b) => (b ? ok(b) : mal(new Error('No se pudo procesar la foto'))), 'image/jpeg', 0.82));
 }
 
-// Fotos que se suben directo a Storage. Con `nombre`, deja las rutas en campos ocultos del formulario;
-// con `alCambiar`, avisa las rutas y si todavía hay fotos subiendo.
+// Fotos que se suben directo a Storage, a una URL firmada que prepara el servidor. Con `nombre`, deja las
+// rutas en campos ocultos del formulario; con `alCambiar`, avisa las rutas y si todavía hay fotos subiendo.
 export function Fotos({ org, carpeta, nombre, maximo = 6, alCambiar, etiqueta = 'Sacar foto' }: {
   org: string;
-  carpeta: 'fallas' | 'ordenes' | 'gastos' | 'documentos' | 'chequeos';
+  carpeta: Carpeta;
   nombre?: string;
   maximo?: number;
   alCambiar?: (e: EstadoFotos) => void;
@@ -48,11 +48,15 @@ export function Fotos({ org, carpeta, nombre, maximo = 6, alCambiar, etiqueta = 
   async function subir(foto: Foto) {
     setFotos((a) => a.map((f) => (f.id === foto.id ? { ...f, estado: 'subiendo' } : f)));
     try {
-      const blob = await comprimir(foto.archivo);
-      const ruta = `${org}/${carpeta}/${crypto.randomUUID()}.jpg`;
-      const { error } = await clienteNavegador().storage.from('fotos').upload(ruta, blob, { contentType: 'image/jpeg', upsert: false });
-      if (error) throw error;
-      setFotos((a) => a.map((f) => (f.id === foto.id ? { ...f, estado: 'lista', ruta } : f)));
+      const [blob, destino] = await Promise.all([comprimir(foto.archivo), pedirSubida(org, carpeta)]);
+      if ('error' in destino) throw new Error(destino.error);
+      const respuesta = await fetch(destino.url, {
+        method: 'PUT',
+        headers: { 'content-type': 'image/jpeg', 'cache-control': 'max-age=3600', 'x-upsert': 'false' },
+        body: blob,
+      });
+      if (!respuesta.ok) throw new Error(`Storage respondió ${respuesta.status}`);
+      setFotos((a) => a.map((f) => (f.id === foto.id ? { ...f, estado: 'lista', ruta: destino.ruta } : f)));
     } catch {
       setFotos((a) => a.map((f) => (f.id === foto.id ? { ...f, estado: 'error' } : f)));
     }

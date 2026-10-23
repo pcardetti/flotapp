@@ -1,13 +1,18 @@
 import { createHash } from 'node:crypto';
+import { misEmpresas } from '@/lib/empresa';
 import { SUPABASE_KEY, SUPABASE_URL, supabaseConfigurado } from '@/lib/supabase/config';
 
 // Estado de la conexión, para revisar una publicación sin entrar a los paneles de Vercel o Supabase.
 // Nunca devuelve valores de claves ni direcciones: sólo qué variables existen y cómo responde la base.
+// Con la base conectada, sólo lo ve quien administra alguna empresa; para monitoreo está /api/health.
 export const dynamic = 'force-dynamic';
 
 const sinCache = { headers: { 'Cache-Control': 'no-store' } };
 
 export async function GET() {
+  if (supabaseConfigurado() && !(await misEmpresas()).some((m) => m.rol === 'admin')) {
+    return Response.json({ error: 'No encontrado' }, { status: 404, ...sinCache });
+  }
   const variables = {
     NEXT_PUBLIC_SUPABASE_URL: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL),
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: Boolean(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY),

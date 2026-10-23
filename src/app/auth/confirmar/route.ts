@@ -1,13 +1,13 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import type { EmailOtpType } from '@supabase/supabase-js';
+import { rutaInterna } from '@/lib/rutas';
 import { crearClienteServidor } from '@/lib/supabase/server';
 
 // Destino del enlace del mail de confirmación. Acepta los dos formatos que manda Supabase.
 export async function GET(request: NextRequest) {
   const url = request.nextUrl;
   const ir = (ruta: string) => NextResponse.redirect(new URL(ruta, url.origin));
-  const sig = url.searchParams.get('siguiente') ?? '/empresas';
-  const destino = sig.startsWith('/') && !sig.startsWith('//') ? sig : '/empresas';
+  const destino = rutaInterna(url.searchParams.get('siguiente'));
 
   // Supabase no pudo validar el enlace (vencido o ya usado).
   if (url.searchParams.get('error_code') || url.searchParams.get('error')) return ir('/ingresar?error=enlace');

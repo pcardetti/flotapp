@@ -55,8 +55,9 @@ como QR. El enlace sirve una sola vez y vence en 7 días.
    las `NEXT_PUBLIC_*` se fijan al compilar.
 6. **Región.** `vercel.json` fija las funciones en la misma región que la base de Supabase, para que
    cada consulta no cruce el continente: São Paulo (`gru1` en Vercel, `sa-east-1` en Supabase).
-7. **Chequeo.** `/api/estado` muestra qué variables de Supabase existen (sólo los nombres), si la base
-   responde, si las migraciones están al día y la demora de la función a la base. Nunca devuelve claves.
+7. **Chequeo.** `/api/health` responde 200 si la app y la base andan (para monitoreo, sin datos de
+   configuración). `/api/estado`, sólo para administradores, muestra qué variables de Supabase existen
+   (sólo los nombres), si las migraciones están al día y la demora a la base. Nunca devuelve claves.
 
 ## Desarrollo
 

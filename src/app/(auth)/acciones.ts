@@ -2,6 +2,7 @@
 
 import { redirect } from 'next/navigation';
 import { aceptarInvitacionCon, tokenDeInvitacion } from '@/lib/invitaciones';
+import { rutaInterna } from '@/lib/rutas';
 import { crearClienteServidor } from '@/lib/supabase/server';
 import { supabaseConfigurado } from '@/lib/supabase/config';
 import { urlBase } from '@/lib/url';
@@ -9,10 +10,7 @@ import { urlBase } from '@/lib/url';
 export type EstadoForm = { error?: string; ok?: string; email?: string };
 
 // Sólo rutas internas: evita que un enlace manipulado mande al usuario a otro sitio.
-const destinoSeguro = (s: FormDataEntryValue | null) => {
-  const d = typeof s === 'string' ? s : '';
-  return d.startsWith('/') && !d.startsWith('//') ? d : '/empresas';
-};
+const destinoSeguro = (s: FormDataEntryValue | null) => rutaInterna(s);
 
 // Con sesión recién abierta: si se llegó desde una invitación (empresa y rol a la vista en el formulario),
 // se acepta en el mismo paso y se entra directo a la app del rol. Si no se puede, la invitación explica por qué.

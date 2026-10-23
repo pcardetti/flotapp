@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { SUPABASE_KEY, SUPABASE_URL, supabaseConfigurado } from '@/lib/supabase/config';
 
 // Estado de la conexión, para revisar una publicación sin entrar a los paneles de Vercel o Supabase.
@@ -41,6 +42,8 @@ export async function GET() {
         funciones,
         variables,
         supabase: 'conectado',
+        // Huella del proyecto: permite comparar dos instalaciones sin mostrar la dirección.
+        proyecto: createHash('sha256').update(SUPABASE_URL.replace(/\/$/, '')).digest('hex').slice(0, 8),
         esquema,
         registro_abierto: !auth.disable_signup,
         confirmacion_por_mail: !auth.mailer_autoconfirm,

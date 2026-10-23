@@ -34,7 +34,7 @@ Las etiquetas se imprimen desde la versión publicada, para que el QR apunte a i
 
 ### Actividad
 
-Equipo → **Actividad** (sólo administradores): quién cambió roles, invitó o quitó personas, borró
+**Actividad**, en el menú debajo de Equipo (sólo administradores): quién cambió roles, invitó o quitó personas, borró
 unidades, gastos o documentos, cerró órdenes, descartó fallas o intentó entrar donde su rol no deja, con
 hora, IP y navegador. Lo anota la base con triggers; nadie lo puede editar ni borrar.
 

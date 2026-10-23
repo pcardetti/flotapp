@@ -4,7 +4,7 @@ import { useActionState } from 'react';
 import { Aviso, Boton, Campo } from '@/components/ui';
 import { ingresar, registrarse, type EstadoForm } from './acciones';
 
-export function FormularioAcceso({ modo, siguiente }: { modo: 'ingresar' | 'registrarse'; siguiente?: string }) {
+export function FormularioAcceso({ modo, siguiente, boton }: { modo: 'ingresar' | 'registrarse'; siguiente?: string; boton?: string }) {
   const [estado, accion, enviando] = useActionState<EstadoForm, FormData>(modo === 'ingresar' ? ingresar : registrarse, {});
   if (estado.ok) return <Aviso tipo="ok">{estado.ok}</Aviso>;
   return (
@@ -22,7 +22,7 @@ export function FormularioAcceso({ modo, siguiente }: { modo: 'ingresar' | 'regi
       />
       {estado.error && <Aviso tipo="error">{estado.error}</Aviso>}
       <Boton type="submit" disabled={enviando}>
-        {enviando ? 'Un momento…' : modo === 'ingresar' ? 'Ingresar' : 'Crear cuenta'}
+        {enviando ? 'Un momento…' : boton ?? (modo === 'ingresar' ? 'Ingresar' : 'Crear cuenta')}
       </Boton>
     </form>
   );

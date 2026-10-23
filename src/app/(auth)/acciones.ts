@@ -1,6 +1,7 @@
 'use server';
 
 import { redirect } from 'next/navigation';
+import { aceptarInvitacionCon, tokenDeInvitacion } from '@/lib/invitaciones';
 import { crearClienteServidor } from '@/lib/supabase/server';
 import { supabaseConfigurado } from '@/lib/supabase/config';
 import { urlBase } from '@/lib/url';
@@ -13,6 +14,16 @@ const destinoSeguro = (s: FormDataEntryValue | null) => {
   return d.startsWith('/') && !d.startsWith('//') ? d : '/empresas';
 };
 
+// Con sesión recién abierta: si se llegó desde una invitación (empresa y rol a la vista en el formulario),
+// se acepta en el mismo paso y se entra directo a la app del rol. Si no se puede, la invitación explica por qué.
+async function entrar(supabase: Awaited<ReturnType<typeof crearClienteServidor>>, siguiente: FormDataEntryValue | null): Promise<never> {
+  const token = tokenDeInvitacion(siguiente);
+  if (token) {
+    const r = await aceptarInvitacionCon(supabase, token);
+    redirect('destino' in r ? r.destino : `/invitacion/${token}`);
+  }
+  redirect(destinoSeguro(siguiente));
+}
 
 function traducir(error: { code?: string; message: string }) {
   switch (error.code) {
@@ -46,7 +57,7 @@ export async function ingresar(_: EstadoForm, form: FormData): Promise<EstadoFor
   const supabase = await crearClienteServidor();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) return { error: traducir(error), email };
-  redirect(destinoSeguro(form.get('siguiente')));
+  return entrar(supabase, form.get('siguiente'));
 }
 
 export async function registrarse(_: EstadoForm, form: FormData): Promise<EstadoForm> {
@@ -65,7 +76,8 @@ export async function registrarse(_: EstadoForm, form: FormData): Promise<Estado
   if (error) return { error: traducir(error), email };
   // Con la confirmación activada, Supabase no avisa que el mail ya existe: devuelve un usuario sin identidades.
   if (data.user && data.user.identities?.length === 0) return { error: 'Ya hay una cuenta con ese mail. Ingresá con tu contraseña.', email };
-  if (data.session) redirect(destinoSeguro(form.get('siguiente')));
+  // Sin confirmación por mail, Supabase ya devuelve la sesión: se entra en el momento.
+  if (data.session) return entrar(supabase, form.get('siguiente'));
   return { ok: `Te mandamos un mail a ${email}. Tocá el enlace para confirmar tu cuenta y seguir.`, email };
 }
 

@@ -2,13 +2,12 @@ import { MailX, Route, ShieldCheck, Wrench } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Marca } from '@/components/ui';
+import { tokenDeInvitacion, verInvitacion } from '@/lib/invitaciones';
 import { supabaseConfigurado } from '@/lib/supabase/config';
-import { avisarError, crearClienteServidor, usuarioActual } from '@/lib/supabase/server';
+import { usuarioActual } from '@/lib/supabase/server';
 import { BotonAceptar } from './boton';
 
 export const metadata: Metadata = { title: 'Invitación' };
-
-type Invitacion = { empresa: string; tipo: string; rol: string; nombre: string | null; estado: 'vigente' | 'usada' | 'vencida' | 'revocada' };
 
 const ROL: Record<string, { texto: string; app: string; icono: React.ReactNode }> = {
   chofer: { texto: 'chofer', app: 'Vas a usar la app Chofer: escaneás el QR de la unidad, hacés el chequeo y salís.', icono: <Route className="size-7" /> },
@@ -27,11 +26,8 @@ const MOTIVO: Record<string, string> = {
 
 export default async function PaginaInvitacion({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
-  const valido = /^[0-9a-f]{64}$/.test(token) && supabaseConfigurado();
-  const supabase = valido ? await crearClienteServidor() : null;
-  const [usuario, respuesta] = await Promise.all([usuarioActual(), supabase?.rpc('ver_invitacion', { p_token: token })]);
-  avisarError('verInvitacion', respuesta?.error ?? null);
-  const inv = (respuesta?.data ?? null) as Invitacion | null;
+  const valido = Boolean(tokenDeInvitacion(`/invitacion/${token}`)) && supabaseConfigurado();
+  const [usuario, inv] = await Promise.all([usuarioActual(), valido ? verInvitacion(token) : null]);
   const siguiente = encodeURIComponent(`/invitacion/${token}`);
   const r = inv ? ROL[inv.rol] ?? ROL.lectura : null;
 

@@ -40,7 +40,8 @@ como QR. El enlace sirve una sola vez y vence en 7 días.
 ## Puesta en marcha
 
 1. **Base de datos.** En Supabase → SQL Editor, ejecutá una sola vez y en orden cada archivo de
-   `supabase/migrations`: `0001_esquema_inicial.sql` y después `0002_viajes_taller_tablero.sql`.
+   `supabase/migrations` (`0001`, `0002`, `0003`…). Una migración ya aplicada no se edita: los cambios
+   van en la siguiente. `/api/estado` dice si falta alguna.
 2. **Direcciones de inicio de sesión.** En Supabase → Authentication → URL Configuration:
    - Site URL: la dirección de Vercel (por ejemplo `https://flotapp.vercel.app`).
    - Redirect URLs: agregá `http://localhost:3000/**` y `https://<tu-dominio-de-vercel>/**`.
@@ -55,7 +56,7 @@ como QR. El enlace sirve una sola vez y vence en 7 días.
 6. **Región.** `vercel.json` fija las funciones en la misma región que la base de Supabase, para que
    cada consulta no cruce el continente: São Paulo (`gru1` en Vercel, `sa-east-1` en Supabase).
 7. **Chequeo.** `/api/estado` muestra qué variables de Supabase existen (sólo los nombres), si la base
-   responde, si cada migración está aplicada y la demora de la función a la base. Nunca devuelve claves.
+   responde, si las migraciones están al día y la demora de la función a la base. Nunca devuelve claves.
 
 ## Desarrollo
 

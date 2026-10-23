@@ -208,9 +208,6 @@ create table public.invitaciones (
   foreign key (chofer_id, organizacion_id) references public.choferes (id, organizacion_id) on delete set null (chofer_id)
 );
 
--- Nombre visible de cada integrante (se toma de la invitación o del chofer vinculado).
-alter table public.miembros add column nombre text;
-
 -- El control diario del prototipo queda reemplazado por el chequeo previo al viaje.
 drop table public.controles_diarios;
 
@@ -315,13 +312,10 @@ begin
   if rol_txt is null or rol_txt not in ('chofer', 'admin', 'jefe_taller') then raise exception 'No encontramos la unidad'; end if;
   if u.estado = 'baja' then raise exception 'La unidad está dada de baja'; end if;
   if u.estado = 'taller' then raise exception 'La unidad está en el taller. Consultá con el encargado antes de salir'; end if;
-  if u.tipo in ('semirremolque', 'acoplado') then raise exception 'La unidad es un remolque: escaneá el QR del tractor o del camión para salir'; end if;
   if exists (select 1 from viajes where unidad_id = u.id and estado = 'en_curso') then raise exception 'La unidad ya está en viaje'; end if;
   if exists (select 1 from viajes where user_id = auth.uid() and estado = 'en_curso') then raise exception 'Ya tenés un viaje en curso. Terminalo antes de empezar otro'; end if;
   if p_km is null or p_km < 0 then raise exception 'Cargá el kilometraje del tablero'; end if;
-  if u.km is not null and p_km < u.km then
-    raise exception 'El kilometraje no puede ser menor al último registrado (% km)', replace(to_char(u.km, 'FM999,999,999'), ',', '.');
-  end if;
+  if u.km is not null and p_km < u.km then raise exception 'El kilometraje no puede ser menor al último registrado (% km)', u.km; end if;
   if p_combustible is null or p_combustible not between 0 and 100 then raise exception 'Indicá el nivel de combustible'; end if;
 
   -- Todos los puntos del chequeo que corresponden a este tipo de unidad tienen que estar respondidos.
@@ -369,9 +363,7 @@ begin
   select * into v from viajes where id = p_viaje for update;
   if v.id is null or not (v.user_id = auth.uid() or public.es_gestor(v.organizacion_id)) then raise exception 'No encontramos el viaje'; end if;
   if v.estado <> 'en_curso' then raise exception 'El viaje ya terminó'; end if;
-  if p_km is null or p_km < v.km_inicio then
-    raise exception 'El kilometraje final no puede ser menor al de salida (% km)', replace(to_char(v.km_inicio, 'FM999,999,999'), ',', '.');
-  end if;
+  if p_km is null or p_km < v.km_inicio then raise exception 'El kilometraje final no puede ser menor al de salida (% km)', v.km_inicio; end if;
   update viajes set estado = 'terminado', fin = now(), km_fin = p_km, combustible_fin = p_combustible,
     observaciones = nullif(trim(p_observaciones), '') where id = v.id;
   insert into lecturas_km (organizacion_id, unidad_id, km, origen, user_id) values (v.organizacion_id, v.unidad_id, p_km, 'viaje', auth.uid());
@@ -449,18 +441,6 @@ begin
   perform public.liberar_unidad_si_corresponde(o.unidad_id);
 end $$;
 
--- Una falla reportada por error: se descarta y, si era lo único que la frenaba, la unidad vuelve a servicio.
-create function public.descartar_falla(p_falla uuid)
-returns void language plpgsql security definer set search_path = public as $$
-declare f fallas;
-begin
-  select * into f from fallas where id = p_falla for update;
-  if f.id is null or not public.es_mecanico(f.organizacion_id) then raise exception 'No encontramos la falla'; end if;
-  if f.estado not in ('abierta', 'en_reparacion') then return; end if;
-  update fallas set estado = 'descartada', resuelta_en = now() where id = f.id;
-  perform public.liberar_unidad_si_corresponde(f.unidad_id);
-end $$;
-
 -- ───────────── Invitaciones ─────────────
 -- Lo mínimo para mostrar la invitación a quien todavía no es miembro.
 create function public.ver_invitacion(p_token text)
@@ -485,11 +465,8 @@ begin
   end if;
   if i.vence < now() then raise exception 'La invitación venció. Pedí una nueva'; end if;
   -- Quien ya es miembro conserva su rol (un administrador que prueba un enlace de chofer no se degrada).
-  insert into miembros (organizacion_id, user_id, rol, chofer_id, nombre)
-  values (i.organizacion_id, auth.uid(), i.rol, i.chofer_id,
-    coalesce(nullif(trim(i.nombre), ''), (select nombre from choferes where id = i.chofer_id)))
-  on conflict (organizacion_id, user_id) do update set chofer_id = coalesce(miembros.chofer_id, excluded.chofer_id),
-    nombre = coalesce(miembros.nombre, excluded.nombre);
+  insert into miembros (organizacion_id, user_id, rol, chofer_id) values (i.organizacion_id, auth.uid(), i.rol, i.chofer_id)
+  on conflict (organizacion_id, user_id) do update set chofer_id = coalesce(miembros.chofer_id, excluded.chofer_id);
   update invitaciones set usada_por = auth.uid(), usada_en = now() where id = i.id;
   return jsonb_build_object('organizacion_id', i.organizacion_id,
     'rol', (select rol from miembros where organizacion_id = i.organizacion_id and user_id = auth.uid()));
@@ -594,5 +571,3 @@ grant select, insert, update, delete on all tables in schema public to authentic
 grant execute on all functions in schema public to authenticated;
 -- Sólo se usa desde las operaciones del taller: nadie la llama directamente.
 revoke execute on function public.liberar_unidad_si_corresponde(uuid) from authenticated;
--- Quien recibe una invitación ve empresa y rol antes de crear su cuenta (sólo con el enlace completo).
-grant execute on function public.ver_invitacion(text) to anon;

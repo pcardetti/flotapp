@@ -37,11 +37,16 @@ export async function GET() {
       : tabla.status === 200 ? 'incompleto (el SQL no terminó)'
       : `desconocido (${tabla.status})`;
 
-    // La migración 0002 (viajes, taller, tablero) agrega funciones que cualquiera puede llamar, como ver_invitacion.
+    // ver_invitacion nace en la 0002 y la 0003 la abre a quien todavía no tiene sesión:
+    // no existe → faltan las dos; existe sin permiso → falta la 0003; responde → al día.
     const funcion = await fetch(SUPABASE_URL + '/rest/v1/rpc/ver_invitacion', {
       method: 'POST', headers: { apikey: SUPABASE_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ p_token: '0' }), cache: 'no-store',
     });
-    const viajes = funcion.ok ? 'aplicada' : funcion.status === 404 ? 'falta ejecutar 0002' : `desconocido (${funcion.status})`;
+    const migraciones =
+      funcion.ok ? 'al día'
+      : funcion.status === 404 ? 'faltan ejecutar 0002 y 0003'
+      : funcion.status === 401 || funcion.status === 403 ? 'falta ejecutar 0003'
+      : `desconocido (${funcion.status})`;
 
     return Response.json(
       {
@@ -51,7 +56,7 @@ export async function GET() {
         // Huella del proyecto: permite comparar dos instalaciones sin mostrar la dirección.
         proyecto: createHash('sha256').update(SUPABASE_URL.replace(/\/$/, '')).digest('hex').slice(0, 8),
         esquema,
-        migracion_viajes: viajes,
+        migraciones,
         registro_abierto: !auth.disable_signup,
         confirmacion_por_mail: !auth.mailer_autoconfirm,
         demora_a_la_base_ms: Math.round(Math.min(...tiempos.slice(1))),

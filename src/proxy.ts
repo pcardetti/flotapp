@@ -9,6 +9,14 @@ export async function proxy(request: NextRequest) {
   let respuesta = NextResponse.next({ request });
   if (!supabaseConfigurado()) return respuesta;
 
+  // Si la dirección de confirmación no está autorizada en Supabase, el enlace del mail vuelve a la raíz.
+  const params = request.nextUrl.searchParams;
+  if (request.nextUrl.pathname === '/' && (params.has('code') || params.has('error_code'))) {
+    const destino = request.nextUrl.clone();
+    destino.pathname = '/auth/confirmar';
+    return NextResponse.redirect(destino);
+  }
+
   const supabase = createServerClient(SUPABASE_URL, SUPABASE_KEY, {
     cookies: {
       getAll: () => request.cookies.getAll(),

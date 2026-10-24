@@ -41,6 +41,13 @@ hora, IP y navegador. Lo anota la base con triggers; nadie lo puede editar ni bo
 Qué puede hacer cada rol está en una sola tabla, `src/lib/permisos.ts`. Quien intenta entrar donde su rol
 no deja ve qué no puede hacer, qué roles sí pueden y a quién pedírselo.
 
+### Planes y pedidos de contratación
+
+La página de inicio muestra los planes (precio fijo por mes según la cantidad de unidades) con un calculador y
+un formulario para contratar. Los precios se cambian en `src/lib/planes.ts`. Cada pedido queda guardado en la
+base: se ven en Supabase → Table Editor → `solicitudes`, donde también se anota en qué quedó (nueva,
+contactada, alta o descartada). Hace falta la migración 0005.
+
 ### Invitar al equipo
 
 Equipo → **Invitar a alguien**: se elige el rol y se manda el enlace por WhatsApp, se copia o se muestra

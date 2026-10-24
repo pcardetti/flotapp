@@ -330,6 +330,12 @@ function rpc(db: Db, rol: string, nombre: string, a: Fila): Resultado {
     case 'consumir_intento':
       return { data: true, error: null };
 
+    case 'solicitar_contratacion': {
+      const solicitudes = (db.solicitudes ??= []);
+      solicitudes.push({ id: solicitudes.length + 1, empresa: a.p_empresa, nombre: a.p_nombre, email: a.p_email, telefono: a.p_telefono, unidades: a.p_unidades, plan: a.p_plan, comentario: a.p_comentario, estado: 'nueva', creada_en: new Date().toISOString() });
+      return { data: solicitudes.length, error: null };
+    }
+
     case 'auditar_denegado': {
       const yoMiembro = db.miembros.find((m) => m.user_id === YO);
       db.auditoria.push({

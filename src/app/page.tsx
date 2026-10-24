@@ -3,10 +3,12 @@ import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 import Link from 'next/link';
 import { BotonLink, Marca, Patente } from '@/components/ui';
+import { PLANES } from '@/lib/planes';
 import { DESCRIPCION, PREGUNTAS, TITULO } from '@/lib/sitio';
 import { supabaseConfigurado } from '@/lib/supabase/config';
 import { usuarioActual } from '@/lib/supabase/server';
 import { sitioPublico } from '@/lib/url';
+import { PlanesYContratacion } from './planes';
 
 export const metadata: Metadata = {
   title: { absolute: `${TITULO} en Argentina` },
@@ -37,28 +39,40 @@ const VENTAJAS = [
 export default async function Inicio() {
   const usuario = supabaseConfigurado() ? await usuarioActual() : null;
   const nonce = (await headers()).get('x-nonce') ?? undefined;
-  // Datos estructurados para los buscadores: qué es Flotapp y las preguntas frecuentes de esta página.
+  const precios = PLANES.flatMap((p) => (p.precio === null ? [] : [p.precio]));
+  // Datos estructurados para los buscadores: qué es Flotapp, sus precios y las preguntas frecuentes de esta página.
   const datos = {
     '@context': 'https://schema.org',
     '@graph': [
-      { '@type': 'SoftwareApplication', name: 'Flotapp', url: sitioPublico(), description: DESCRIPCION, applicationCategory: 'BusinessApplication', operatingSystem: 'Web, Android, iOS', inLanguage: 'es-AR' },
+      {
+        '@type': 'SoftwareApplication',
+        name: 'Flotapp',
+        url: sitioPublico(),
+        description: DESCRIPCION,
+        applicationCategory: 'BusinessApplication',
+        operatingSystem: 'Web, Android, iOS',
+        inLanguage: 'es-AR',
+        offers: { '@type': 'AggregateOffer', priceCurrency: 'ARS', lowPrice: Math.min(...precios), highPrice: Math.max(...precios), offerCount: PLANES.length },
+      },
       { '@type': 'FAQPage', mainEntity: PREGUNTAS.map((p) => ({ '@type': 'Question', name: p.pregunta, acceptedAnswer: { '@type': 'Answer', text: p.respuesta } })) },
     ],
   };
-  const empezar = usuario ? { href: '/empresas', texto: 'Ir a mis empresas' } : { href: '/registrarse', texto: 'Crear la cuenta de tu empresa' };
 
   return (
     <>
       <script type="application/ld+json" nonce={nonce} dangerouslySetInnerHTML={{ __html: JSON.stringify(datos).replace(/</g, '\\u003c') }} />
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-6 sm:px-6">
         <Link href="/" aria-label="Flotapp, inicio"><Marca chica /></Link>
-        <nav aria-label="Cuenta" className="flex items-center gap-2">
+        <nav aria-label="Principal" className="flex items-center gap-1 sm:gap-2">
+          <a href="#como-funciona" className="hidden rounded-lg px-3 py-2 text-sm font-semibold text-ink-2 hover:bg-surface-2 md:block">Cómo funciona</a>
+          <a href="#planes" className="hidden rounded-lg px-3 py-2 text-sm font-semibold text-ink-2 hover:bg-surface-2 md:block">Planes</a>
+          <a href="#preguntas" className="hidden rounded-lg px-3 py-2 text-sm font-semibold text-ink-2 hover:bg-surface-2 md:block">Preguntas</a>
           {usuario ? (
             <BotonLink href="/empresas">Ir a mis empresas</BotonLink>
           ) : (
             <>
               <Link href="/ingresar" className="rounded-lg px-3 py-2 text-sm font-semibold text-ink-2 hover:bg-surface-2">Ingresar</Link>
-              <BotonLink href="/registrarse">Crear cuenta</BotonLink>
+              <BotonLink href="#planes">Contratar</BotonLink>
             </>
           )}
         </nav>
@@ -74,7 +88,7 @@ export default async function Inicio() {
               celular, el taller lo resuelve y vos ves cuánto te cuesta cada kilómetro.
             </p>
             <div className="flex flex-wrap items-center gap-3">
-              <BotonLink href={empezar.href}>{empezar.texto}</BotonLink>
+              <BotonLink href="#planes">Ver planes y precios</BotonLink>
               <BotonLink href="#como-funciona" variante="secundario">Ver cómo funciona</BotonLink>
             </div>
             <p className="flex flex-wrap items-center gap-2 text-sm text-ink-3">
@@ -154,8 +168,10 @@ export default async function Inicio() {
           <p className="text-sm text-ink-3">Para talleres y recapadoras externos: muy pronto van a recibir el trabajo que les derive cada flota.</p>
         </section>
 
-        <section aria-labelledby="preguntas" className="flex flex-col gap-4">
-          <h2 id="preguntas" className="font-display text-3xl font-bold sm:text-4xl">Preguntas frecuentes</h2>
+        <PlanesYContratacion />
+
+        <section id="preguntas" aria-labelledby="titulo-preguntas" className="flex scroll-mt-6 flex-col gap-4">
+          <h2 id="titulo-preguntas" className="font-display text-3xl font-bold sm:text-4xl">Preguntas frecuentes</h2>
           <div className="flex flex-col">
             {PREGUNTAS.map((p) => (
               <details key={p.pregunta} className="group border-b border-line py-4">
@@ -171,8 +187,10 @@ export default async function Inicio() {
 
         <section aria-labelledby="empezar" className="flex flex-col items-start gap-4 rounded-2xl bg-accent p-8 text-accent-ink">
           <h2 id="empezar" className="font-display text-3xl font-bold sm:text-4xl">Tu flota, ordenada desde hoy</h2>
-          <p className="max-w-2xl opacity-90">Creás la empresa, cargás las unidades y en unos minutos tus choferes ya pueden hacer el chequeo de salida con el QR.</p>
-          <Link href={empezar.href} className="rounded-lg bg-surface px-4 py-2 text-sm font-semibold text-ink hover:brightness-95">{empezar.texto}</Link>
+          <p className="max-w-2xl opacity-90">Elegís el plan, cargás las unidades y en unos minutos tus choferes ya pueden hacer el chequeo de salida con el QR.</p>
+          <a href={usuario ? '/empresas' : '#planes'} className="rounded-lg bg-surface px-4 py-2 text-sm font-semibold text-ink hover:brightness-95">
+            {usuario ? 'Ir a mis empresas' : 'Elegir mi plan'}
+          </a>
         </section>
       </main>
 

@@ -452,5 +452,30 @@ ok(permisosDistintos.length === 0, 'Cada permiso que cambia datos coincide con l
 ok(Object.keys(PERMISOS).every((p) => p in SONDAS || SOLO_LECTURA.includes(p)), 'Todo permiso tiene su prueba contra la base o está anotado como de sólo lectura');
 ok(Object.keys(GRUPOS).every((g) => g in FUNCIONES || Object.keys(SONDAS).some((p) => PERMISOS[p].grupo === g)), 'Todo grupo de roles se compara con la base');
 
+console.log('Pedidos de contratación');
+const pedido = [' Transportes Sur ', 'Ana Gómez', 'Ana@Sur.com.ar', '11 5555 0102', 12, 'flota', 'Tenemos taller propio'];
+await db.query(`select set_config('request.headers', '{"x-flotapp-ip": "200.1.2.3", "x-flotapp-agente": "Prueba"}', false)`);
+const idPedido = (await comoAnonimo('select solicitar_contratacion($1, $2, $3, $4, $5, $6, $7) id', pedido)).rows[0].id;
+const guardado = (await db.query('select * from solicitudes where id = $1', [idPedido])).rows[0];
+ok(guardado?.empresa === 'Transportes Sur' && guardado.email === 'ana@sur.com.ar' && guardado.estado === 'nueva' && guardado.ip === '200.1.2.3',
+  'Cualquiera puede pedir el alta: queda guardado, ordenado y con su IP');
+await db.query(`select set_config('request.headers', '', false)`);
+let anonLeePedidos = true;
+try { await comoAnonimo('select count(*) from solicitudes'); } catch { anonLeePedidos = false; }
+let usuarioLeePedidos = true;
+try { await como('A', 'select count(*) from solicitudes'); } catch { usuarioLeePedidos = false; }
+ok(!anonLeePedidos && !usuarioLeePedidos, 'Nadie lee los pedidos por la API, ni con sesión');
+let escribeDirecto = true;
+try { await comoAnonimo(`insert into solicitudes (empresa, nombre, email, telefono, unidades, plan) values ('X', 'Y', 'a@b.c', '11111111', 1, 'inicial')`); } catch { escribeDirecto = false; }
+ok(!escribeDirecto, 'Sólo se escriben por la función, no directo en la tabla');
+let mailRaro = true;
+try { await comoAnonimo('select solicitar_contratacion($1, $2, $3, $4, $5, $6, $7)', ['Empresa', 'Ana', 'sin-arroba', '11 5555 0102', 3, 'inicial', null]); } catch { mailRaro = false; }
+let sinUnidades = true;
+try { await comoAnonimo('select solicitar_contratacion($1, $2, $3, $4, $5, $6, $7)', ['Empresa', 'Ana', 'a@b.com', '11 5555 0102', 0, 'inicial', null]); } catch { sinUnidades = false; }
+ok(!mailRaro && !sinUnidades, 'La base rechaza un mail sin forma de mail o cero unidades');
+const pedidosIp = [];
+for (let i = 0; i < 6; i++) pedidosIp.push((await comoAnonimo(`select consumir_intento('contacto_ip', $1) r`, ['c'.repeat(64)])).rows[0].r);
+ok(pedidosIp.slice(0, 5).every(Boolean) && pedidosIp[5] === false, 'Desde la misma conexión, como mucho 5 pedidos por hora');
+
 console.log(fallas ?`\n${fallas} pruebas fallaron` : '\nTodas las pruebas pasaron');
 process.exit(fallas ? 1 : 0);

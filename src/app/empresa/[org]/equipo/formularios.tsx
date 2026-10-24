@@ -4,16 +4,16 @@ import { Check, ClipboardCheck, Copy, MessageCircle, UserPlus } from 'lucide-rea
 import QRCode from 'qrcode';
 import { useActionState, useEffect, useRef, useState } from 'react';
 import { Aviso, Boton, Campo } from '@/components/ui';
-import type { Rol } from '@/lib/empresa';
+import { ROLES_DE, type Rol } from '@/lib/permisos';
 import { crearInvitacion, type EstadoInvitacion } from './acciones';
 import { textoWhatsApp } from './textos';
 
-const ROLES: { rol: Rol; titulo: string; detalle: string; soloFlota?: boolean; soloProveedor?: boolean }[] = [
-  { rol: 'chofer', titulo: 'Chofer', detalle: 'Usa la app Chofer: chequeo, viajes, gastos y fallas.', soloFlota: true },
-  { rol: 'mecanico', titulo: 'Mecánico', detalle: 'Usa la app Taller: resuelve fallas y registra trabajos.', soloFlota: true },
-  { rol: 'jefe_taller', titulo: 'Jefe de taller', detalle: 'Gestiona la flota y el taller. No administra el equipo.', soloFlota: true },
-  { rol: 'lectura', titulo: 'Consulta', detalle: 'Ve el tablero y los datos, sin modificar nada.', soloFlota: true },
-  { rol: 'operario', titulo: 'Operario', detalle: 'Trabaja sobre lo que le asignan las flotas clientes.', soloProveedor: true },
+const ROLES: { rol: Rol; titulo: string; detalle: string }[] = [
+  { rol: 'chofer', titulo: 'Chofer', detalle: 'Usa la app Chofer: chequeo, viajes, gastos y fallas.' },
+  { rol: 'mecanico', titulo: 'Mecánico', detalle: 'Usa la app Taller: resuelve fallas y registra trabajos.' },
+  { rol: 'jefe_taller', titulo: 'Jefe de taller', detalle: 'Gestiona la flota y el taller. No administra el equipo.' },
+  { rol: 'lectura', titulo: 'Consulta', detalle: 'Ve el tablero y los datos, sin modificar nada.' },
+  { rol: 'operario', titulo: 'Operario', detalle: 'Trabaja sobre lo que le asignan las flotas clientes.' },
   { rol: 'admin', titulo: 'Administrador', detalle: 'Todo, incluido invitar y quitar personas.' },
 ];
 
@@ -54,7 +54,7 @@ export function Compartir({ enlace, texto, conQr = false }: { enlace: string; te
 
 export function FormInvitar({ org, empresa, esFlota, choferesSinCuenta }: { org: string; empresa: string; esFlota: boolean; choferesSinCuenta: { id: string; nombre: string }[] }) {
   const [estado, enviar, enviando] = useActionState<EstadoInvitacion, FormData>(crearInvitacion.bind(null, org), {});
-  const roles = ROLES.filter((r) => (esFlota ? !r.soloProveedor : !r.soloFlota));
+  const roles = ROLES.filter((r) => ROLES_DE[esFlota ? 'flota' : 'taller'].includes(r.rol));
   const [rol, setRol] = useState<Rol>(roles[0].rol);
   const [nombre, setNombre] = useState('');
   const [chofer, setChofer] = useState('');

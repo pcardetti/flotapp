@@ -1,35 +1,33 @@
-import type { Rol, TipoOrganizacion } from './empresa';
+import { puede, type Permiso, type Quien, type TipoOrganizacion } from './permisos';
 
 export type Seccion = {
   ruta: string;
   titulo: string;
   tipos: TipoOrganizacion[];
-  roles?: Rol[]; // sin roles: cualquier miembro
+  permiso?: Permiso; // sin permiso: cualquier miembro
 };
 
-const GESTION: Rol[] = ['admin', 'jefe_taller', 'lectura'];
-
-// Qué secciones ve cada tipo de empresa y cada rol en la app de gestión. Choferes y mecánicos
-// usan sus propias apps. El permiso real lo controla la base; esto arma el menú.
+// Qué secciones tiene cada tipo de empresa en la app de gestión y qué permiso pide cada una (src/lib/permisos).
+// Choferes y mecánicos usan sus propias apps.
 export const SECCIONES: Seccion[] = [
-  { ruta: 'panel', titulo: 'Tablero', tipos: ['flota'], roles: GESTION },
+  { ruta: 'panel', titulo: 'Tablero', tipos: ['flota'], permiso: 'tablero.ver' },
   { ruta: 'panel', titulo: 'Panel', tipos: ['taller', 'recapadora'] },
-  { ruta: 'flota', titulo: 'Flota y choferes', tipos: ['flota'], roles: GESTION },
-  { ruta: 'viajes', titulo: 'Viajes', tipos: ['flota'], roles: GESTION },
-  { ruta: 'taller', titulo: 'Taller', tipos: ['flota'], roles: GESTION },
-  { ruta: 'gastos', titulo: 'Gastos', tipos: ['flota'], roles: GESTION },
-  { ruta: 'vencimientos', titulo: 'Vencimientos', tipos: ['flota'], roles: GESTION },
+  { ruta: 'flota', titulo: 'Flota y choferes', tipos: ['flota'], permiso: 'flota.ver' },
+  { ruta: 'viajes', titulo: 'Viajes', tipos: ['flota'], permiso: 'viajes.ver' },
+  { ruta: 'taller', titulo: 'Taller', tipos: ['flota'], permiso: 'taller.ver' },
+  { ruta: 'gastos', titulo: 'Gastos', tipos: ['flota'], permiso: 'gastos.ver' },
+  { ruta: 'vencimientos', titulo: 'Vencimientos', tipos: ['flota'], permiso: 'vencimientos.ver' },
   { ruta: 'trabajos', titulo: 'Trabajos asignados', tipos: ['taller'] },
   { ruta: 'recapados', titulo: 'Neumáticos recibidos', tipos: ['recapadora'] },
-  { ruta: 'proveedores', titulo: 'Talleres y recapadoras', tipos: ['flota'], roles: ['admin', 'jefe_taller'] },
+  { ruta: 'proveedores', titulo: 'Talleres y recapadoras', tipos: ['flota'], permiso: 'proveedores.ver' },
   { ruta: 'clientes', titulo: 'Flotas clientes', tipos: ['taller', 'recapadora'] },
-  { ruta: 'equipo', titulo: 'Equipo', tipos: ['flota', 'taller', 'recapadora'], roles: ['admin'] },
-  { ruta: 'actividad', titulo: 'Actividad', tipos: ['flota', 'taller', 'recapadora'], roles: ['admin'] },
-  { ruta: 'ajustes', titulo: 'Ajustes', tipos: ['flota'], roles: ['admin'] },
+  { ruta: 'equipo', titulo: 'Equipo', tipos: ['flota', 'taller', 'recapadora'], permiso: 'equipo.administrar' },
+  { ruta: 'actividad', titulo: 'Actividad', tipos: ['flota', 'taller', 'recapadora'], permiso: 'actividad.ver' },
+  { ruta: 'ajustes', titulo: 'Ajustes', tipos: ['flota'], permiso: 'ajustes.editar' },
 ];
 
-export const seccionesPara = (tipo: TipoOrganizacion, rol: Rol) =>
-  SECCIONES.filter((s) => s.tipos.includes(tipo) && (!s.roles || s.roles.includes(rol)));
+// La sección con esa ruta en este tipo de empresa (si no existe, la página es un 404).
+export const seccionDe = (ruta: string, tipo: TipoOrganizacion) => SECCIONES.find((s) => s.ruta === ruta && s.tipos.includes(tipo));
 
-export const puedeVer = (ruta: string, tipo: TipoOrganizacion, rol: Rol) =>
-  seccionesPara(tipo, rol).some((s) => s.ruta === ruta);
+export const seccionesPara = (quien: Quien) =>
+  SECCIONES.filter((s) => s.tipos.includes(quien.organizacion.tipo) && (!s.permiso || puede(quien, s.permiso)));

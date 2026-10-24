@@ -5,6 +5,7 @@ import { Pantalla } from '@/components/pantalla';
 import { Tarjeta } from '@/components/ui';
 import { abrirSeccion } from '@/lib/empresa';
 import { fechaLarga } from '@/lib/fechas';
+import { puede } from '@/lib/permisos';
 import { avisarError, crearClienteServidor } from '@/lib/supabase/server';
 import { TableroFlota } from './tablero';
 
@@ -13,7 +14,8 @@ export const metadata: Metadata = { title: 'Tablero' };
 export default async function Panel({ params, searchParams }: { params: Promise<{ org: string }>; searchParams: Promise<{ p?: string }> }) {
   const { org } = await params;
   const { p } = await searchParams;
-  const { organizacion, rol } = await abrirSeccion(org, 'panel');
+  const empresa = await abrirSeccion(org, 'panel');
+  const { organizacion } = empresa;
   if (organizacion.tipo === 'flota') {
     return <Pantalla className="flex flex-col gap-5"><TableroFlota org={org} periodo={p ?? 'mes'} /></Pantalla>;
   }
@@ -52,7 +54,7 @@ export default async function Panel({ params, searchParams }: { params: Promise<
           </Link>
         ))}
       </div>
-      {rol === 'admin' && (
+      {puede(empresa, 'equipo.administrar') && (
         <Tarjeta>
           <h2 className="font-display text-2xl font-bold">Primeros pasos</h2>
           <ol className="flex list-decimal flex-col gap-1.5 pl-5 text-ink-2">

@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { anotarDenegado, empresaActual, esGestor, UUID } from '@/lib/empresa';
+import { exigir, UUID } from '@/lib/empresa';
 import { rutasValidas } from '@/lib/fotos';
 import { avisarError, crearClienteServidor } from '@/lib/supabase/server';
 
@@ -9,11 +9,7 @@ export type EstadoDoc = { error?: string; errores?: Record<string, string>; ok?:
 
 const fechaValida = (f: string) => /^\d{4}-\d{2}-\d{2}$/.test(f) && !Number.isNaN(Date.parse(f));
 
-async function permitido(org: string) {
-  const { rol } = await empresaActual(org);
-  if (!esGestor(rol)) await anotarDenegado(org, 'vencimientos');
-  return esGestor(rol);
-}
+const permitido = async (org: string) => Boolean(await exigir(org, 'vencimientos.editar'));
 
 export async function crearDocumento(org: string, _: EstadoDoc, form: FormData): Promise<EstadoDoc> {
   if (!(await permitido(org))) return { error: 'Tu rol no permite cargar documentos.' };

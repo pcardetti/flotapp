@@ -1,6 +1,7 @@
 import { NOMBRE_ROL, type Rol } from '@/lib/empresa';
 import { NOMBRE_CATEGORIA, pesos } from '@/lib/formato';
 import { SECCIONES } from '@/lib/navegacion';
+import { esPermiso, PERMISOS } from '@/lib/permisos';
 import { nombreSistema } from '@/lib/taller';
 
 export type Evento = {
@@ -19,7 +20,9 @@ export type Evento = {
 
 const rol = (r: unknown) => (NOMBRE_ROL[r as Rol] ?? String(r ?? '')).toLowerCase();
 const fecha = (iso: unknown) => (typeof iso === 'string' ? iso.slice(0, 10).split('-').reverse().join('/') : '');
-const seccion = (ruta: unknown) => SECCIONES.find((s) => s.ruta === ruta)?.titulo ?? String(ruta ?? '');
+// Lo que se intentó hacer sin permiso. Los avisos anteriores a la tabla de permisos guardaban la sección.
+const intento = (que: unknown) =>
+  esPermiso(que) ? PERMISOS[que].que : `entrar a ${SECCIONES.find((s) => s.ruta === que)?.titulo ?? String(que ?? '')}`;
 
 // Una oración por evento, con los nombres que había en ese momento (aunque después se borren).
 export function describir(e: Evento): React.ReactNode {
@@ -57,7 +60,7 @@ export function describir(e: Evento): React.ReactNode {
     case 'falla.descartada':
       return <>Descartó la falla de {b(nombreSistema(String(d.sistema ?? '')))} de {String(d.dominio ?? '')}{d.gravedad === 'critica' ? ' (era crítica)' : ''}</>;
     case 'permiso.denegado':
-      return <>Intentó usar {b(seccion(d.que))} sin permiso</>;
+      return <>Intentó {b(intento(d.que))} sin permiso</>;
     default:
       return e.accion;
   }

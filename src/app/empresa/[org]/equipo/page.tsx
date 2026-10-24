@@ -6,6 +6,7 @@ import { Pantalla } from '@/components/pantalla';
 import { Pildora, Tarjeta } from '@/components/ui';
 import { NOMBRE_ROL, abrirSeccion, type Rol } from '@/lib/empresa';
 import { cuando, fechaCorta } from '@/lib/fechas';
+import { ROLES_DE } from '@/lib/permisos';
 import { avisarError, crearClienteServidor } from '@/lib/supabase/server';
 import { urlBase } from '@/lib/url';
 import { cambiarRol, quitarMiembro, revocarInvitacion } from './acciones';
@@ -13,9 +14,6 @@ import { Compartir, FormInvitar } from './formularios';
 import { textoWhatsApp } from './textos';
 
 export const metadata: Metadata = { title: 'Equipo' };
-
-const ROLES_FLOTA: Rol[] = ['admin', 'jefe_taller', 'mecanico', 'chofer', 'lectura'];
-const ROLES_PROVEEDOR: Rol[] = ['admin', 'operario'];
 
 export default async function Equipo({ params }: { params: Promise<{ org: string }> }) {
   const { org } = await params;
@@ -34,7 +32,7 @@ export default async function Equipo({ params }: { params: Promise<{ org: string
   const conCuenta = new Set((miembros ?? []).map((m) => m.chofer_id).filter(Boolean));
   const choferesSinCuenta = (choferes ?? []).filter((c) => !conCuenta.has(c.id));
   const base = await urlBase();
-  const roles = esFlota ? ROLES_FLOTA : ROLES_PROVEEDOR;
+  const roles = ROLES_DE[organizacion.tipo];
 
   return (
     <Pantalla className="flex flex-col gap-5">

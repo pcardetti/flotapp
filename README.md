@@ -38,6 +38,9 @@ Las etiquetas se imprimen desde la versión publicada, para que el QR apunte a i
 unidades, gastos o documentos, cerró órdenes, descartó fallas o intentó entrar donde su rol no deja, con
 hora, IP y navegador. Lo anota la base con triggers; nadie lo puede editar ni borrar.
 
+Qué puede hacer cada rol está en una sola tabla, `src/lib/permisos.ts`. Quien intenta entrar donde su rol
+no deja ve qué no puede hacer, qué roles sí pueden y a quién pedírselo.
+
 ### Invitar al equipo
 
 Equipo → **Invitar a alguien**: se elige el rol y se manda el enlace por WhatsApp, se copia o se muestra

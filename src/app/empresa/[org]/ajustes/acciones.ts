@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { anotarDenegado, empresaActual, UUID } from '@/lib/empresa';
+import { exigir, UUID } from '@/lib/empresa';
 import { avisarError, crearClienteServidor } from '@/lib/supabase/server';
 
 export type EstadoTipo = { error?: string; ok?: string; clave?: number };
@@ -17,14 +17,8 @@ function leer(form: FormData) {
   return { datos: { nombre, aplica, vigencia_meses: vigencia, aviso_dias: aviso } };
 }
 
-async function soloAdmin(org: string) {
-  const { rol } = await empresaActual(org);
-  if (rol !== 'admin') await anotarDenegado(org, 'ajustes');
-  return rol === 'admin';
-}
-
 export async function guardarTipo(org: string, id: string | null, _: EstadoTipo, form: FormData): Promise<EstadoTipo> {
-  if (!(await soloAdmin(org))) return { error: 'Sólo el administrador cambia los ajustes.' };
+  if (!(await exigir(org, 'ajustes.editar'))) return { error: 'Sólo el administrador cambia los ajustes.' };
   const { datos, error: invalido } = leer(form);
   if (!datos) return { error: invalido };
   const supabase = await crearClienteServidor();
@@ -40,7 +34,7 @@ export async function guardarTipo(org: string, id: string | null, _: EstadoTipo,
 }
 
 export async function eliminarTipo(org: string, id: string) {
-  if (!(await soloAdmin(org)) || !UUID.test(id)) return;
+  if (!(await exigir(org, 'ajustes.editar')) || !UUID.test(id)) return;
   const supabase = await crearClienteServidor();
   const { error } = await supabase.from('tipos_documento').delete().eq('id', id).eq('organizacion_id', org);
   avisarError('eliminarTipo', error);

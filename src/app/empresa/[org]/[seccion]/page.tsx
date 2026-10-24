@@ -19,7 +19,8 @@ const CONTENIDO: Record<string, { bajada: string; vacio: string; texto: string }
 
 export async function generateMetadata({ params }: { params: Promise<{ seccion: string }> }): Promise<Metadata> {
   const { seccion } = await params;
-  return { title: SECCIONES.find((s) => s.ruta === seccion)?.titulo ?? 'Flotapp' };
+  const titulo = SECCIONES.find((s) => s.ruta === seccion)?.titulo;
+  return titulo ? { title: titulo } : {};
 }
 
 export default async function Seccion({ params }: { params: Promise<{ org: string; seccion: string }> }) {

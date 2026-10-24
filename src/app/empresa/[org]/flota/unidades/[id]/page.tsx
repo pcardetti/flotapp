@@ -3,9 +3,10 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Encabezado } from '@/components/encabezado';
 import { Aviso, BotonLink, Patente, Pildora, Tarjeta } from '@/components/ui';
-import { UUID, abrirSeccion, esGestor } from '@/lib/empresa';
+import { UUID, abrirSeccion } from '@/lib/empresa';
 import { fechaCorta } from '@/lib/fechas';
 import { ESTADOS_UNIDAD, TIPOS_UNIDAD, tieneMotor, type EstadoUnidad, type TipoUnidad } from '@/lib/flota';
+import { puede } from '@/lib/permisos';
 import { codigoLegible, enlaceUnidad, qrSvg } from '@/lib/qr';
 import { avisarError, crearClienteServidor } from '@/lib/supabase/server';
 import { eliminarUnidad, registrarKm } from '../../acciones';
@@ -23,7 +24,7 @@ const AVISOS: Record<string, string> = { creada: 'Unidad agregada.', guardada: '
 export default async function Unidad({ params, searchParams }: { params: Promise<{ org: string; id: string }>; searchParams: Promise<{ ok?: string }> }) {
   const { org, id } = await params;
   const { ok } = await searchParams;
-  const { rol } = await abrirSeccion(org, 'flota');
+  const empresa = await abrirSeccion(org, 'flota');
   if (!UUID.test(id)) notFound();
   const supabase = await crearClienteServidor();
   // El código QR va en una consulta aparte: si la base todavía no tiene la migración 0002, la ficha igual carga.
@@ -44,7 +45,7 @@ export default async function Unidad({ params, searchParams }: { params: Promise
   const svg = codigo ? await qrSvg(await enlaceUnidad(codigo)) : null;
 
   const chofer = Array.isArray(u.chofer) ? u.chofer[0] : u.chofer;
-  const edita = esGestor(rol);
+  const edita = puede(empresa, 'flota.editar');
   const base = `/empresa/${org}/flota`;
   const datos: [string, React.ReactNode][] = [
     ['Tipo', TIPOS_UNIDAD[u.tipo as TipoUnidad]],
@@ -131,7 +132,7 @@ export default async function Unidad({ params, searchParams }: { params: Promise
         )}
       </Tarjeta>
 
-      {rol === 'admin' && (
+      {puede(empresa, 'flota.borrar') && (
         <Tarjeta className="border-dashed">
           <h2 className="font-display text-xl font-bold">Eliminar unidad</h2>
           <p className="text-sm text-ink-2">

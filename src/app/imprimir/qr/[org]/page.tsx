@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
-import { empresaActual, esGestor, UUID } from '@/lib/empresa';
+import { abrirSeccion, UUID } from '@/lib/empresa';
 import { codigoLegible, enlaceUnidad, qrSvg } from '@/lib/qr';
 import { avisarError, crearClienteServidor } from '@/lib/supabase/server';
 import { BotonImprimir } from './imprimir';
@@ -12,8 +11,7 @@ export const metadata: Metadata = { title: 'Etiquetas QR' };
 export default async function EtiquetasQr({ params, searchParams }: { params: Promise<{ org: string }>; searchParams: Promise<{ u?: string }> }) {
   const { org } = await params;
   const { u } = await searchParams;
-  const { organizacion, rol } = await empresaActual(org);
-  if (!esGestor(rol) && rol !== 'lectura') notFound();
+  const { organizacion } = await abrirSeccion(org, 'flota', 'qr.imprimir');
   const supabase = await crearClienteServidor();
   let consulta = supabase.from('unidades').select('id, dominio, marca, modelo, qr_token').eq('organizacion_id', org).neq('estado', 'baja').order('dominio');
   if (u && UUID.test(u)) consulta = consulta.eq('id', u);

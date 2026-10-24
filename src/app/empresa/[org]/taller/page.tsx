@@ -9,6 +9,7 @@ import { abrirSeccion } from '@/lib/empresa';
 import { fechaCorta } from '@/lib/fechas';
 import { firmarFotos } from '@/lib/fotos';
 import { cuantas, pesos } from '@/lib/formato';
+import { puede } from '@/lib/permisos';
 import { avisarError, crearClienteServidor } from '@/lib/supabase/server';
 
 export const metadata: Metadata = { title: 'Taller' };
@@ -18,7 +19,7 @@ const uno = <T,>(x: Uno<T>) => (Array.isArray(x) ? x[0] : x) ?? null;
 
 export default async function TallerFlota({ params }: { params: Promise<{ org: string }> }) {
   const { org } = await params;
-  const { rol } = await abrirSeccion(org, 'taller');
+  const empresa = await abrirSeccion(org, 'taller');
   const supabase = await crearClienteServidor();
   const [{ data: fallas, error }, { data: abiertas }, { data: cerradas }] = await Promise.all([
     supabase.from('fallas').select('id, sistema, descripcion, gravedad, estado, fotos, creada_en, unidad:unidades(id, dominio), chofer:choferes(nombre)')
@@ -29,7 +30,7 @@ export default async function TallerFlota({ params }: { params: Promise<{ org: s
   ]);
   avisarError('taller-flota', error);
   const urls = await firmarFotos((fallas ?? []).flatMap((f) => f.fotos as string[]));
-  const puedeOperar = rol === 'admin' || rol === 'jefe_taller';
+  const puedeOperar = puede(empresa, 'taller.operar');
 
   return (
     <Pantalla className="flex flex-col gap-5">

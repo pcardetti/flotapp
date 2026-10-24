@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Encabezado } from '@/components/encabezado';
 import { Patente, Tarjeta } from '@/components/ui';
-import { UUID, abrirSeccion, esGestor } from '@/lib/empresa';
+import { UUID, abrirSeccion } from '@/lib/empresa';
 import { crearClienteServidor } from '@/lib/supabase/server';
 import { editarChofer, eliminarChofer } from '../../acciones';
 import { Eliminar, FormularioChofer } from '../../formularios';
@@ -12,8 +12,8 @@ export const metadata: Metadata = { title: 'Chofer' };
 
 export default async function Chofer({ params }: { params: Promise<{ org: string; id: string }> }) {
   const { org, id } = await params;
-  const { rol } = await abrirSeccion(org, 'flota');
-  if (!esGestor(rol) || !UUID.test(id)) notFound();
+  await abrirSeccion(org, 'flota', 'flota.editar');
+  if (!UUID.test(id)) notFound();
   const supabase = await crearClienteServidor();
   const [{ data: c }, { data: unidades }] = await Promise.all([
     supabase.from('choferes').select('nombre, telefono').eq('id', id).eq('organizacion_id', org).maybeSingle(),

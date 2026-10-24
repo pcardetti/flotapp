@@ -4,9 +4,10 @@ import Link from 'next/link';
 import { Encabezado, Vacio } from '@/components/encabezado';
 import { Pantalla } from '@/components/pantalla';
 import { Desplegable, Patente, Tarjeta } from '@/components/ui';
-import { abrirSeccion, esGestor } from '@/lib/empresa';
+import { abrirSeccion } from '@/lib/empresa';
 import { diasHasta, hoyISO } from '@/lib/fechas';
 import { firmarFotos } from '@/lib/fotos';
+import { puede } from '@/lib/permisos';
 import { avisarError, crearClienteServidor } from '@/lib/supabase/server';
 import { FilaDocumento, FormDocumento, type FilaDoc, type TipoDoc } from './formularios';
 
@@ -17,7 +18,7 @@ const uno = <T,>(x: Uno<T>) => (Array.isArray(x) ? x[0] : x) ?? null;
 
 export default async function Vencimientos({ params }: { params: Promise<{ org: string }> }) {
   const { org } = await params;
-  const { rol } = await abrirSeccion(org, 'vencimientos');
+  const empresa = await abrirSeccion(org, 'vencimientos');
   const supabase = await crearClienteServidor();
   const [{ data: docs, error }, { data: tipos }, { data: unidades }, { data: choferes }] = await Promise.all([
     supabase.from('documentos').select('id, tipo_documento_id, unidad_id, chofer_id, numero, vence, foto, unidad:unidades(dominio), chofer:choferes(nombre)').eq('organizacion_id', org).order('vence'),
@@ -57,7 +58,7 @@ export default async function Vencimientos({ params }: { params: Promise<{ org: 
       .filter((t) => !(docs ?? []).some((d) => d.unidad_id === u.id && d.tipo_documento_id === t.id))
       .map((t) => ({ u, t })),
   );
-  const edita = esGestor(rol);
+  const edita = puede(empresa, 'vencimientos.editar');
 
   return (
     <Pantalla className="flex flex-col gap-5">

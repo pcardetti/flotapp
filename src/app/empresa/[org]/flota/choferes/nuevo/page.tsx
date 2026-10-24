@@ -1,9 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
 import { Encabezado } from '@/components/encabezado';
 import { Tarjeta } from '@/components/ui';
-import { abrirSeccion, esGestor } from '@/lib/empresa';
+import { abrirSeccion } from '@/lib/empresa';
 import { crearChofer } from '../../acciones';
 import { FormularioChofer } from '../../formularios';
 
@@ -11,8 +10,7 @@ export const metadata: Metadata = { title: 'Agregar chofer' };
 
 export default async function NuevoChofer({ params }: { params: Promise<{ org: string }> }) {
   const { org } = await params;
-  const { rol } = await abrirSeccion(org, 'flota');
-  if (!esGestor(rol)) notFound();
+  await abrirSeccion(org, 'flota', 'flota.editar');
   return (
     <>
       <Link href={`/empresa/${org}/flota`} className="text-sm font-semibold text-accent hover:underline">← Flota y choferes</Link>

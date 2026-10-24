@@ -4,6 +4,7 @@ import { Encabezado, Vacio } from '@/components/encabezado';
 import { Aviso, BotonLink, Patente, Pildora, Tarjeta } from '@/components/ui';
 import { abrirSeccion } from '@/lib/empresa';
 import { ESTADOS_UNIDAD, TIPOS_UNIDAD, type EstadoUnidad, type TipoUnidad } from '@/lib/flota';
+import { puede } from '@/lib/permisos';
 import { avisarError, crearClienteServidor } from '@/lib/supabase/server';
 
 export const metadata: Metadata = { title: 'Flota y choferes' };
@@ -20,8 +21,8 @@ const AVISOS: Record<string, string> = {
 export default async function Flota({ params, searchParams }: { params: Promise<{ org: string }>; searchParams: Promise<{ ok?: string }> }) {
   const { org } = await params;
   const { ok } = await searchParams;
-  const { rol } = await abrirSeccion(org, 'flota');
-  const edita = rol === 'admin' || rol === 'jefe_taller';
+  const empresa = await abrirSeccion(org, 'flota');
+  const edita = puede(empresa, 'flota.editar');
   const supabase = await crearClienteServidor();
   const [{ data: unidades, error: e1 }, { data: choferes, error: e2 }] = await Promise.all([
     supabase.from('unidades').select('id, dominio, tipo, marca, modelo, anio, km, estado, chofer_id').eq('organizacion_id', org).order('dominio'),

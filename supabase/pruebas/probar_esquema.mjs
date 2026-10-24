@@ -356,5 +356,101 @@ ok((await db.query('select count(*)::int n from miembros where organizacion_id =
 await db.query('delete from auth.users where id = $1', [U.Z]);
 ok((await db.query('select count(*)::int n from miembros where user_id = $1', [U.Z])).rows[0].n === 0, 'Ni borrar la cuenta de un administrador');
 
-console.log(fallas ? `\n${fallas} pruebas fallaron` : '\nTodas las pruebas pasaron');
+console.log('Permisos de la app = permisos de la base');
+// La tabla de permisos de la app (src/lib/permisos.ts) contra lo que de verdad deja la base, rol por rol.
+const { GRUPOS, PERMISOS, ROLES, ROLES_DE, TIPOS, puede } = await import(pathToFileURL(join(process.cwd(), 'src', 'lib', 'permisos.ts')).href);
+const detalle = (lista) => (lista.length ? ` → ${lista.join('; ')}` : '');
+const rolesBase = (await db.query('select unnest(enum_range(null::rol_miembro))::text rol')).rows.map((f) => f.rol);
+ok([...rolesBase].sort().join() === [...ROLES].sort().join(), 'La app y la base tienen los mismos roles');
+
+U.X = '5a5a5a5a-0000-0000-0000-00000000000d';
+U.P = '6b6b6b6b-0000-0000-0000-00000000000e';
+U.Q = '7c7c7c7c-0000-0000-0000-00000000000f';
+for (const id of [U.X, U.P, U.Q]) await db.query('insert into auth.users (id) values ($1)', [id]);
+
+// Qué roles acepta la base en cada tipo de empresa (se prueba en una transacción que después se deshace).
+async function aceptaRol(org, rol) {
+  await db.exec('begin');
+  try {
+    await db.query('insert into miembros (organizacion_id, user_id, rol) values ($1, $2, $3)', [org, U.Q, rol]);
+    return true;
+  } catch {
+    return false;
+  } finally {
+    await db.exec('rollback');
+  }
+}
+const empresaDe = { flota: f1, taller: tal, recapadora: rec };
+const rolesDistintos = [];
+for (const tipo of TIPOS) {
+  for (const rol of ROLES) if ((await aceptaRol(empresaDe[tipo], rol)) !== ROLES_DE[tipo].includes(rol)) rolesDistintos.push(`${rol} en ${tipo}`);
+}
+ok(rolesDistintos.length === 0, 'Cada tipo de empresa acepta en la base los mismos roles que ofrece la app' + detalle(rolesDistintos));
+
+const fp = (await uno('X', `select crear_organizacion('Flota Permisos', 'flota') id`)).id;
+const { id: uSonda, qr_token: qrSonda } = (await db.query(`insert into unidades (organizacion_id, dominio, tipo, marca, modelo, km) values ($1, 'PRB 001', 'tractor', 'Scania', 'R 450', 1000) returning id, qr_token`, [fp])).rows[0];
+const uBorrar = (await db.query(`insert into unidades (organizacion_id, dominio, tipo, marca, modelo, km) values ($1, 'PRB 002', 'tractor', 'Scania', 'R 450', 0) returning id`, [fp])).rows[0].id;
+const tipoSonda = (await db.query(`select id from tipos_documento where organizacion_id = $1 and aplica = 'unidad' limit 1`, [fp])).rows[0].id;
+const gastoSonda = (await db.query(`insert into gastos (organizacion_id, categoria, monto, cargado_por) values ($1, 'peaje', 5000, $2) returning id`, [fp, U.X])).rows[0].id;
+
+// Lo intenta P dentro de una transacción que después se deshace, así cada rol prueba sobre lo mismo.
+async function intenta(sql, params = []) {
+  await db.exec('begin');
+  try {
+    await db.exec(`select set_config('request.jwt.claim.sub', '${U.P}', true); set local role authenticated;`);
+    return { filas: (await db.query(sql, params)).rows };
+  } catch (e) {
+    return { error: e.message.split('\n')[0] };
+  } finally {
+    await db.exec('rollback');
+  }
+}
+const sinError = async (sql, params) => !(await intenta(sql, params)).error;
+const unaFila = async (sql, params) => (await intenta(sql, params)).filas?.[0].n === 1;
+const pasaElRol = async (sql, params) => !/No encontramos la unidad/.test((await intenta(sql, params)).error ?? '');
+
+// Funciones de la base que definen cada grupo de roles de la app.
+const FUNCIONES = { admin: `es_miembro($1, array['admin']::rol_miembro[])`, gestion: 'es_gestor($1)', gerencia: 'es_gerencia($1)', taller: 'es_mecanico($1)' };
+// Lo que hace cada permiso, probado contra la base: true si la base lo deja.
+const SONDAS = {
+  'tablero.ver': () => sinError('select tablero($1, current_date - 30, current_date)', [fp]),
+  'flota.editar': () => sinError(`insert into unidades (organizacion_id, dominio, tipo, marca, modelo, km) values ($1, 'PRB 999', 'tractor', 'Scania', 'R 450', 0)`, [fp]),
+  'flota.borrar': () => unaFila('with b as (delete from unidades where id = $1 returning 1) select count(*)::int n from b', [uBorrar]),
+  'taller.operar': () => pasaElRol(`select registrar_trabajo($1, null, '', '')`, [uSonda]),
+  'gastos.editar': () => unaFila('with b as (delete from gastos where id = $1 returning 1) select count(*)::int n from b', [gastoSonda]),
+  'vencimientos.editar': () => sinError('insert into documentos (organizacion_id, tipo_documento_id, unidad_id, vence) values ($1, $2, $3, current_date + 30)', [fp, tipoSonda, uSonda]),
+  'equipo.administrar': () => sinError(`insert into invitaciones (organizacion_id, rol, nombre) values ($1, 'chofer', 'Sonda')`, [fp]),
+  'actividad.ver': async () => (await intenta('select count(*)::int n from auditoria where organizacion_id = $1', [fp])).filas?.[0].n > 0,
+  'ajustes.editar': () => sinError(`insert into tipos_documento (organizacion_id, nombre, aplica) values ($1, 'Sonda', 'unidad')`, [fp]),
+  'app.chofer': () => pasaElRol('select iniciar_viaje($1, null, null, null)', [qrSonda]),
+  'app.taller': () => pasaElRol(`select registrar_trabajo($1, null, '', '')`, [uSonda]),
+};
+// Secciones de sólo lectura: la base deja leer esos datos a todos los miembros (las apps del chofer y del
+// taller los usan), así que no hay nada que comparar.
+const SOLO_LECTURA = ['flota.ver', 'viajes.ver', 'taller.ver', 'gastos.ver', 'vencimientos.ver', 'proveedores.ver', 'qr.imprimir'];
+// Donde la base deja más que la app, a propósito: los tipos de documento los puede cambiar el jefe de taller
+// según la base, pero la pantalla Ajustes es sólo del administrador.
+const MAS_EN_BASE = ['ajustes.editar'];
+
+const gruposDistintos = [];
+const permisosDistintos = [];
+for (const rol of ROLES_DE.flota) {
+  await db.query(`insert into miembros (organizacion_id, user_id, rol) values ($1, $2, $3)
+    on conflict (organizacion_id, user_id) do update set rol = excluded.rol`, [fp, U.P, rol]);
+  for (const [grupo, funcion] of Object.entries(FUNCIONES)) {
+    const base = (await intenta(`select ${funcion} si`, [fp])).filas?.[0].si === true;
+    if (base !== GRUPOS[grupo].includes(rol)) gruposDistintos.push(`${grupo} con ${rol}: la base dice ${base ? 'sí' : 'no'}`);
+  }
+  for (const [permiso, sonda] of Object.entries(SONDAS)) {
+    const base = await sonda();
+    const app = puede({ rol, organizacion: { tipo: 'flota' } }, permiso);
+    if (app ? !base : base && !MAS_EN_BASE.includes(permiso)) permisosDistintos.push(`${permiso} con ${rol}: app ${app ? 'sí' : 'no'}, base ${base ? 'sí' : 'no'}`);
+  }
+}
+ok(gruposDistintos.length === 0, 'Cada grupo de roles de la app es el mismo que su función en la base' + detalle(gruposDistintos));
+ok(permisosDistintos.length === 0, 'Cada permiso que cambia datos coincide con lo que deja la base, para cada rol de una flota' + detalle(permisosDistintos));
+ok(Object.keys(PERMISOS).every((p) => p in SONDAS || SOLO_LECTURA.includes(p)), 'Todo permiso tiene su prueba contra la base o está anotado como de sólo lectura');
+ok(Object.keys(GRUPOS).every((g) => g in FUNCIONES || Object.keys(SONDAS).some((p) => PERMISOS[p].grupo === g)), 'Todo grupo de roles se compara con la base');
+
+console.log(fallas ?`\n${fallas} pruebas fallaron` : '\nTodas las pruebas pasaron');
 process.exit(fallas ? 1 : 0);

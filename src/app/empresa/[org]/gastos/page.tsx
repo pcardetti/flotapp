@@ -4,10 +4,11 @@ import { FormConfirmado } from '@/components/confirmar';
 import { Encabezado, Vacio } from '@/components/encabezado';
 import { Pantalla } from '@/components/pantalla';
 import { Desplegable, Patente, Tarjeta } from '@/components/ui';
-import { abrirSeccion, esGestor } from '@/lib/empresa';
+import { abrirSeccion } from '@/lib/empresa';
 import { diaCorto, fechaCorta, hoyISO } from '@/lib/fechas';
 import { firmarFotos } from '@/lib/fotos';
 import { NOMBRE_CATEGORIA, numero, pesos, serieDe } from '@/lib/formato';
+import { puede } from '@/lib/permisos';
 import { avisarError, crearClienteServidor } from '@/lib/supabase/server';
 import { eliminarGasto } from './acciones';
 import { FormGasto } from './formulario';
@@ -28,7 +29,7 @@ function BorrarGasto({ accion }: { accion: () => Promise<void> }) {
 
 export default async function Gastos({ params }: { params: Promise<{ org: string }> }) {
   const { org } = await params;
-  const { rol } = await abrirSeccion(org, 'gastos');
+  const empresa = await abrirSeccion(org, 'gastos');
   const supabase = await crearClienteServidor();
   const [{ data: gastos, error }, { data: unidades }, { data: choferes }] = await Promise.all([
     supabase.from('gastos').select('id, categoria, monto, litros, fecha, descripcion, foto, unidad:unidades(dominio), chofer:choferes(nombre)')
@@ -40,7 +41,7 @@ export default async function Gastos({ params }: { params: Promise<{ org: string
   const urls = await firmarFotos((gastos ?? []).map((g) => g.foto));
   const mes = hoyISO().slice(0, 7);
   const delMes = (gastos ?? []).filter((g) => g.fecha.startsWith(mes)).reduce((a, g) => a + Number(g.monto), 0);
-  const edita = esGestor(rol);
+  const edita = puede(empresa, 'gastos.editar');
 
   return (
     <Pantalla className="flex flex-col gap-5">

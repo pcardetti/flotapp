@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
-import { misEmpresas, type Membresia, type Rol } from '@/lib/empresa';
+import { misEmpresas, type Membresia } from '@/lib/empresa';
+import { puede } from '@/lib/permisos';
 import { usuarioActual } from '@/lib/supabase/server';
 
 // Tres apps sobre la misma cuenta: cada rol entra directo a la suya.
@@ -21,17 +22,12 @@ export function inicioDe(m: Membresia) {
   return `/empresa/${m.organizacion.id}/panel`;
 }
 
-const PUEDE: Record<'chofer' | 'taller', Rol[]> = {
-  chofer: ['chofer', 'admin', 'jefe_taller'],
-  taller: ['mecanico', 'jefe_taller', 'admin'],
-};
-
-// Empresa con la que trabaja la app del chofer o del taller: la primera flota donde la persona tiene ese rol
+// Empresa con la que trabaja la app del chofer o del taller: la primera flota donde la persona puede usarla
 // (prioriza el rol propio de la app: un chofer antes que un administrador que también maneja).
 export async function contextoApp(app: 'chofer' | 'taller') {
   const usuario = await usuarioActual();
   if (!usuario) redirect(`/ingresar?siguiente=/${app}`);
-  const propias = (await misEmpresas()).filter((m) => m.organizacion.tipo === 'flota' && PUEDE[app].includes(m.rol));
+  const propias = (await misEmpresas()).filter((m) => puede(m, app === 'chofer' ? 'app.chofer' : 'app.taller'));
   const elegida = propias.find((m) => m.rol === (app === 'chofer' ? 'chofer' : 'mecanico')) ?? propias[0];
   if (!elegida) redirect('/empresas');
   return { usuario, ...elegida };

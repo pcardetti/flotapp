@@ -2,25 +2,18 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { anotarDenegado, empresaActual, type Rol } from '@/lib/empresa';
+import { exigir, UUID } from '@/lib/empresa';
 import { hoyISO } from '@/lib/fechas';
 import { leerChofer, leerKm, leerUnidad, mensajeDeError, type Errores } from '@/lib/flota';
+import type { Permiso } from '@/lib/permisos';
 import { avisarError, crearClienteServidor } from '@/lib/supabase/server';
 
 // `valores` y `clave` devuelven lo que la persona escribió para no perderlo si hay que corregir algo.
 export type EstadoForm = { error?: string; errores?: Errores; ok?: string; valores?: Record<string, string>; clave?: number };
 
-const GESTORES: Rol[] = ['admin', 'jefe_taller'];
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 // La base vuelve a controlar todo con sus políticas; esto da un mensaje claro antes de intentar.
-async function verificar(org: string, roles: Rol[], id?: string) {
-  const { organizacion, rol } = await empresaActual(org);
-  if (organizacion.tipo !== 'flota') return 'Esta acción es sólo para flotas.';
-  if (!roles.includes(rol)) {
-    await anotarDenegado(org, 'flota');
-    return 'Tu rol no permite hacer este cambio.';
-  }
+async function verificar(org: string, permiso: Permiso, id?: string) {
+  if (!(await exigir(org, permiso))) return 'Tu rol no permite hacer este cambio.';
   if (id !== undefined && !UUID.test(id)) return 'No encontramos ese registro.';
   return null;
 }
@@ -45,7 +38,7 @@ const refrescar = (org: string) => revalidatePath(`/empresa/${org}`, 'layout');
 
 // ───────────── Unidades ─────────────
 export async function crearUnidad(org: string, _: EstadoForm, form: FormData): Promise<EstadoForm> {
-  const sinPermiso = await verificar(org, GESTORES);
+  const sinPermiso = await verificar(org, 'flota.editar');
   if (sinPermiso) return devolver(form, { error: sinPermiso });
   const { datos, errores } = leerUnidad(form);
   if (!datos) return devolver(form, { errores });
@@ -62,7 +55,7 @@ export async function crearUnidad(org: string, _: EstadoForm, form: FormData): P
 }
 
 export async function editarUnidad(org: string, id: string, _: EstadoForm, form: FormData): Promise<EstadoForm> {
-  const sinPermiso = await verificar(org, GESTORES, id);
+  const sinPermiso = await verificar(org, 'flota.editar', id);
   if (sinPermiso) return devolver(form, { error: sinPermiso });
   const { datos, errores } = leerUnidad(form);
   if (!datos) return devolver(form, { errores });
@@ -83,7 +76,7 @@ export async function editarUnidad(org: string, id: string, _: EstadoForm, form:
 }
 
 export async function eliminarUnidad(org: string, id: string): Promise<EstadoForm> {
-  const sinPermiso = await verificar(org, ['admin'], id);
+  const sinPermiso = await verificar(org, 'flota.borrar', id);
   if (sinPermiso) return { error: sinPermiso };
   const supabase = await crearClienteServidor();
   const { data, error } = await supabase.from('unidades').delete().eq('id', id).eq('organizacion_id', org).select('id');
@@ -94,7 +87,7 @@ export async function eliminarUnidad(org: string, id: string): Promise<EstadoFor
 }
 
 export async function registrarKm(org: string, id: string, _: EstadoForm, form: FormData): Promise<EstadoForm> {
-  const sinPermiso = await verificar(org, GESTORES, id);
+  const sinPermiso = await verificar(org, 'flota.editar', id);
   if (sinPermiso) return devolver(form, { error: sinPermiso });
   const supabase = await crearClienteServidor();
   const { data: unidad } = await supabase.from('unidades').select('km').eq('id', id).eq('organizacion_id', org).maybeSingle();
@@ -109,7 +102,7 @@ export async function registrarKm(org: string, id: string, _: EstadoForm, form: 
 
 // ───────────── Choferes ─────────────
 export async function crearChofer(org: string, _: EstadoForm, form: FormData): Promise<EstadoForm> {
-  const sinPermiso = await verificar(org, GESTORES);
+  const sinPermiso = await verificar(org, 'flota.editar');
   if (sinPermiso) return devolver(form, { error: sinPermiso });
   const { datos, errores } = leerChofer(form);
   if (!datos) return devolver(form, { errores });
@@ -121,7 +114,7 @@ export async function crearChofer(org: string, _: EstadoForm, form: FormData): P
 }
 
 export async function editarChofer(org: string, id: string, _: EstadoForm, form: FormData): Promise<EstadoForm> {
-  const sinPermiso = await verificar(org, GESTORES, id);
+  const sinPermiso = await verificar(org, 'flota.editar', id);
   if (sinPermiso) return devolver(form, { error: sinPermiso });
   const { datos, errores } = leerChofer(form);
   if (!datos) return devolver(form, { errores });
@@ -134,7 +127,7 @@ export async function editarChofer(org: string, id: string, _: EstadoForm, form:
 }
 
 export async function eliminarChofer(org: string, id: string): Promise<EstadoForm> {
-  const sinPermiso = await verificar(org, GESTORES, id);
+  const sinPermiso = await verificar(org, 'flota.editar', id);
   if (sinPermiso) return { error: sinPermiso };
   const supabase = await crearClienteServidor();
   const { data, error } = await supabase.from('choferes').delete().eq('id', id).eq('organizacion_id', org).select('id');

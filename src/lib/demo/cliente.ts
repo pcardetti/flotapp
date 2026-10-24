@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { enGrupo } from '@/lib/permisos';
 import { dia, EMAIL_DEMO, hace, itemsDe, ORG, sembrar, tablero, ultimosIngresos, YO, type Db, type Fila } from './datos';
 
 // Cliente de Supabase de mentira para el modo demo: entiende las consultas que hace la app (filtros, orden,
@@ -216,7 +217,7 @@ function fichaQr(db: Db, rol: string, token: string) {
 function rpc(db: Db, rol: string, nombre: string, a: Fila): Resultado {
   const yo = db.miembros.find((m) => m.user_id === YO);
   const unidad = (unidadId: string) => db.unidades.find((u) => u.id === unidadId);
-  const esTaller = ['admin', 'jefe_taller', 'mecanico'].includes(rol);
+  const esTaller = enGrupo('taller', rol);
 
   switch (nombre) {
     case 'ficha_qr':
@@ -224,7 +225,7 @@ function rpc(db: Db, rol: string, nombre: string, a: Fila): Resultado {
 
     case 'iniciar_viaje': {
       const u = db.unidades.find((x) => x.qr_token === String(a.p_token).trim().toUpperCase());
-      if (!u || !['chofer', 'admin', 'jefe_taller'].includes(rol)) return falla('No encontramos la unidad');
+      if (!u || !enGrupo('conduccion', rol)) return falla('No encontramos la unidad');
       if (u.estado === 'baja') return falla('La unidad está dada de baja');
       if (u.estado === 'taller') return falla('La unidad está en el taller. Consultá con el encargado antes de salir');
       if (!['tractor', 'chasis'].includes(u.tipo)) return falla('La unidad es un remolque: escaneá el QR del tractor o del camión para salir');
@@ -306,7 +307,7 @@ function rpc(db: Db, rol: string, nombre: string, a: Fila): Resultado {
     }
 
     case 'tablero':
-      if (!['admin', 'jefe_taller', 'lectura'].includes(rol)) return falla('Sin acceso al tablero');
+      if (!enGrupo('gerencia', rol)) return falla('Sin acceso al tablero');
       return { data: tablero(db, a.p_desde, a.p_hasta), error: null };
 
     case 'ver_invitacion': {

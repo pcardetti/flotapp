@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { anotarDenegado, empresaActual, esGestor, UUID } from '@/lib/empresa';
+import { exigir, UUID } from '@/lib/empresa';
 import { hoyISO } from '@/lib/fechas';
 import { rutasValidas } from '@/lib/fotos';
 import { avisarError, crearClienteServidor } from '@/lib/supabase/server';
@@ -15,11 +15,7 @@ const importe = (v: FormDataEntryValue | null) => {
 };
 
 export async function crearGasto(org: string, _: EstadoGasto, form: FormData): Promise<EstadoGasto> {
-  const { rol } = await empresaActual(org);
-  if (!esGestor(rol)) {
-    await anotarDenegado(org, 'gastos');
-    return { error: 'Tu rol no permite cargar gastos.' };
-  }
+  if (!(await exigir(org, 'gastos.editar'))) return { error: 'Tu rol no permite cargar gastos.' };
   const categoria = String(form.get('categoria') ?? '');
   const monto = importe(form.get('monto'));
   const litrosTxt = String(form.get('litros') ?? '').trim();
@@ -52,9 +48,7 @@ export async function crearGasto(org: string, _: EstadoGasto, form: FormData): P
 }
 
 export async function eliminarGasto(org: string, id: string) {
-  const { rol } = await empresaActual(org);
-  if (!esGestor(rol)) return anotarDenegado(org, 'gastos');
-  if (!UUID.test(id)) return;
+  if (!(await exigir(org, 'gastos.editar')) || !UUID.test(id)) return;
   const supabase = await crearClienteServidor();
   const { error } = await supabase.from('gastos').delete().eq('id', id).eq('organizacion_id', org);
   avisarError('eliminarGasto', error);

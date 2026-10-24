@@ -95,6 +95,17 @@ await como('T', `select taller_actualizar_orden($1, 'cerrada', 850000, 150000, '
 const o = await uno('A', 'select estado, repuestos::int r, fecha_egreso from ordenes where id = $1', [ot]);
 ok(o.estado === 'cerrada' && o.r === 850000 && o.fecha_egreso, 'El taller informa costos y cierra su orden');
 await debeFallar('B', `select taller_actualizar_orden($1, 'cerrada', 1, 1, 'x')`, [ot], 'Otra flota no puede tocar esa orden');
+// Una orden derivada que deja la unidad parada, con la falla que la mandó al taller (en garantía: sin costo).
+const fallaMotor = (await uno('A', `insert into fallas (organizacion_id, unidad_id, sistema, descripcion, gravedad) values ($1, $2, 'motor', 'Humo blanco', 'critica') returning id`, [f1, u1])).id;
+const otParada = (await uno('A', `insert into ordenes (organizacion_id, unidad_id, tipo, descripcion, proveedor_id, estado, deja_fuera_servicio) values ($1, $2, 'correctivo', 'Tapa de cilindros', $3, 'en_proveedor', true) returning id`, [f1, u1, tal])).id;
+await como('A', `update fallas set estado = 'en_reparacion', orden_id = $2 where id = $1`, [fallaMotor, otParada]);
+await como('A', `update unidades set estado = 'taller' where id = $1`, [u1]);
+await como('T', `select taller_actualizar_orden($1, 'en_proveedor', null, null, 'Desarmando el motor')`, [otParada]);
+ok((await uno('A', 'select estado from unidades where id = $1', [u1])).estado === 'taller', 'Mientras el taller externo trabaja, la unidad sigue parada');
+await como('T', `select taller_actualizar_orden($1, 'cerrada', 0, 0, 'Tapa rectificada, en garantía')`, [otParada]);
+const cierre = await uno('A', `select (select estado from unidades where id = $1) unidad, (select estado from fallas where id = $2) falla, (select cerrada_por from ordenes where id = $3) quien`, [u1, fallaMotor, otParada]);
+ok(cierre.unidad === 'operativa' && cierre.falla === 'resuelta' && cierre.quien === U.T, 'Cuando el taller externo cierra la orden, la falla queda resuelta y la unidad vuelve a servicio');
+await debeFallar('T', `select terminar_orden($1)`, [otParada], 'Nadie llama directo a lo que sigue al cierre de una orden');
 
 console.log('Neumáticos con historial');
 const n1 = (await uno('A', `select neumatico_alta($1, 'n-0001', 'Fate', '295/80 R22.5', 16, 0, 1150000) id`, [f1])).id;

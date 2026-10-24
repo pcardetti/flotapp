@@ -54,15 +54,23 @@ export async function GET() {
     });
     const auditoria = funcion.ok ? await pedir('/rest/v1/auditoria?select=id&limit=1') : null;
     const solicitudes = auditoria && auditoria.status !== 404 ? await pedir('/rest/v1/solicitudes?select=id&limit=1') : null;
-    // La tabla planes nace en la 0006 y la puede leer cualquiera.
+    // La tabla planes nace en la 0006 y la puede leer cualquiera; la función terminar_orden nace en la 0007 (sin sesión
+    // responde "sin permiso" si existe).
     const planes = solicitudes && solicitudes.status !== 404 ? await pedir('/rest/v1/planes?select=clave&limit=1') : null;
+    const terminar = planes && planes.status !== 404
+      ? await fetch(SUPABASE_URL + '/rest/v1/rpc/terminar_orden', {
+          method: 'POST', headers: { apikey: SUPABASE_KEY, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ p_orden: '00000000-0000-0000-0000-000000000000' }), cache: 'no-store',
+        })
+      : null;
     const migraciones =
-      funcion.status === 404 ? 'faltan ejecutar de la 0002 a la 0006'
-      : funcion.status === 401 || funcion.status === 403 ? 'faltan ejecutar de la 0003 a la 0006'
+      funcion.status === 404 ? 'faltan ejecutar de la 0002 a la 0007'
+      : funcion.status === 401 || funcion.status === 403 ? 'faltan ejecutar de la 0003 a la 0007'
       : !funcion.ok ? `desconocido (${funcion.status})`
-      : auditoria?.status === 404 ? 'faltan ejecutar de la 0004 a la 0006'
-      : solicitudes?.status === 404 ? 'faltan ejecutar 0005 y 0006'
-      : planes?.status === 404 ? 'falta ejecutar 0006'
+      : auditoria?.status === 404 ? 'faltan ejecutar de la 0004 a la 0007'
+      : solicitudes?.status === 404 ? 'faltan ejecutar de la 0005 a la 0007'
+      : planes?.status === 404 ? 'faltan ejecutar 0006 y 0007'
+      : terminar?.status === 404 ? 'falta ejecutar 0007'
       : 'al día';
 
     return Response.json(

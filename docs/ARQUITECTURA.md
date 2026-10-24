@@ -81,7 +81,7 @@ para mostrarlas se piden enlaces firmados que vencen en una hora.
 
 Con el vínculo activo:
 
-- El **taller** ve las órdenes derivadas a él y las unidades de esa flota. Informa avance, repuestos, mano de obra y cierre. No ve planes, documentos ni otras órdenes.
+- El **taller** ve las órdenes derivadas a él y las unidades de esa flota. Informa avance, repuestos, mano de obra y cierre; al cerrar, como con el taller propio, las fallas de la orden quedan resueltas y la unidad vuelve a servicio si nada más la frena (`terminar_orden`). No ve planes, documentos ni otras órdenes.
 - La **recapadora** ve los neumáticos que le enviaron, con su historial. Registra la recepción (dibujo nuevo y costo) o el rechazo por no recapable. Cuando lo devuelve, deja de verlo.
 
 ## Datos principales
@@ -116,7 +116,9 @@ taller y consulta.
 - **Suscripciones en la base**: cada flota nueva arranca con 14 días de prueba; un trigger frena la unidad que pasa el tope del plan (con bloqueo, para que dos altas simultáneas no lo pasen) y otro frena toda escritura de la flota cuando la cuenta queda en modo consulta (prueba o gracia vencidas). Los pagos sólo se anotan con funciones que piden un secreto que comparten el servidor y la base: la app no usa la llave maestra. Los avisos de Mercado Pago se verifican con su firma, se guardan una sola vez y su estado se consulta en la API de Mercado Pago. Sólo una suscripción que se autoriza reemplaza a la vigente (la anterior se da de baja en Mercado Pago); los avisos y cobros de una suscripción que ya no es la vigente no cambian la cuenta.
 - **Acceso**: CSP con nonce por pedido, cookies de sesión HttpOnly, fotos subidas con URLs firmadas, límite de intentos de ingreso y registro contado en la base (`consumir_intento`, claves firmadas por el servidor) y CAPTCHA de Cloudflare Turnstile verificado por Supabase.
 
-`supabase/pruebas/probar_esquema.mjs` levanta un Postgres local (PGlite), aplica las migraciones en orden y corre 174 pruebas de aislamiento, roles, vínculos, órdenes, neumáticos, invitaciones, viajes con chequeo, taller, fotos, tablero, límites de acceso, auditoría, coherencia entre los permisos de la app y los de la base, pedidos de contratación y suscripciones. Todas pasan.
+`supabase/pruebas/probar_esquema.mjs` levanta un Postgres local (PGlite), aplica las migraciones en orden y corre 177 pruebas de aislamiento, roles, vínculos, órdenes, neumáticos, invitaciones, viajes con chequeo, taller, fotos, tablero, límites de acceso, auditoría, coherencia entre los permisos de la app y los de la base, pedidos de contratación y suscripciones. Todas pasan.
+
+`supabase/demo` carga empresas de muestra para mostrar la app (8 flotas, un taller y una recapadora con 20 días de actividad y 5 meses de historia), las verifica entrando como cada cuenta y las borra. `npm run test:demo` prueba todo eso en un Postgres local, con las flotas trabajando a la vez.
 
 Para ver las pantallas sin base ni cuentas está el **modo demo** (`npm run demo`, sólo en desarrollo): un cliente de Supabase de mentira (`src/lib/demo`) que responde con una flota de ejemplo en memoria.
 

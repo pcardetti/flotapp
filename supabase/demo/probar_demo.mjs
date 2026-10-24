@@ -43,7 +43,6 @@ for (const archivo of readdirSync(migraciones).filter((f) => f.endsWith('.sql'))
 console.log('Migraciones aplicadas');
 
 let fallas = 0;
-const observaciones = [];
 function ok(cond, msg) { console.log((cond ? '  OK   ' : '  FALLA ') + msg); if (!cond) fallas++; }
 const filas = async (sql, p = []) => (await db.query(sql, p)).rows;
 const una = async (sql, p = []) => (await db.query(sql, p)).rows[0];
@@ -233,9 +232,7 @@ const derivada = await una(`select o.id, o.unidad_id from ordenes o where o.prov
 await como(operario, `select taller_actualizar_orden($1, 'cerrada', 1450000, 880000, 'Tapa rectificada y probada en banco')`, [derivada.id]);
 ok((await una('select estado::text e from ordenes where id = $1', [derivada.id])).e === 'cerrada', 'El taller externo cierra la orden que le derivaron, con sus costos');
 const unidadTrasTaller = await una(`select u.estado::text e, (select count(*)::int from fallas f where f.orden_id = $2 and f.estado = 'en_reparacion') fallas from unidades u where u.id = $1`, [derivada.unidad_id, derivada.id]);
-if (unidadTrasTaller.e !== 'operativa' || unidadTrasTaller.fallas > 0) {
-  observaciones.push(`Cuando el taller externo cierra una orden, la unidad sigue "en taller" (${unidadTrasTaller.e}) y su falla sigue "en reparación" (${unidadTrasTaller.fallas}) hasta que alguien de la flota la libera.`);
-}
+ok(unidadTrasTaller.e === 'operativa' && unidadTrasTaller.fallas === 0, 'Con la orden cerrada por el taller externo, la unidad vuelve a servicio y su falla queda resuelta');
 const noDerivada = await una(`select id from ordenes where organizacion_id = $1 and proveedor_id is null limit 1`, [flotas[1].org]);
 ok(/no encontrada/i.test((await error(operario, `select taller_actualizar_orden($1, 'cerrada', 1, 1, 'x')`, [noDerivada.id])) ?? ''), 'El taller no puede tocar órdenes que no le derivaron');
 const enRecap = await una(`select count(*)::int n, min(id::text) id from neumaticos where proveedor_actual_id = $1`, [RECAP]);
@@ -246,7 +243,7 @@ ok(/no encontrado/i.test((await error(recapadora, 'select recapadora_recibir($1,
 
 console.log('Después de trabajar, todo sigue en regla');
 control = await verificar();
-const malas2 = control.filter((f) => f.resultado !== 'ok' && !(f.prueba.startsWith('Lo que está en el taller') && observaciones.length));
+const malas2 = control.filter((f) => f.resultado !== 'ok');
 ok(malas2.length === 0, `${control.length} pruebas de nuevo, ${malas2.length} con problemas`);
 for (const m of malas2) console.log('        ', m.empresa, m.cuenta, m.prueba, '→', m.detalle);
 
@@ -287,9 +284,5 @@ const resumen2 = (await db.exec(script)).at(-1).rows;
 ok(JSON.stringify(resumen2) === JSON.stringify(resumen), 'Después de borrar, se vuelve a cargar igual (los mismos números)');
 await db.exec(borrar);
 
-if (observaciones.length) {
-  console.log('\nObservaciones (no son fallas de la carga):');
-  for (const o of observaciones) console.log('  · ' + o);
-}
 console.log(fallas ? `\n${fallas} pruebas fallaron` : '\nTodas las pruebas pasaron');
 process.exit(fallas ? 1 : 0);

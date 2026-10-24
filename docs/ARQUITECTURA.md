@@ -49,6 +49,11 @@ lo que falta completar; si el servidor devuelve un error, el foco va al primer c
 transiciones entre pantallas usan las View Transitions de React (hacia adelante y hacia atrás), y respetan
 la preferencia de movimiento reducido.
 
+La página de inicio es la única que se indexa: presenta las tres apps, cómo funciona y preguntas frecuentes,
+con datos estructurados (JSON-LD) para los buscadores. Cualquier enlace de Flotapp que se comparta (también
+las invitaciones por WhatsApp) muestra la tarjeta de `opengraph-image.tsx`. Los textos de presentación están
+en `src/lib/sitio.ts`. La app usa siempre colores claros, aunque el equipo esté en modo oscuro.
+
 En las tres apps, al tocar un enlace aparece enseguida el esqueleto de la pantalla siguiente (`loading.tsx`),
 y si una pantalla no puede cargar explica qué pasó (o que no hay conexión) con un botón para reintentar
 (`error.tsx`). Borrar, quitar o cancelar pide confirmación en un cuadro propio (`components/confirmar`) y un

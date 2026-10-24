@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next';
-import { urlBase } from '@/lib/url';
+import { sitioPublico } from '@/lib/url';
 
 // Páginas públicas para los buscadores. Por ahora, la de inicio; las páginas de producto se suman acá.
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  return [{ url: `${await urlBase()}/`, changeFrequency: 'monthly', priority: 1 }];
+export default function sitemap(): MetadataRoute.Sitemap {
+  return [{ url: `${sitioPublico()}/`, changeFrequency: 'monthly', priority: 1 }];
 }

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useActionState, useState } from 'react';
-import { Aviso, Boton, Campo, Casilla, Seleccion } from '@/components/ui';
+import { Aviso, Boton, BotonLink, Campo, Casilla, Seleccion } from '@/components/ui';
 import { ESTADOS_UNIDAD, JURISDICCIONES, TIPOS_UNIDAD, tieneMotor } from '@/lib/flota';
 import type { EstadoForm } from './acciones';
 
@@ -34,6 +34,7 @@ export function FormularioUnidad({ accion, inicial, choferes, boton, cancelar }:
   return (
     <form key={estado.clave ?? 0} action={enviar} className="flex flex-col gap-5">
       {estado.error && !e.dominio && <Aviso tipo="error">{estado.error}</Aviso>}
+      {estado.subirPlan && <div><BotonLink href={estado.subirPlan}>Ver planes</BotonLink></div>}
       {Object.keys(e).length > 0 && <Aviso tipo="error">Revisá los campos marcados.</Aviso>}
       <div className="grid gap-4 sm:grid-cols-2">
         <Campo label="Patente" name="dominio" defaultValue={val('dominio')} error={e.dominio} ayuda="Mercosur (AF 123 KD) o anterior (OPQ 318)." autoCapitalize="characters" autoComplete="off" required />

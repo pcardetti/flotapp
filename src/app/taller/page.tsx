@@ -1,5 +1,6 @@
 import { CheckCircle2, ChevronRight, ClipboardList, QrCode } from 'lucide-react';
 import type { Metadata } from 'next';
+import { AvisoCuenta } from '@/components/aviso-cuenta';
 import { TarjetaFalla, type FallaVista } from '@/components/falla';
 import { EncabezadoMovil, Fila, Seccion, Vacio } from '@/components/movil';
 import { Adelante, Pantalla } from '@/components/pantalla';
@@ -49,6 +50,7 @@ export default async function Pendientes() {
         bajada={organizacion.nombre}
         accion={<Adelante href="/taller/escanear" aria-label="Escanear unidad" className="tap grid size-11 place-items-center rounded-full bg-accent text-accent-ink"><QrCode className="size-6" /></Adelante>}
       />
+      <AvisoCuenta org={organizacion.id} admin={false} movil />
       <Pantalla>
         {!lista.length && !ordenes?.length && (
           <Seccion>

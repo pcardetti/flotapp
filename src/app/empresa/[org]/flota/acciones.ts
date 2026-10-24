@@ -9,7 +9,7 @@ import type { Permiso } from '@/lib/permisos';
 import { avisarError, crearClienteServidor } from '@/lib/supabase/server';
 
 // `valores` y `clave` devuelven lo que la persona escribió para no perderlo si hay que corregir algo.
-export type EstadoForm = { error?: string; errores?: Errores; ok?: string; valores?: Record<string, string>; clave?: number };
+export type EstadoForm = { error?: string; errores?: Errores; ok?: string; valores?: Record<string, string>; clave?: number; subirPlan?: string };
 
 // La base vuelve a controlar todo con sus políticas; esto da un mensaje claro antes de intentar.
 async function verificar(org: string, permiso: Permiso, id?: string) {
@@ -36,6 +36,10 @@ function fallo(donde: string, form: FormData | null, error: { code?: string; mes
 
 const refrescar = (org: string) => revalidatePath(`/empresa/${org}`, 'layout');
 
+// Si la unidad no entra en el plan, el formulario ofrece ir a subir de plan.
+const conCupo = (org: string, estado: EstadoForm, error: { hint?: string | null }) =>
+  error.hint === 'cupo_unidades' ? { ...estado, subirPlan: `/empresa/${org}/suscripcion` } : estado;
+
 // ───────────── Unidades ─────────────
 export async function crearUnidad(org: string, _: EstadoForm, form: FormData): Promise<EstadoForm> {
   const sinPermiso = await verificar(org, 'flota.editar');
@@ -45,7 +49,7 @@ export async function crearUnidad(org: string, _: EstadoForm, form: FormData): P
 
   const supabase = await crearClienteServidor();
   const { data, error } = await supabase.from('unidades').insert({ ...datos, organizacion_id: org }).select('id').single();
-  if (error) return fallo('crearUnidad', form, error);
+  if (error) return conCupo(org, fallo('crearUnidad', form, error), error);
   if (datos.km !== null) {
     const { error: e } = await supabase.from('lecturas_km').insert({ organizacion_id: org, unidad_id: data.id, km: datos.km, fecha: hoyISO(), origen: 'alta' });
     avisarError('crearUnidad/lectura', e);
@@ -63,7 +67,7 @@ export async function editarUnidad(org: string, id: string, _: EstadoForm, form:
   const supabase = await crearClienteServidor();
   const { data: antes } = await supabase.from('unidades').select('km').eq('id', id).eq('organizacion_id', org).maybeSingle();
   const { data, error } = await supabase.from('unidades').update(datos).eq('id', id).eq('organizacion_id', org).select('id');
-  if (error) return fallo('editarUnidad', form, error);
+  if (error) return conCupo(org, fallo('editarUnidad', form, error), error);
   if (!data?.length) return devolver(form, { error: 'No encontramos la unidad. Puede que la hayan eliminado.' });
   // Un cambio de kilometraje desde Editar queda en el historial; si baja, es una corrección de carga.
   if (datos.km !== null && datos.km !== antes?.km) {

@@ -19,6 +19,9 @@ export async function GET() {
     NEXT_PUBLIC_SUPABASE_ANON_KEY: Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
     NEXT_PUBLIC_TURNSTILE_SITE_KEY: Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY),
     FLOTAPP_SECRETO_LIMITES: Boolean(process.env.FLOTAPP_SECRETO_LIMITES),
+    MP_ACCESS_TOKEN: Boolean(process.env.MP_ACCESS_TOKEN),
+    MP_WEBHOOK_SECRET: Boolean(process.env.MP_WEBHOOK_SECRET),
+    FLOTAPP_SECRETO_PAGOS: Boolean(process.env.FLOTAPP_SECRETO_PAGOS),
   };
   const funciones = process.env.VERCEL_REGION ?? 'local';
   if (!supabaseConfigurado()) return Response.json({ funciones, variables, supabase: 'faltan variables' }, sinCache);
@@ -51,12 +54,15 @@ export async function GET() {
     });
     const auditoria = funcion.ok ? await pedir('/rest/v1/auditoria?select=id&limit=1') : null;
     const solicitudes = auditoria && auditoria.status !== 404 ? await pedir('/rest/v1/solicitudes?select=id&limit=1') : null;
+    // La tabla planes nace en la 0006 y la puede leer cualquiera.
+    const planes = solicitudes && solicitudes.status !== 404 ? await pedir('/rest/v1/planes?select=clave&limit=1') : null;
     const migraciones =
-      funcion.status === 404 ? 'faltan ejecutar de la 0002 a la 0005'
-      : funcion.status === 401 || funcion.status === 403 ? 'faltan ejecutar de la 0003 a la 0005'
+      funcion.status === 404 ? 'faltan ejecutar de la 0002 a la 0006'
+      : funcion.status === 401 || funcion.status === 403 ? 'faltan ejecutar de la 0003 a la 0006'
       : !funcion.ok ? `desconocido (${funcion.status})`
-      : auditoria?.status === 404 ? 'faltan ejecutar 0004 y 0005'
-      : solicitudes?.status === 404 ? 'falta ejecutar 0005'
+      : auditoria?.status === 404 ? 'faltan ejecutar de la 0004 a la 0006'
+      : solicitudes?.status === 404 ? 'faltan ejecutar 0005 y 0006'
+      : planes?.status === 404 ? 'falta ejecutar 0006'
       : 'al día';
 
     return Response.json(

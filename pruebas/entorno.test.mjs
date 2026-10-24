@@ -23,8 +23,8 @@ test('Turnstile y el secreto de los límites son opcionales, pero si están tien
   assert.deepEqual(problemasDeEntorno({ ...base, NEXT_PUBLIC_TURNSTILE_SITE_KEY: '0x4AAAAAAAabcdefghijklmn', FLOTAPP_SECRETO_LIMITES: 'x'.repeat(40) }), []);
   assert.match(problemasDeEntorno({ ...base, NEXT_PUBLIC_TURNSTILE_SITE_KEY: 'cualquiera' })[0], /TURNSTILE/);
   assert.match(problemasDeEntorno({ ...base, FLOTAPP_SECRETO_LIMITES: 'corto' })[0], /32 caracteres/);
-  assert.equal(avisosDeEntorno(base).length, 2);
-  assert.equal(avisosDeEntorno({ ...base, NEXT_PUBLIC_TURNSTILE_SITE_KEY: '0x4AAA', FLOTAPP_SECRETO_LIMITES: 'x' }).length, 0);
+  assert.equal(avisosDeEntorno(base).length, 3);
+  assert.equal(avisosDeEntorno({ ...base, NEXT_PUBLIC_TURNSTILE_SITE_KEY: '0x4AAA', FLOTAPP_SECRETO_LIMITES: 'x', MP_ACCESS_TOKEN: 'x' }).length, 0);
 });
 
 test('frena una clave secreta puesta en una variable pública', () => {
@@ -32,4 +32,14 @@ test('frena una clave secreta puesta en una variable pública', () => {
     const p = problemasDeEntorno({ NEXT_PUBLIC_SUPABASE_URL: URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: secreta });
     assert.match(p[0], /SECRETA/);
   }
+});
+
+test('Mercado Pago necesita sus tres variables y con el formato correcto', () => {
+  const base = { NEXT_PUBLIC_SUPABASE_URL: URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_abc' };
+  const completo = { ...base, MP_ACCESS_TOKEN: 'APP_USR-1234567890-abcdefghijklmnopqrstuv', MP_WEBHOOK_SECRET: 'x'.repeat(32), FLOTAPP_SECRETO_PAGOS: 'a1'.repeat(32) };
+  assert.deepEqual(problemasDeEntorno(completo), []);
+  assert.match(problemasDeEntorno({ ...completo, FLOTAPP_SECRETO_PAGOS: undefined }).join(), /hacen falta/);
+  assert.match(problemasDeEntorno({ ...completo, MP_ACCESS_TOKEN: 'cualquier-cosa' }).join(), /MP_ACCESS_TOKEN/);
+  assert.match(problemasDeEntorno({ ...completo, FLOTAPP_SECRETO_PAGOS: 'corto' }).join(), /FLOTAPP_SECRETO_PAGOS/);
+  assert.ok(avisosDeEntorno(base).some((a) => a.includes('MP_ACCESS_TOKEN')));
 });

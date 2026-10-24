@@ -120,6 +120,8 @@ export function leerKm(form: FormData, kmActual: number | null): { km?: number; 
 // Traduce los errores de la base de datos a mensajes para la persona que está cargando.
 export function mensajeDeError(error: { code?: string; message: string } | null) {
   if (!error) return null;
+  // Reglas de la base escritas para la persona: modo consulta y tope de unidades del plan.
+  if (error.code === 'P0001') return error.message;
   if (error.code === '23505' && /dominio/.test(error.message)) return 'Ya hay una unidad con esa patente en tu flota.';
   if (error.code === '23503' && /chofer/.test(error.message)) return 'Ese chofer ya no existe. Recargá la página y elegilo de nuevo.';
   if (error.code === '23503') return 'No se puede eliminar: la unidad tiene historia (viajes, órdenes de trabajo o neumáticos). Marcala como "De baja" para conservarla.';

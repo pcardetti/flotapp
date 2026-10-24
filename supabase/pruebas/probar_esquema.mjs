@@ -424,6 +424,7 @@ const SONDAS = {
   'ajustes.editar': () => sinError(`insert into tipos_documento (organizacion_id, nombre, aplica) values ($1, 'Sonda', 'unidad')`, [fp]),
   'app.chofer': () => pasaElRol('select iniciar_viaje($1, null, null, null)', [qrSonda]),
   'app.taller': () => pasaElRol(`select registrar_trabajo($1, null, '', '')`, [uSonda]),
+  'suscripcion.administrar': async () => (await intenta('select mi_suscripcion($1) s', [fp])).filas?.[0].s != null,
 };
 // Secciones de sólo lectura: la base deja leer esos datos a todos los miembros (las apps del chofer y del
 // taller los usan), así que no hay nada que comparar.
@@ -476,6 +477,85 @@ ok(!mailRaro && !sinUnidades, 'La base rechaza un mail sin forma de mail o cero 
 const pedidosIp = [];
 for (let i = 0; i < 6; i++) pedidosIp.push((await comoAnonimo(`select consumir_intento('contacto_ip', $1) r`, ['c'.repeat(64)])).rows[0].r);
 ok(pedidosIp.slice(0, 5).every(Boolean) && pedidosIp[5] === false, 'Desde la misma conexión, como mucho 5 pedidos por hora');
+
+console.log('Suscripciones');
+const planesVisibles = (await comoAnonimo('select clave, precio_mensual, precio_anual from planes order by orden')).rows;
+ok(planesVisibles.map((p) => p.clave).join() === 'inicial,flota,empresa,a-medida' && Number(planesVisibles[1].precio_anual) === Number(planesVisibles[1].precio_mensual) * 10,
+  'Cualquiera ve los planes, y el anual vale 10 meses');
+U.K = '8d8d8d8d-0000-0000-0000-000000000010';
+await db.query('insert into auth.users (id) values ($1)', [U.K]);
+const fk = (await uno('K', `select crear_organizacion('Flota Prueba', 'flota') id`)).id;
+const cuenta = async (user = 'K') => (await uno(user, 'select estado_cuenta($1) e', [fk])).e;
+const susK = (await db.query('select plan, estado, prueba_hasta from suscripciones where organizacion_id = $1', [fk])).rows[0];
+ok(susK.plan === 'flota' && susK.estado === 'prueba' && Math.round((new Date(susK.prueba_hasta) - Date.now()) / 86400000) === 14 && (await cuenta()) === 'prueba',
+  'Una flota nueva arranca con 14 días de prueba del plan Flota, sin tarjeta');
+ok((await uno('T', 'select estado_cuenta($1) e', [tal])).e === 'libre' && (await db.query('select count(*)::int n from suscripciones where organizacion_id = $1', [tal])).rows[0].n === 0,
+  'Talleres y recapadoras no tienen suscripción: usan Flotapp gratis');
+ok((await cuenta('B')) === null, 'Otra empresa no ve el estado de la cuenta');
+
+const altaUnidad = (i) => como('K', `insert into unidades (organizacion_id, dominio, tipo, marca, modelo, km) values ($1, $2, 'tractor', 'Scania', 'R 450', 0) returning id`, [fk, `CUP ${String(i).padStart(3, '0')}`]);
+const idsCupo = [];
+for (let i = 1; i <= 15; i++) idsCupo.push((await altaUnidad(i)).rows[0].id);
+let errorCupo = null;
+try { await altaUnidad(16); } catch (e) { errorCupo = e; }
+ok(/permite hasta 15/.test(errorCupo?.message ?? '') && errorCupo.hint === 'cupo_unidades', 'Con 15 unidades del plan Flota, la 16 no entra y el error pide subir de plan');
+await como('K', `update unidades set estado = 'baja' where id = $1`, [idsCupo[0]]);
+await altaUnidad(16);
+ok((await uno('K', `select count(*)::int n from unidades where organizacion_id = $1 and estado <> 'baja'`, [fk])).n === 15, 'Dar de baja una unidad libera su lugar');
+await debeFallar('K', `update unidades set estado = 'operativa' where id = $1`, [idsCupo[0]], 'Con el plan lleno, reactivar una unidad de baja tampoco entra');
+
+await db.query(`update suscripciones set prueba_hasta = now() - interval '1 minute' where organizacion_id = $1`, [fk]);
+ok((await cuenta()) === 'solo_lectura', 'Al terminar la prueba sin pagar, la cuenta queda en modo consulta');
+await debeFallar('K', `insert into gastos (organizacion_id, categoria, monto) values ($1, 'peaje', 1000)`, [fk], 'En modo consulta no se cargan gastos');
+await debeFallar('K', 'update unidades set km = 1000 where id = $1', [idsCupo[1]], 'Ni se cambian unidades');
+ok((await uno('K', 'select count(*)::int n from unidades where organizacion_id = $1', [fk])).n === 16, 'Pero se sigue viendo todo');
+
+const secreto = (await db.query(`select valor from secretos where clave = 'pagos'`)).rows[0].valor;
+const enDias = (d) => new Date(Date.now() + d * 86400000).toISOString();
+const actualizar = (clave, estado, plan, hasta) => comoAnonimo(
+  `select pagos_actualizar_suscripcion($1, $2, $3, 'mensual', $4, 259000, 'mercadopago', 'pre-123', $5, false, 'k@flota.test')`, [clave, fk, plan, estado, hasta]);
+let sinSecreto = true;
+try { await actualizar('otro', 'activa', 'empresa', null); } catch { sinSecreto = false; }
+ok(!sinSecreto, 'Sin el secreto nadie puede activar una suscripción');
+await actualizar(secreto, 'activa', 'empresa', enDias(30));
+await como('K', `update unidades set estado = 'operativa' where id = $1`, [idsCupo[0]]);
+ok((await cuenta()) === 'activa' && (await uno('K', `select count(*)::int n from unidades where organizacion_id = $1 and estado <> 'baja'`, [fk])).n === 16,
+  'Con el plan Empresa activo se vuelve a cargar y entran más unidades');
+
+const cobro = (id, estado, hasta) => comoAnonimo(`select pagos_registrar_cobro($1, $2, 'mercadopago', $3, $4, 259000, now(), $5, 'Plan Empresa')`, [secreto, fk, id, estado, hasta]);
+await cobro('pago-1', 'rechazado', null);
+const conGracia = (await db.query('select estado, gracia_hasta from suscripciones where organizacion_id = $1', [fk])).rows[0];
+ok(conGracia.estado === 'pago_pendiente' && Math.round((new Date(conGracia.gracia_hasta) - Date.now()) / 86400000) === 7 && (await cuenta()) === 'gracia',
+  'Un cobro rechazado abre 7 días de gracia, en los que se sigue cargando');
+await db.query(`update suscripciones set gracia_hasta = now() - interval '1 minute' where organizacion_id = $1`, [fk]);
+ok((await cuenta()) === 'solo_lectura', 'Pasada la gracia sin pagar, modo consulta');
+await cobro('pago-2', 'aprobado', enDias(60));
+await cobro('pago-2', 'aprobado', enDias(60));
+const alDia = (await db.query('select estado, gracia_hasta from suscripciones where organizacion_id = $1', [fk])).rows[0];
+ok(alDia.estado === 'activa' && alDia.gracia_hasta === null && (await cuenta()) === 'activa', 'Un cobro aprobado deja la cuenta al día');
+ok((await db.query(`select count(*)::int n from pagos where proveedor_pago = 'pago-2'`)).rows[0].n === 1, 'El mismo cobro avisado dos veces se anota una sola vez');
+
+const recibir = () => comoAnonimo(`select pagos_recibir_evento($1, 'mercadopago', 'ev-1', 'payment', 'pago-2') r`, [secreto]);
+const primeraVez = (await recibir()).rows[0].r;
+await comoAnonimo(`select pagos_cerrar_evento($1, 'mercadopago', 'ev-1')`, [secreto]);
+ok(primeraVez === true && (await recibir()).rows[0].r === false, 'Un aviso repetido de la pasarela no se procesa dos veces');
+
+await actualizar(secreto, 'cancelada', 'empresa', enDias(10));
+ok((await cuenta()) === 'activa', 'Una baja sigue activa hasta el fin del período pago');
+await db.query(`update suscripciones set periodo_hasta = now() - interval '4 days' where organizacion_id = $1`, [fk]);
+ok((await cuenta()) === 'solo_lectura', 'Y después queda en modo consulta');
+
+await db.query(`insert into miembros (organizacion_id, user_id, rol) values ($1, $2, 'chofer')`, [fk, U.D]);
+const mia = (await uno('K', 'select mi_suscripcion($1) s', [fk])).s;
+ok(mia?.plan === 'empresa' && mia.max_unidades === 40 && mia.unidades === 16 && mia.pagos.length === 2, 'El administrador ve su plan, el uso y los cobros');
+ok((await uno('D', 'select mi_suscripcion($1) s', [fk])).s === null, 'Los demás roles no ven la suscripción');
+let leeSuscripcion = true;
+try { await como('K', 'select count(*) from suscripciones'); } catch { leeSuscripcion = false; }
+let tocaSuscripcion = true;
+try { await como('K', `update suscripciones set estado = 'activa'`); } catch { tocaSuscripcion = false; }
+ok(!leeSuscripcion && !tocaSuscripcion, 'Nadie toca las suscripciones directo: sólo con las funciones de pago');
+await db.query('delete from organizaciones where id = $1', [fk]);
+ok((await db.query('select count(*)::int n from unidades where organizacion_id = $1', [fk])).rows[0].n === 0, 'Una flota en modo consulta igual se puede borrar entera');
 
 console.log(fallas ?`\n${fallas} pruebas fallaron` : '\nTodas las pruebas pasaron');
 process.exit(fallas ? 1 : 0);

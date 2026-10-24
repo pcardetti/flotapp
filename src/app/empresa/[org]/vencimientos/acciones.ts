@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { exigir, UUID } from '@/lib/empresa';
+import { mensajeDe } from '@/lib/errores';
 import { rutasValidas } from '@/lib/fotos';
 import { avisarError, crearClienteServidor } from '@/lib/supabase/server';
 
@@ -32,7 +33,7 @@ export async function crearDocumento(org: string, _: EstadoDoc, form: FormData):
   });
   if (error) {
     avisarError('crearDocumento', error);
-    return { error: 'No pudimos guardar el documento. Probá de nuevo en unos segundos.' };
+    return { error: mensajeDe(error, 'No pudimos guardar el documento. Probá de nuevo en unos segundos.') };
   }
   revalidatePath(`/empresa/${org}`, 'layout');
   return { ok: 'Documento agregado', clave: Date.now() };
@@ -50,7 +51,7 @@ export async function renovarDocumento(org: string, id: string, _: EstadoDoc, fo
     .eq('id', id).eq('organizacion_id', org);
   if (error) {
     avisarError('renovarDocumento', error);
-    return { error: 'No pudimos renovarlo. Probá de nuevo en unos segundos.' };
+    return { error: mensajeDe(error, 'No pudimos renovarlo. Probá de nuevo en unos segundos.') };
   }
   revalidatePath(`/empresa/${org}`, 'layout');
   return { ok: 'Renovado', clave: Date.now() };
@@ -63,7 +64,7 @@ export async function eliminarDocumento(org: string, id: string): Promise<{ erro
   const { error } = await supabase.from('documentos').delete().eq('id', id).eq('organizacion_id', org);
   if (error) {
     avisarError('eliminarDocumento', error);
-    return { error: 'No pudimos eliminar el documento. Probá de nuevo en unos segundos.' };
+    return { error: mensajeDe(error, 'No pudimos eliminar el documento. Probá de nuevo en unos segundos.') };
   }
   revalidatePath(`/empresa/${org}`, 'layout');
   return {};

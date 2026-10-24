@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { exigir, UUID } from '@/lib/empresa';
+import { mensajeDe } from '@/lib/errores';
 import { avisarError, crearClienteServidor } from '@/lib/supabase/server';
 
 export type EstadoTipo = { error?: string; ok?: string; clave?: number };
@@ -27,7 +28,7 @@ export async function guardarTipo(org: string, id: string | null, _: EstadoTipo,
     : await supabase.from('tipos_documento').insert({ ...datos, organizacion_id: org });
   if (error) {
     avisarError('guardarTipo', error);
-    return { error: 'No pudimos guardar. Probá de nuevo en unos segundos.' };
+    return { error: mensajeDe(error, 'No pudimos guardar. Probá de nuevo en unos segundos.') };
   }
   revalidatePath(`/empresa/${org}`, 'layout');
   return { ok: id ? 'Guardado' : 'Tipo agregado', clave: Date.now() };
@@ -40,7 +41,7 @@ export async function eliminarTipo(org: string, id: string): Promise<{ error?: s
   const { error } = await supabase.from('tipos_documento').delete().eq('id', id).eq('organizacion_id', org);
   if (error) {
     avisarError('eliminarTipo', error);
-    return { error: 'No pudimos eliminar el tipo de documento. Probá de nuevo en unos segundos.' };
+    return { error: mensajeDe(error, 'No pudimos eliminar el tipo de documento. Probá de nuevo en unos segundos.') };
   }
   revalidatePath(`/empresa/${org}`, 'layout');
   return {};

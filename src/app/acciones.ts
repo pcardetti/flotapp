@@ -4,6 +4,7 @@ import { permitirIntento } from '@/lib/limites';
 import { ipCliente } from '@/lib/peticion';
 import { MAX_UNIDADES, planPara } from '@/lib/planes';
 import { avisarError, crearClienteServidor } from '@/lib/supabase/server';
+import { planesPublicos } from '@/lib/suscripcion';
 
 export type EstadoPedido = {
   ok?: { nombre: string; empresa: string; plan: string; unidades: number };
@@ -26,7 +27,9 @@ export async function solicitarContratacion(_: EstadoPedido, form: FormData): Pr
     comentario: String(form.get('comentario') ?? '').trim().slice(0, 1000),
   };
   const unidades = Number(valores.unidades);
-  const respuesta = (u: number) => ({ ok: { nombre: valores.nombre, empresa: valores.empresa, plan: planPara(u).nombre, unidades: u } });
+  const planes = await planesPublicos();
+  const nombrePlan = (u: number) => (planes.length ? planPara(planes, u).nombre : 'a definir');
+  const respuesta = (u: number) => ({ ok: { nombre: valores.nombre, empresa: valores.empresa, plan: nombrePlan(u), unidades: u } });
   // Campo trampa, invisible para las personas: si llega lleno lo completó un robot, y se le contesta como si nada.
   if (form.get('sitio_web')) return respuesta(Number.isInteger(unidades) && unidades > 0 ? unidades : 1);
 
@@ -50,7 +53,7 @@ export async function solicitarContratacion(_: EstadoPedido, form: FormData): Pr
     p_email: valores.email,
     p_telefono: valores.telefono,
     p_unidades: unidades,
-    p_plan: planPara(unidades).clave,
+    p_plan: planes.length ? planPara(planes, unidades).clave : 'a-definir',
     p_comentario: valores.comentario,
   });
   if (error) {

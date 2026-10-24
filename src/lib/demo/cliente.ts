@@ -6,7 +6,7 @@ import { dia, EMAIL_DEMO, hace, itemsDe, ORG, sembrar, tablero, ultimosIngresos,
 // relaciones embebidas como "unidad:unidades(dominio)") y las funciones de la base que usa cada pantalla.
 // Los datos viven en memoria mientras corre el servidor de desarrollo.
 
-const VERSION = 2;
+const VERSION = 3;
 const global = globalThis as unknown as { __flotappDemo?: { version: number; db: Db } };
 function base(): Db {
   if (global.__flotappDemo?.version !== VERSION) global.__flotappDemo = { version: VERSION, db: sembrar() };
@@ -214,6 +214,18 @@ function fichaQr(db: Db, rol: string, token: string) {
   };
 }
 
+// Igual que cuenta_de en la base (migración 0006).
+function cuentaDemo(s: Fila | undefined) {
+  if (!s) return 'solo_lectura';
+  const momento = (x: unknown) => (x ? Date.parse(String(x)) : Number.NaN);
+  const ya = Date.now();
+  if (s.estado === 'prueba') return momento(s.prueba_hasta) > ya ? 'prueba' : 'solo_lectura';
+  if (s.estado === 'activa') return !s.periodo_hasta || momento(s.periodo_hasta) + 3 * 864e5 > ya ? 'activa' : 'solo_lectura';
+  if (s.estado === 'pago_pendiente') return momento(s.gracia_hasta) > ya ? 'gracia' : 'solo_lectura';
+  if (s.estado === 'cancelada') return momento(s.periodo_hasta) > ya ? 'activa' : 'solo_lectura';
+  return 'solo_lectura';
+}
+
 function rpc(db: Db, rol: string, nombre: string, a: Fila): Resultado {
   const yo = db.miembros.find((m) => m.user_id === YO);
   const unidad = (unidadId: string) => db.unidades.find((u) => u.id === unidadId);
@@ -344,6 +356,40 @@ function rpc(db: Db, rol: string, nombre: string, a: Fila): Resultado {
       });
       return { data: null, error: null };
     }
+
+    case 'estado_cuenta':
+      return { data: cuentaDemo(db.suscripciones?.[0]), error: null };
+
+    case 'mi_suscripcion': {
+      const s = db.suscripciones?.[0];
+      if (rol !== 'admin' || !s) return { data: null, error: null };
+      const p = db.planes.find((x) => x.clave === s.plan);
+      const pagos = [...(db.pagos ?? [])].sort((x, y) => String(y.fecha).localeCompare(String(x.fecha)));
+      return { data: { ...s, nombre_plan: p?.nombre, max_unidades: p?.max_unidades ?? null, unidades: db.unidades.filter((u) => u.estado !== 'baja').length, cuenta: cuentaDemo(s), pagos }, error: null };
+    }
+
+    // Las funciones del servidor de pagos: en el demo no se pide el secreto.
+    case 'pagos_actualizar_suscripcion': {
+      const s = db.suscripciones[0];
+      Object.assign(s, {
+        plan: a.p_plan, estado: a.p_estado, periodo: a.p_periodo, precio: a.p_precio, proveedor: a.p_proveedor, proveedor_suscripcion: a.p_proveedor_suscripcion,
+        periodo_hasta: a.p_periodo_hasta ?? s.periodo_hasta, gracia_hasta: a.p_estado === 'pago_pendiente' ? s.gracia_hasta : null, cancelar_al_terminar: Boolean(a.p_cancelar_al_terminar),
+      });
+      return { data: null, error: null };
+    }
+
+    case 'pagos_registrar_cobro': {
+      (db.pagos ??= []).push({ fecha: a.p_fecha ?? ahora(), monto: a.p_monto, estado: a.p_estado, detalle: a.p_detalle });
+      const s = db.suscripciones[0];
+      if (a.p_estado === 'aprobado') Object.assign(s, { estado: s.estado === 'cancelada' ? 'cancelada' : 'activa', periodo_hasta: a.p_cubre_hasta ?? s.periodo_hasta, gracia_hasta: null });
+      return { data: null, error: null };
+    }
+
+    case 'pagos_recibir_evento':
+      return { data: true, error: null };
+
+    case 'pagos_cerrar_evento':
+      return { data: null, error: null };
 
     case 'ultimos_ingresos':
       return { data: rol === 'admin' ? ultimosIngresos() : [], error: null };

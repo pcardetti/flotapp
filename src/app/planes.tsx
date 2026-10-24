@@ -6,30 +6,32 @@ import { useFormStatus } from 'react-dom';
 import { useEnfocarError } from '@/components/controles';
 import { Aviso, Boton, BotonLink, Campo } from '@/components/ui';
 import { pesos } from '@/lib/formato';
-import { desde, INCLUYE, MAX_UNIDADES, PLANES, planPara, type Plan } from '@/lib/planes';
+import { DIAS_DE_PRUEBA, desde, INCLUYE, MAX_UNIDADES, planPara, precioDe, seCotiza, type Periodo, type Plan } from '@/lib/planes';
 import { solicitarContratacion, type EstadoPedido } from './acciones';
 
 const unidadesDe = (texto: string) => Math.min(MAX_UNIDADES, Math.max(1, Number.parseInt(texto, 10) || 1));
-const alcance = (p: Plan) => (p.hasta === null ? `Más de ${desde(p) - 1} unidades` : p.hasta <= 5 ? `Hasta ${p.hasta} unidades` : `De ${desde(p)} a ${p.hasta} unidades`);
 
-// Planes, calculador y pedido de contratación de la página de inicio. Los tres comparten la cantidad de
-// unidades: al moverla se marca el plan que corresponde y el pedido sale con ese número.
-export function PlanesYContratacion() {
+// Planes, calculador y pedido de contacto de la página de inicio. Los tres comparten la cantidad de unidades: al
+// moverla se marca el plan que corresponde. Los planes con precio se prueban gratis; el "a medida" se cotiza.
+export function PlanesYContratacion({ planes, empezar }: { planes: Plan[]; empezar: string }) {
   const [cantidad, setCantidad] = useState('8');
+  const [periodo, setPeriodo] = useState<Periodo>('mensual');
+  if (!planes.length) return null;
   const unidades = unidadesDe(cantidad);
-  const plan = planPara(unidades);
+  const plan = planPara(planes, unidades);
   const poner = (n: number) => setCantidad(String(Math.min(MAX_UNIDADES, Math.max(1, n))));
+  const alcance = (p: Plan) => (p.max_unidades === null ? `Más de ${desde(planes, p) - 1} unidades` : desde(planes, p) === 1 ? `Hasta ${p.max_unidades} unidades` : `De ${desde(planes, p)} a ${p.max_unidades} unidades`);
 
-  // Lleva al pedido (con el plan ya elegido) y deja el cursor en el primer campo.
-  const irAContratar = () => {
+  // Lleva al pedido de contacto y deja el cursor en el primer campo.
+  const irAContacto = () => {
     const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
     document.getElementById('contratar')?.scrollIntoView({ behavior: quieto ? 'auto' : 'smooth', block: 'start' });
     document.getElementById('empresa')?.focus({ preventScroll: true });
   };
-  // Elegir una tarjeta acomoda la cantidad al plan sólo si no entra en él.
-  const elegir = (p: Plan) => {
-    poner(Math.min(Math.max(unidades, desde(p)), p.hasta ?? Math.max(unidades, desde(p))));
-    irAContratar();
+  const precio = (p: Plan) => {
+    const monto = precioDe(p, periodo);
+    if (monto === null) return <span className="font-display text-3xl font-bold">A cotizar</span>;
+    return <><span className="font-display text-3xl font-bold tabular-nums">{pesos(monto)}</span> <span className="text-sm text-ink-3">por {periodo === 'anual' ? 'año' : 'mes'} + IVA</span></>;
   };
 
   return (
@@ -37,7 +39,18 @@ export function PlanesYContratacion() {
       <section id="planes" aria-labelledby="titulo-planes" className="flex scroll-mt-6 flex-col gap-6">
         <div className="flex flex-col gap-2">
           <h2 id="titulo-planes" className="font-display text-3xl font-bold sm:text-4xl">Planes y precios</h2>
-          <p className="max-w-2xl text-ink-2">Un precio fijo por mes según cuántas unidades tenga tu flota. Todos los planes incluyen todo.</p>
+          <p className="max-w-2xl text-ink-2">
+            Un precio fijo según cuántas unidades tenga tu flota, con todo incluido. Probalo {DIAS_DE_PRUEBA} días gratis, sin tarjeta.
+          </p>
+        </div>
+
+        <div role="radiogroup" aria-label="Cómo pagar" className="inline-flex self-start rounded-xl bg-surface-2 p-1">
+          {(['mensual', 'anual'] as const).map((p) => (
+            <button key={p} type="button" role="radio" aria-checked={periodo === p} onClick={() => setPeriodo(p)}
+              className={`tap rounded-lg px-4 py-2 text-sm font-semibold ${periodo === p ? 'bg-surface text-ink shadow-tarjeta' : 'text-ink-3'}`}>
+              {p === 'mensual' ? 'Por mes' : 'Por año · 2 meses de regalo'}
+            </button>
+          ))}
         </div>
 
         <div className="grid gap-6 rounded-2xl border border-line bg-surface p-5 md:grid-cols-2 md:items-center md:p-6">
@@ -54,42 +67,32 @@ export function PlanesYContratacion() {
                 value={cantidad}
                 onChange={(e) => setCantidad(e.target.value.replace(/\D/g, '').slice(0, 4))}
                 onBlur={() => poner(unidades)}
-                className="h-12 w-24 rounded-xl border border-line bg-surface text-center font-display text-3xl font-bold outline-none focus:border-transparent focus:ring-2 focus:ring-accent"
+                className="h-12 w-24 rounded-xl border border-line bg-surface text-center font-display text-3xl font-bold tabular-nums outline-none focus:border-transparent focus:ring-2 focus:ring-accent"
               />
               <button type="button" onClick={() => poner(unidades + 1)} aria-label="Una unidad más" className="tap grid size-12 place-items-center rounded-xl border border-line hover:border-ink-3">
                 <Plus className="size-5" aria-hidden />
               </button>
               <span className="text-ink-3">unidades</span>
             </div>
-            <input
-              type="range"
-              min={1}
-              max={60}
-              value={Math.min(unidades, 60)}
-              onChange={(e) => poner(Number(e.target.value))}
-              aria-label="Cantidad de unidades"
-              className="w-full accent-[var(--accent)]"
-            />
-            <p className="text-xs text-ink-3">Cuenta cada vehículo con patente: camiones, tractores, semirremolques y acoplados.</p>
+            <input type="range" min={1} max={60} value={Math.min(unidades, 60)} onChange={(e) => poner(Number(e.target.value))} aria-label="Cantidad de unidades" className="w-full accent-[var(--accent)]" />
+            <p className="text-xs text-ink-3">Cuenta cada vehículo con patente en servicio: camiones, tractores, semirremolques y acoplados.</p>
           </div>
 
           <div className="flex flex-col items-start gap-2 rounded-xl bg-accent-soft p-5">
             <span className="eyebrow">Tu plan</span>
             <p aria-live="polite" className="font-display text-3xl font-bold">{plan.nombre}</p>
-            {plan.precio === null ? (
-              <p className="text-ink-2">Para más de {desde(plan) - 1} unidades armamos un precio para tu operación.</p>
+            <p className="text-ink-2">{precio(plan)}</p>
+            {seCotiza(plan) ? (
+              <Boton type="button" onClick={irAContacto} className="mt-2">Pedir una cotización</Boton>
             ) : (
-              <p className="text-ink-2">
-                <span className="font-display text-4xl font-bold text-ink">{pesos(plan.precio)}</span> por mes + IVA
-              </p>
+              <BotonLink href={empezar}>Probar {DIAS_DE_PRUEBA} días gratis</BotonLink>
             )}
-            <Boton type="button" onClick={irAContratar} className="mt-2">{plan.precio === null ? 'Pedir una cotización' : `Contratar el plan ${plan.nombre}`}</Boton>
           </div>
         </div>
 
         <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {PLANES.map((p) => {
-            const elegido = p === plan;
+          {planes.map((p) => {
+            const elegido = p.clave === plan.clave;
             return (
               <li key={p.clave} className={`flex flex-col gap-3 rounded-2xl border bg-surface p-5 ${elegido ? 'border-accent ring-2 ring-accent' : 'border-line'}`}>
                 <div className="flex items-center justify-between gap-2">
@@ -97,17 +100,13 @@ export function PlanesYContratacion() {
                   {elegido && <span className="rounded-full bg-accent px-2.5 py-0.5 text-xs font-semibold text-accent-ink">Tu plan</span>}
                 </div>
                 <p className="text-sm font-semibold text-ink-3">{alcance(p)}</p>
-                <p>
-                  {p.precio === null ? (
-                    <span className="font-display text-3xl font-bold">A cotizar</span>
-                  ) : (
-                    <><span className="font-display text-3xl font-bold">{pesos(p.precio)}</span> <span className="text-sm text-ink-3">por mes + IVA</span></>
-                  )}
-                </p>
+                <p>{precio(p)}</p>
                 <p className="flex-1 text-ink-2">{p.bajada}</p>
-                <Boton type="button" variante={elegido ? 'primario' : 'secundario'} onClick={() => elegir(p)}>
-                  {p.precio === null ? 'Pedir cotización' : 'Contratar'}
-                </Boton>
+                {seCotiza(p) ? (
+                  <Boton type="button" variante="secundario" onClick={irAContacto}>Pedir cotización</Boton>
+                ) : (
+                  <BotonLink href={empezar} variante={elegido ? 'primario' : 'secundario'}>Probar gratis</BotonLink>
+                )}
               </li>
             );
           })}
@@ -121,21 +120,23 @@ export function PlanesYContratacion() {
             ))}
           </ul>
         </div>
-        <p className="text-sm text-ink-3">Precios en pesos argentinos, por mes y sin IVA. Sin permanencia mínima.</p>
+        <p className="text-sm text-ink-3">
+          Precios en pesos argentinos, sin IVA. Se paga con tarjeta a través de Mercado Pago, por mes o por año. Sin permanencia: cambiás de plan o das de baja cuando quieras.
+        </p>
       </section>
 
       <section id="contratar" aria-labelledby="titulo-contratar" className="flex scroll-mt-6 flex-col gap-4">
         <div className="flex flex-col gap-2">
-          <h2 id="titulo-contratar" className="font-display text-3xl font-bold sm:text-4xl">Contratar Flotapp</h2>
-          <p className="max-w-2xl text-ink-2">Dejanos tus datos y te contactamos para dar de alta tu empresa y coordinar el pago.</p>
+          <h2 id="titulo-contratar" className="font-display text-3xl font-bold sm:text-4xl">¿Preferís que te contactemos?</h2>
+          <p className="max-w-2xl text-ink-2">Para flotas de más de 40 unidades, o si querés que te ayudemos a arrancar, dejanos tus datos y te escribimos.</p>
         </div>
-        <FormContratar cantidad={cantidad} setCantidad={setCantidad} plan={plan} />
+        <FormContacto cantidad={cantidad} setCantidad={setCantidad} plan={plan} />
       </section>
     </>
   );
 }
 
-function FormContratar({ cantidad, setCantidad, plan }: { cantidad: string; setCantidad: (v: string) => void; plan: Plan }) {
+function FormContacto({ cantidad, setCantidad, plan }: { cantidad: string; setCantidad: (v: string) => void; plan: Plan }) {
   const [estado, enviar] = useActionState<EstadoPedido, FormData>(solicitarContratacion, {});
   const formulario = useEnfocarError(estado.errores);
   if (estado.ok) {
@@ -143,14 +144,15 @@ function FormContratar({ cantidad, setCantidad, plan }: { cantidad: string; setC
     return (
       <div role="status" className="aparecer flex flex-col items-start gap-3 rounded-2xl border border-ok bg-ok-soft p-6">
         <h3 className="font-display text-2xl font-bold">¡Gracias, {nombre}!</h3>
-        <p>Recibimos el pedido de <b>{empresa}</b>: plan {nombrePlan}, {unidades} {unidades === 1 ? 'unidad' : 'unidades'}. Te vamos a escribir para coordinar el alta y el pago.</p>
-        <p className="text-ink-2">Mientras tanto ya podés crear tu cuenta y empezar a cargar tus unidades.</p>
+        <p>Recibimos el pedido de <b>{empresa}</b>: plan {nombrePlan}, {unidades} {unidades === 1 ? 'unidad' : 'unidades'}. Te vamos a escribir para ayudarte con el alta.</p>
+        <p className="text-ink-2">Mientras tanto ya podés crear tu cuenta y empezar la prueba gratis.</p>
         <BotonLink href="/registrarse">Crear mi cuenta</BotonLink>
       </div>
     );
   }
   const v = estado.valores ?? {};
   const e = estado.errores ?? {};
+  const precio = precioDe(plan, 'mensual');
   return (
     <form ref={formulario} action={enviar} noValidate className="relative grid gap-4 rounded-2xl border border-line bg-surface p-5 sm:grid-cols-2 md:p-6">
       <Campo label="Empresa" name="empresa" autoComplete="organization" required defaultValue={v.empresa} error={e.empresa} />
@@ -166,7 +168,7 @@ function FormContratar({ cantidad, setCantidad, plan }: { cantidad: string; setC
         value={cantidad}
         onChange={(x) => setCantidad(x.target.value.replace(/\D/g, '').slice(0, 4))}
         error={e.unidades}
-        ayuda={`Plan ${plan.nombre}${plan.precio === null ? ': precio a cotizar' : `: ${pesos(plan.precio)} por mes + IVA`}`}
+        ayuda={`Plan ${plan.nombre}${precio === null ? ': precio a cotizar' : `: ${pesos(precio)} por mes + IVA`}`}
       />
       <div className="flex flex-col gap-1.5 sm:col-span-2">
         <label htmlFor="comentario" className="text-sm font-semibold text-ink-2">¿Algo que quieras contarnos? <span className="font-normal text-ink-3">(opcional)</span></label>

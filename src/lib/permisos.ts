@@ -48,6 +48,7 @@ export const PERMISOS = {
   'equipo.administrar': { grupo: 'admin', que: 'administrar el equipo', tipos: TODAS },
   'actividad.ver': { grupo: 'admin', que: 'ver la actividad', tipos: TODAS },
   'ajustes.editar': { grupo: 'admin', que: 'cambiar los ajustes' },
+  'suscripcion.administrar': { grupo: 'admin', que: 'administrar la suscripción' },
   'app.chofer': { grupo: 'conduccion', que: 'usar la app Chofer' },
   'app.taller': { grupo: 'taller', que: 'usar la app Taller' },
 } as const satisfies Record<string, Regla>;

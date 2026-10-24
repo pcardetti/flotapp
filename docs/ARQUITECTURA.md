@@ -97,6 +97,7 @@ Con el vínculo activo:
 - `fallas`: lo que reportan los choferes o sale del chequeo, con gravedad, fotos y estado
 - `gastos`: combustible (con litros), peajes, viáticos, seguros, patentes y otros, por unidad y chofer
 - `invitaciones`, `configuracion`
+- `planes`, `suscripciones`, `pagos`, `eventos_pago`: el catálogo de planes, la suscripción de cada flota (prueba, activa, pago pendiente, cancelada o vencida), sus cobros y los avisos de Mercado Pago, anotados una sola vez.
 - `solicitudes`: pedidos de contratación de la página de inicio. Sólo se escriben con `solicitar_contratacion` (con límite por conexión) y nadie los lee por la API: se atienden desde el panel de Supabase.
 
 El **tablero** (`tablero(org, desde, hasta)`) calcula en la base el costo operativo, costo por km, consumo,
@@ -112,9 +113,10 @@ taller y consulta.
 - **Al menos un administrador**: la base no deja degradar ni quitar al último administrador de una empresa (con bloqueo, para que dos cambios simultáneos no la dejen sin ninguno).
 - **Auditoría** (`auditoria`): triggers anotan cambios del equipo, invitaciones, borrados, renovaciones, órdenes cerradas, fallas descartadas e intentos sin permiso, con quién, rol, hora, IP y navegador (la app los manda en cabeceras propias). Es inmutable y sólo la lee el administrador de cada empresa.
 - **Permisos en un solo lugar** (`src/lib/permisos.ts`): qué puede cada rol. El menú, las pantallas y las acciones del servidor preguntan ahí (`puede`, `abrirSeccion`, `exigir`). Si alguien intenta algo que su rol no permite, queda anotado en Actividad y ve la pantalla Sin acceso: qué no puede hacer, qué roles sí y a quién pedírselo. Las pruebas de la base comparan esa tabla, rol por rol, con las funciones y políticas de la base.
+- **Suscripciones en la base**: cada flota nueva arranca con 14 días de prueba; un trigger frena la unidad que pasa el tope del plan (con bloqueo, para que dos altas simultáneas no lo pasen) y otro frena toda escritura de la flota cuando la cuenta queda en modo consulta (prueba o gracia vencidas). Los pagos sólo se anotan con funciones que piden un secreto que comparten el servidor y la base: la app no usa la llave maestra. Los avisos de Mercado Pago se verifican con su firma, se guardan una sola vez y su estado se consulta en la API de Mercado Pago.
 - **Acceso**: CSP con nonce por pedido, cookies de sesión HttpOnly, fotos subidas con URLs firmadas, límite de intentos de ingreso y registro contado en la base (`consumir_intento`, claves firmadas por el servidor) y CAPTCHA de Cloudflare Turnstile verificado por Supabase.
 
-`supabase/pruebas/probar_esquema.mjs` levanta un Postgres local (PGlite), aplica las migraciones en orden y corre 144 pruebas de aislamiento, roles, vínculos, órdenes, neumáticos, invitaciones, viajes con chequeo, taller, fotos, tablero, límites de acceso, auditoría, coherencia entre los permisos de la app y los de la base, y pedidos de contratación. Todas pasan.
+`supabase/pruebas/probar_esquema.mjs` levanta un Postgres local (PGlite), aplica las migraciones en orden y corre 168 pruebas de aislamiento, roles, vínculos, órdenes, neumáticos, invitaciones, viajes con chequeo, taller, fotos, tablero, límites de acceso, auditoría, coherencia entre los permisos de la app y los de la base, pedidos de contratación y suscripciones. Todas pasan.
 
 Para ver las pantallas sin base ni cuentas está el **modo demo** (`npm run demo`, sólo en desarrollo): un cliente de Supabase de mentira (`src/lib/demo`) que responde con una flota de ejemplo en memoria.
 

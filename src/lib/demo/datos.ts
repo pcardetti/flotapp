@@ -187,6 +187,18 @@ export function sembrar(): Db {
     organizaciones: [{ id: ORG, nombre: 'Transportes Ejemplo', tipo: 'flota' }],
     miembros, choferes, unidades, chequeos, viajes, fallas, ordenes, gastos, tipos_documento, documentos, invitaciones, lecturas_km,
     items_chequeo: ITEMS, vinculos_proveedor: [], neumaticos: [], auditoria,
+    // La misma lista de planes que la migración 0006, y la flota de ejemplo con la prueba gratis corriendo.
+    planes: [
+      { clave: 'inicial', nombre: 'Inicial', max_unidades: 5, precio_mensual: 49000, precio_anual: 490000, bajada: 'Para ordenar una flota chica desde el primer día.', orden: 1, publico: true },
+      { clave: 'flota', nombre: 'Flota', max_unidades: 15, precio_mensual: 119000, precio_anual: 1190000, bajada: 'Para flotas que crecen y suman choferes y mecánicos.', orden: 2, publico: true },
+      { clave: 'empresa', nombre: 'Empresa', max_unidades: 40, precio_mensual: 259000, precio_anual: 2590000, bajada: 'Para operaciones grandes, con taller propio.', orden: 3, publico: true },
+      { clave: 'a-medida', nombre: 'A medida', max_unidades: null, precio_mensual: null, precio_anual: null, bajada: 'Más de 40 unidades: armamos un precio para tu operación.', orden: 4, publico: true },
+    ],
+    suscripciones: [{
+      organizacion_id: ORG, plan: 'flota', estado: 'prueba', periodo: 'mensual', precio: null, prueba_hasta: new Date(Date.now() + 9 * 864e5).toISOString(),
+      periodo_hasta: null, gracia_hasta: null, cancelar_al_terminar: false, proveedor: null, proveedor_suscripcion: null,
+    }],
+    pagos: [],
   };
 }
 

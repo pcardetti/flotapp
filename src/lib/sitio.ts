@@ -7,15 +7,23 @@ export const DESCRIPCION =
 export const PREGUNTAS = [
   {
     pregunta: '¿Cuánto cuesta?',
-    respuesta: 'Un precio fijo por mes según cuántas unidades tenga tu flota, con todo incluido. En la sección de planes calculás el tuyo; para más de 40 unidades armamos un precio a medida.',
+    respuesta: 'Un precio fijo según cuántas unidades tenga tu flota, con todo incluido. Los primeros 14 días son gratis y sin tarjeta. Pagando por año tenés 2 meses de regalo; para más de 40 unidades armamos un precio a medida.',
   },
   {
     pregunta: '¿Qué cuenta como unidad?',
-    respuesta: 'Cada vehículo con patente que cargues en la flota: camiones, tractores, semirremolques y acoplados. Los choferes, mecánicos y demás usuarios no se cobran.',
+    respuesta: 'Cada vehículo con patente en servicio: camiones, tractores, semirremolques y acoplados. Las unidades dadas de baja no cuentan, y los choferes, mecánicos y demás usuarios no se cobran.',
   },
   {
     pregunta: '¿Cómo se paga? ¿Hay permanencia?',
-    respuesta: 'Se paga mes a mes. Cuando pedís el alta te contactamos para coordinar el medio de pago y la factura. No hay permanencia mínima: si sumás o sacás unidades, pasás al plan que corresponda desde el mes siguiente.',
+    respuesta: 'Con tarjeta, a través de Mercado Pago, por mes o por año: el cobro se renueva solo. No hay permanencia mínima: cambiás de plan o das de baja cuando quieras desde la app.',
+  },
+  {
+    pregunta: '¿Qué pasa cuando termina la prueba?',
+    respuesta: 'Elegís un plan y seguís sin cortes. Si no, la cuenta queda en modo consulta: ves todo lo que cargaste, pero no podés cargar datos nuevos hasta activar un plan. Nunca se borra nada.',
+  },
+  {
+    pregunta: '¿Los talleres y las recapadoras pagan?',
+    respuesta: 'No. Los talleres y recapadoras usan Flotapp gratis para trabajar con las flotas que los suman.',
   },
   {
     pregunta: '¿Hay que instalar algo?',

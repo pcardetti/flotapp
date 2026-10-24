@@ -24,6 +24,7 @@ export const SECCIONES: Seccion[] = [
   { ruta: 'equipo', titulo: 'Equipo', tipos: ['flota', 'taller', 'recapadora'], permiso: 'equipo.administrar' },
   { ruta: 'actividad', titulo: 'Actividad', tipos: ['flota', 'taller', 'recapadora'], permiso: 'actividad.ver' },
   { ruta: 'ajustes', titulo: 'Ajustes', tipos: ['flota'], permiso: 'ajustes.editar' },
+  { ruta: 'suscripcion', titulo: 'Suscripción', tipos: ['flota'], permiso: 'suscripcion.administrar' },
 ];
 
 // La sección con esa ruta en este tipo de empresa (si no existe, la página es un 404).

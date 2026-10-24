@@ -1,5 +1,6 @@
 import { AlertTriangle, Flag, Fuel, QrCode, Receipt, Wrench } from 'lucide-react';
 import type { Metadata } from 'next';
+import { AvisoCuenta } from '@/components/aviso-cuenta';
 import { Toast } from '@/components/controles';
 import { EncabezadoMovil, Fila, Seccion } from '@/components/movil';
 import { Adelante, Pantalla } from '@/components/pantalla';
@@ -52,6 +53,7 @@ export default async function InicioChofer({ searchParams }: { searchParams: Pro
     <>
       <Toast mensaje={ok ? AVISOS[ok] : null} />
       <EncabezadoMovil titulo={nombre ? `Hola, ${nombre}` : 'Hola'} bajada={organizacion.nombre} />
+      <AvisoCuenta org={organizacion.id} admin={false} movil />
       <Pantalla>
         {viaje && unidad ? (
           <Seccion>

@@ -3,10 +3,10 @@ import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 import Link from 'next/link';
 import { BotonLink, Marca, Patente } from '@/components/ui';
-import { PLANES } from '@/lib/planes';
 import { DESCRIPCION, PREGUNTAS, TITULO } from '@/lib/sitio';
 import { supabaseConfigurado } from '@/lib/supabase/config';
 import { usuarioActual } from '@/lib/supabase/server';
+import { planesPublicos } from '@/lib/suscripcion';
 import { sitioPublico } from '@/lib/url';
 import { PlanesYContratacion } from './planes';
 
@@ -39,7 +39,8 @@ const VENTAJAS = [
 export default async function Inicio() {
   const usuario = supabaseConfigurado() ? await usuarioActual() : null;
   const nonce = (await headers()).get('x-nonce') ?? undefined;
-  const precios = PLANES.flatMap((p) => (p.precio === null ? [] : [p.precio]));
+  const planes = supabaseConfigurado() ? await planesPublicos() : [];
+  const precios = planes.flatMap((p) => (p.precio_mensual === null ? [] : [p.precio_mensual]));
   // Datos estructurados para los buscadores: qué es Flotapp, sus precios y las preguntas frecuentes de esta página.
   const datos = {
     '@context': 'https://schema.org',
@@ -52,7 +53,7 @@ export default async function Inicio() {
         applicationCategory: 'BusinessApplication',
         operatingSystem: 'Web, Android, iOS',
         inLanguage: 'es-AR',
-        offers: { '@type': 'AggregateOffer', priceCurrency: 'ARS', lowPrice: Math.min(...precios), highPrice: Math.max(...precios), offerCount: PLANES.length },
+        ...(precios.length ? { offers: { '@type': 'AggregateOffer', priceCurrency: 'ARS', lowPrice: Math.min(...precios), highPrice: Math.max(...precios), offerCount: planes.length } } : {}),
       },
       { '@type': 'FAQPage', mainEntity: PREGUNTAS.map((p) => ({ '@type': 'Question', name: p.pregunta, acceptedAnswer: { '@type': 'Answer', text: p.respuesta } })) },
     ],
@@ -168,7 +169,7 @@ export default async function Inicio() {
           <p className="text-sm text-ink-3">Para talleres y recapadoras externos: muy pronto van a recibir el trabajo que les derive cada flota.</p>
         </section>
 
-        <PlanesYContratacion />
+        <PlanesYContratacion planes={planes} empezar={usuario ? '/empresas' : '/registrarse'} />
 
         <section id="preguntas" aria-labelledby="titulo-preguntas" className="flex scroll-mt-6 flex-col gap-4">
           <h2 id="titulo-preguntas" className="font-display text-3xl font-bold sm:text-4xl">Preguntas frecuentes</h2>

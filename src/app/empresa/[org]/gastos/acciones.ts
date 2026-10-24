@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { exigir, UUID } from '@/lib/empresa';
+import { mensajeDe } from '@/lib/errores';
 import { hoyISO } from '@/lib/fechas';
 import { rutasValidas } from '@/lib/fotos';
 import { avisarError, crearClienteServidor } from '@/lib/supabase/server';
@@ -41,7 +42,7 @@ export async function crearGasto(org: string, _: EstadoGasto, form: FormData): P
   });
   if (error) {
     avisarError('crearGasto', error);
-    return { error: 'No pudimos guardar el gasto. Probá de nuevo en unos segundos.' };
+    return { error: mensajeDe(error, 'No pudimos guardar el gasto. Probá de nuevo en unos segundos.') };
   }
   revalidatePath(`/empresa/${org}`, 'layout');
   return { ok: 'Gasto guardado', clave: Date.now() };
@@ -54,7 +55,7 @@ export async function eliminarGasto(org: string, id: string): Promise<{ error?: 
   const { error } = await supabase.from('gastos').delete().eq('id', id).eq('organizacion_id', org);
   if (error) {
     avisarError('eliminarGasto', error);
-    return { error: 'No pudimos eliminar el gasto. Probá de nuevo en unos segundos.' };
+    return { error: mensajeDe(error, 'No pudimos eliminar el gasto. Probá de nuevo en unos segundos.') };
   }
   revalidatePath(`/empresa/${org}`, 'layout');
   return {};

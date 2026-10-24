@@ -41,12 +41,20 @@ hora, IP y navegador. Lo anota la base con triggers; nadie lo puede editar ni bo
 Qué puede hacer cada rol está en una sola tabla, `src/lib/permisos.ts`. Quien intenta entrar donde su rol
 no deja ve qué no puede hacer, qué roles sí pueden y a quién pedírselo.
 
-### Planes y pedidos de contratación
+### Planes, prueba gratis y cobros
 
-La página de inicio muestra los planes (precio fijo por mes según la cantidad de unidades) con un calculador y
-un formulario para contratar. Los precios se cambian en `src/lib/planes.ts`. Cada pedido queda guardado en la
-base: se ven en Supabase → Table Editor → `solicitudes`, donde también se anota en qué quedó (nueva,
-contactada, alta o descartada). Hace falta la migración 0005.
+- **Planes:** precio fijo por mes o por año (el anual vale 10 meses) según las unidades en servicio. Están en la
+  base (Supabase → Table Editor → `planes`): ahí se cambian los precios y la página de venta se actualiza sola.
+- **Prueba:** cada flota nueva arranca con 14 días gratis del plan Flota, sin tarjeta. Talleres y recapadoras no pagan.
+- **Tope:** la base no deja tener en servicio más unidades que las del plan; la app ofrece subir de plan.
+- **Modo consulta:** si termina la prueba sin pagar, o un cobro rechazado pasa sus 7 días de gracia, se ve todo pero
+  no se cargan datos. No se borra nada.
+- **Suscripción** (menú del administrador): plan, uso, cambio de plan, pagos y baja. El cobro es con Mercado Pago
+  Suscripciones; en el modo demo un simulador aprueba los pagos.
+- **Pedidos de contacto** (flotas de más de 40 unidades o quien quiere ayuda): en Table Editor → `solicitudes`.
+
+Las flotas que ya existían antes de la migración 0006 quedaron activas, sin tope ni vencimiento. Para cambiarlas,
+editá su fila en `suscripciones`.
 
 ### Invitar al equipo
 
@@ -80,7 +88,15 @@ como QR. El enlace sirve una sola vez y vence en 7 días.
      ingreso se traba.
    - Como el ingreso sale del servidor, Supabase ve la IP de Vercel para todos: subí su límite por IP
      (Authentication → Rate Limits); el límite por persona lo hace la app.
-8. **Chequeo.** `/api/health` responde 200 si la app y la base andan (para monitoreo, sin datos de
+8. **Cobros con Mercado Pago.**
+   - En Supabase → SQL Editor: `select valor from secretos where clave = 'pagos';` y copiá ese valor en Vercel
+     como `FLOTAPP_SECRETO_PAGOS`. Con ese secreto la app anota los pagos sin usar la llave maestra de la base.
+   - En Mercado Pago Developers creá una aplicación y copiá su Access Token en Vercel como `MP_ACCESS_TOKEN`
+     (primero el de prueba, después el de producción).
+   - En la aplicación → Webhooks: dirección `https://<tu-dominio>/api/pagos/mercadopago`, con los eventos de
+     planes y suscripciones. Copiá la clave secreta en Vercel como `MP_WEBHOOK_SECRET`.
+   - Volvé a publicar. Sin estas variables la prueba gratis funciona igual, pero los planes no se pueden pagar en línea.
+9. **Chequeo.** `/api/health` responde 200 si la app y la base andan (para monitoreo, sin datos de
    configuración). `/api/estado`, sólo para administradores, muestra qué variables de Supabase existen
    (sólo los nombres), si las migraciones están al día y la demora a la base. Nunca devuelve claves.
 

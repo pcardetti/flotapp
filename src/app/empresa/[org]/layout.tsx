@@ -1,9 +1,10 @@
 import {
-  Building2, CalendarClock, CircleDot, ClipboardList, Handshake, LayoutDashboard, Receipt, Route, ScrollText, Settings, Truck, Users, Wrench,
+  Building2, CalendarClock, CircleDot, ClipboardList, CreditCard, Handshake, LayoutDashboard, Receipt, Route, ScrollText, Settings, Truck, Users, Wrench,
 } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { AvisoCuenta } from '@/components/aviso-cuenta';
 import { Marca } from '@/components/ui';
 import { appDeRol, inicioDe } from '@/lib/apps';
 import { NOMBRE_ROL, NOMBRE_TIPO, empresaActual, misEmpresas } from '@/lib/empresa';
@@ -20,7 +21,7 @@ export const metadata: Metadata = {
 
 const ICONOS: Record<string, React.ReactNode> = {
   panel: <LayoutDashboard />, flota: <Truck />, viajes: <Route />, taller: <Wrench />, gastos: <Receipt />, vencimientos: <CalendarClock />,
-  trabajos: <ClipboardList />, recapados: <CircleDot />, proveedores: <Handshake />, clientes: <Building2 />, equipo: <Users />, actividad: <ScrollText />, ajustes: <Settings />,
+  trabajos: <ClipboardList />, recapados: <CircleDot />, proveedores: <Handshake />, clientes: <Building2 />, equipo: <Users />, actividad: <ScrollText />, ajustes: <Settings />, suscripcion: <CreditCard />,
 };
 
 export default async function LayoutEmpresa({ children, params }: { children: React.ReactNode; params: Promise<{ org: string }> }) {
@@ -60,7 +61,10 @@ export default async function LayoutEmpresa({ children, params }: { children: Re
           <form action={salir}><button className="font-semibold text-ink-2 hover:underline">Salir</button></form>
         </div>
       </aside>
-      <main id="contenido" tabIndex={-1} className="flex min-w-0 flex-col gap-6 outline-none lg:pt-5">{children}</main>
+      <main id="contenido" tabIndex={-1} className="flex min-w-0 flex-col gap-6 outline-none lg:pt-5">
+        <AvisoCuenta org={org} admin={rol === 'admin'} />
+        {children}
+      </main>
       <footer className="flex flex-wrap items-center gap-4 border-t border-line pt-4 text-sm lg:hidden">
         <span className="text-ink-3">{usuario.email}</span>
         {appChofer && <Link href="/chofer" className="font-semibold text-accent">App Chofer</Link>}

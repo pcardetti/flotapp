@@ -9,3 +9,7 @@ out/
 next-env.d.ts
 .claude/
 .DS_Store
+
+# Empresas de muestra: llevan la clave de las cuentas
+supabase/demo/empresas_demo.sql
+supabase/demo/usuarios-demo.md

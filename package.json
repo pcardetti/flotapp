@@ -9,7 +9,8 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "test": "node --test \"pruebas/*.test.mjs\"",
-    "test:db": "node supabase/pruebas/probar_esquema.mjs"
+    "test:db": "node supabase/pruebas/probar_esquema.mjs",
+    "test:demo": "node supabase/demo/probar_demo.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.7",

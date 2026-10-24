@@ -45,8 +45,14 @@ Un solo código sirve tres apps instalables, cada una con su manifiesto, ícono 
 - **Flotapp Taller** (cian, `/taller`): lo pendiente primero, agrupado por unidad y con las fallas críticas arriba.
 
 En los formularios de las apps de celular la barra de pestañas se esconde y el botón principal guía hasta
-lo que falta completar. Las transiciones entre pantallas usan las View Transitions de React (hacia adelante
-y hacia atrás), y respetan la preferencia de movimiento reducido.
+lo que falta completar; si el servidor devuelve un error, el foco va al primer campo a corregir. Las
+transiciones entre pantallas usan las View Transitions de React (hacia adelante y hacia atrás), y respetan
+la preferencia de movimiento reducido.
+
+En las tres apps, al tocar un enlace aparece enseguida el esqueleto de la pantalla siguiente (`loading.tsx`),
+y si una pantalla no puede cargar explica qué pasó (o que no hay conexión) con un botón para reintentar
+(`error.tsx`). Borrar, quitar o cancelar pide confirmación en un cuadro propio (`components/confirmar`) y un
+aviso flotante (`components/avisos`) dice cómo salió cada acción.
 
 ### Viaje con QR
 

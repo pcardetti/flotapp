@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Barlow, Barlow_Condensed } from 'next/font/google';
 import { connection } from 'next/server';
+import { Avisos } from '@/components/avisos';
 import './globals.css';
 
 const barlow = Barlow({ subsets: ['latin'], weight: ['400', '500', '600'], variable: '--font-barlow' });
@@ -25,7 +26,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     // suppressHydrationWarning: algunas extensiones del navegador (por ejemplo, modos oscuros) modifican <html> antes de que cargue la app.
     <html lang="es-AR" className={`${barlow.variable} ${barlowCondensed.variable}`} suppressHydrationWarning>
-      <body className="min-h-dvh font-sans text-[15px] leading-normal antialiased">{children}</body>
+      <body className="min-h-dvh font-sans text-[15px] leading-normal antialiased">
+        {children}
+        <Avisos />
+      </body>
     </html>
   );
 }

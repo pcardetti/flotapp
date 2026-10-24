@@ -2,6 +2,7 @@
 
 import { Paperclip, RefreshCw, Trash2 } from 'lucide-react';
 import { useActionState, useState } from 'react';
+import { FormConfirmado } from '@/components/confirmar';
 import { Fotos, type EstadoFotos } from '@/components/fotos';
 import { Aviso, Boton, Campo, Patente, Pildora } from '@/components/ui';
 import { crearDocumento, eliminarDocumento, renovarDocumento, type EstadoDoc } from './acciones';
@@ -106,9 +107,15 @@ export function FilaDocumento({ org, hoy, doc, edita }: { org: string; hoy: stri
           )}
           {doc.fotoUrl && <a href={doc.fotoUrl} target="_blank" rel="noreferrer" aria-label="Ver documento" className="tap grid size-9 place-items-center rounded-lg text-ink-2 hover:bg-surface-2"><Paperclip className="size-4" /></a>}
           {edita && (
-            <form action={eliminarDocumento.bind(null, org, doc.id)} className="ml-auto" onSubmit={(x) => { if (!window.confirm(`¿Eliminar ${doc.nombre} de ${doc.titular.texto}?`)) x.preventDefault(); }}>
+            <FormConfirmado
+              accion={eliminarDocumento.bind(null, org, doc.id)}
+              pregunta={`¿Eliminar ${doc.nombre} de ${doc.titular.texto}?`}
+              detalle="Deja de aparecer en los vencimientos. No se puede deshacer."
+              hecho="Documento eliminado"
+              className="ml-auto"
+            >
               <button aria-label="Eliminar documento" className="tap grid size-9 place-items-center rounded-lg text-ink-3 hover:bg-crit-soft hover:text-crit"><Trash2 className="size-4" /></button>
-            </form>
+            </FormConfirmado>
           )}
         </div>
       )}

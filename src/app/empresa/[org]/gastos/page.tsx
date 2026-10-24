@@ -19,9 +19,9 @@ type Uno<T> = T | T[] | null;
 const uno = <T,>(x: Uno<T>) => (Array.isArray(x) ? x[0] : x) ?? null;
 
 // En el celular es fácil tocar el tacho sin querer: borrar pide confirmación.
-function BorrarGasto({ accion }: { accion: () => Promise<void> }) {
+function BorrarGasto({ accion }: { accion: () => Promise<{ error?: string }> }) {
   return (
-    <FormConfirmado accion={accion} pregunta="¿Eliminar este gasto? No se puede deshacer.">
+    <FormConfirmado accion={accion} pregunta="¿Eliminar este gasto?" detalle="Deja de contar en el tablero y en los totales. No se puede deshacer." hecho="Gasto eliminado">
       <button aria-label="Eliminar gasto" className="tap grid size-9 place-items-center rounded-lg text-ink-3 hover:bg-crit-soft hover:text-crit"><Trash2 className="size-4" /></button>
     </FormConfirmado>
   );

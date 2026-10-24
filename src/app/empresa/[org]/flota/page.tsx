@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { Toast } from '@/components/controles';
 import { Encabezado, Vacio } from '@/components/encabezado';
 import { Aviso, BotonLink, Patente, Pildora, Tarjeta } from '@/components/ui';
 import { abrirSeccion } from '@/lib/empresa';
@@ -12,10 +13,10 @@ export const metadata: Metadata = { title: 'Flota y choferes' };
 const TONO: Record<EstadoUnidad, React.ComponentProps<typeof Pildora>['tipo']> = { operativa: 'ok', taller: 'warn', baja: 'neutro' };
 
 const AVISOS: Record<string, string> = {
-  'unidad-eliminada': 'La unidad se eliminó.',
-  'chofer-creado': 'Chofer agregado.',
-  'chofer-guardado': 'Cambios del chofer guardados.',
-  'chofer-eliminado': 'El chofer se eliminó.',
+  'unidad-eliminada': 'La unidad se eliminó',
+  'chofer-creado': 'Chofer agregado',
+  'chofer-guardado': 'Cambios del chofer guardados',
+  'chofer-eliminado': 'El chofer se eliminó',
 };
 
 export default async function Flota({ params, searchParams }: { params: Promise<{ org: string }>; searchParams: Promise<{ ok?: string }> }) {
@@ -45,7 +46,7 @@ export default async function Flota({ params, searchParams }: { params: Promise<
           </>
         )}
       </Encabezado>
-      {ok && AVISOS[ok] && <Aviso tipo="ok">{AVISOS[ok]}</Aviso>}
+      <Toast mensaje={ok ? AVISOS[ok] : null} />
       {(e1 || e2) && <Aviso tipo="error">No pudimos cargar todos los datos. Recargá la página en unos segundos.</Aviso>}
 
       {!unidades?.length ? (

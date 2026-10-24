@@ -56,10 +56,15 @@ export async function renovarDocumento(org: string, id: string, _: EstadoDoc, fo
   return { ok: 'Renovado', clave: Date.now() };
 }
 
-export async function eliminarDocumento(org: string, id: string) {
-  if (!(await permitido(org)) || !UUID.test(id)) return;
+export async function eliminarDocumento(org: string, id: string): Promise<{ error?: string }> {
+  if (!(await permitido(org))) return { error: 'Tu rol no permite borrar documentos.' };
+  if (!UUID.test(id)) return { error: 'No encontramos ese documento.' };
   const supabase = await crearClienteServidor();
   const { error } = await supabase.from('documentos').delete().eq('id', id).eq('organizacion_id', org);
-  avisarError('eliminarDocumento', error);
+  if (error) {
+    avisarError('eliminarDocumento', error);
+    return { error: 'No pudimos eliminar el documento. Probá de nuevo en unos segundos.' };
+  }
   revalidatePath(`/empresa/${org}`, 'layout');
+  return {};
 }

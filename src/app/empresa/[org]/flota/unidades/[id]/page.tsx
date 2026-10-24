@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { Toast } from '@/components/controles';
 import { Encabezado } from '@/components/encabezado';
-import { Aviso, BotonLink, Patente, Pildora, Tarjeta } from '@/components/ui';
+import { BotonLink, Patente, Pildora, Tarjeta } from '@/components/ui';
 import { UUID, abrirSeccion } from '@/lib/empresa';
 import { fechaCorta } from '@/lib/fechas';
 import { ESTADOS_UNIDAD, TIPOS_UNIDAD, tieneMotor, type EstadoUnidad, type TipoUnidad } from '@/lib/flota';
@@ -19,7 +20,7 @@ const ORIGEN: Record<string, string> = {
   alta: 'Alta de la unidad', manual: 'Carga manual', edicion: 'Edición', correccion: 'Corrección',
   chequeo: 'Chequeo de salida', viaje: 'Fin de viaje', taller: 'Taller',
 };
-const AVISOS: Record<string, string> = { creada: 'Unidad agregada.', guardada: 'Cambios guardados.' };
+const AVISOS: Record<string, string> = { creada: 'Unidad agregada', guardada: 'Cambios guardados' };
 
 export default async function Unidad({ params, searchParams }: { params: Promise<{ org: string; id: string }>; searchParams: Promise<{ ok?: string }> }) {
   const { org, id } = await params;
@@ -66,7 +67,7 @@ export default async function Unidad({ params, searchParams }: { params: Promise
         <Patente dominio={u.dominio} />
         <Pildora tipo={TONO[u.estado as EstadoUnidad]}>{ESTADOS_UNIDAD[u.estado as EstadoUnidad]}</Pildora>
       </div>
-      {ok && AVISOS[ok] && <Aviso tipo="ok">{AVISOS[ok]}</Aviso>}
+      <Toast mensaje={ok ? AVISOS[ok] : null} />
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <Tarjeta>

@@ -47,10 +47,15 @@ export async function crearGasto(org: string, _: EstadoGasto, form: FormData): P
   return { ok: 'Gasto guardado', clave: Date.now() };
 }
 
-export async function eliminarGasto(org: string, id: string) {
-  if (!(await exigir(org, 'gastos.editar')) || !UUID.test(id)) return;
+export async function eliminarGasto(org: string, id: string): Promise<{ error?: string }> {
+  if (!(await exigir(org, 'gastos.editar'))) return { error: 'Tu rol no permite borrar gastos.' };
+  if (!UUID.test(id)) return { error: 'No encontramos ese gasto.' };
   const supabase = await crearClienteServidor();
   const { error } = await supabase.from('gastos').delete().eq('id', id).eq('organizacion_id', org);
-  avisarError('eliminarGasto', error);
+  if (error) {
+    avisarError('eliminarGasto', error);
+    return { error: 'No pudimos eliminar el gasto. Probá de nuevo en unos segundos.' };
+  }
   revalidatePath(`/empresa/${org}`, 'layout');
+  return {};
 }

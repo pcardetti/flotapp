@@ -33,10 +33,15 @@ export async function guardarTipo(org: string, id: string | null, _: EstadoTipo,
   return { ok: id ? 'Guardado' : 'Tipo agregado', clave: Date.now() };
 }
 
-export async function eliminarTipo(org: string, id: string) {
-  if (!(await exigir(org, 'ajustes.editar')) || !UUID.test(id)) return;
+export async function eliminarTipo(org: string, id: string): Promise<{ error?: string }> {
+  if (!(await exigir(org, 'ajustes.editar'))) return { error: 'Sólo el administrador cambia los ajustes.' };
+  if (!UUID.test(id)) return { error: 'No encontramos ese tipo de documento.' };
   const supabase = await crearClienteServidor();
   const { error } = await supabase.from('tipos_documento').delete().eq('id', id).eq('organizacion_id', org);
-  avisarError('eliminarTipo', error);
+  if (error) {
+    avisarError('eliminarTipo', error);
+    return { error: 'No pudimos eliminar el tipo de documento. Probá de nuevo en unos segundos.' };
+  }
   revalidatePath(`/empresa/${org}`, 'layout');
+  return {};
 }

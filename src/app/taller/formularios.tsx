@@ -2,7 +2,7 @@
 
 import { Check, Wrench, Droplets } from 'lucide-react';
 import { useActionState, useState } from 'react';
-import { BotonEnviar, conMiles } from '@/components/controles';
+import { BotonEnviar, conMiles, useEnfocarError } from '@/components/controles';
 import { Fotos, type EstadoFotos } from '@/components/fotos';
 import { AccionFija } from '@/components/movil';
 import { nombreSistema } from '@/lib/taller';
@@ -13,9 +13,12 @@ export type FallaElegible = { id: string; sistema: string; descripcion: string |
 const campo = (error?: string) =>
   `w-full rounded-2xl border bg-surface px-4 outline-none focus:border-transparent focus:ring-2 focus:ring-accent ${error ? 'border-crit' : 'border-line'}`;
 
-function MensajeError({ texto }: { texto?: string }) {
-  return texto ? <span className="text-sm font-semibold text-crit">{texto}</span> : null;
+function MensajeError({ id, texto }: { id: string; texto?: string }) {
+  return texto ? <span id={id} className="text-sm font-semibold text-crit">{texto}</span> : null;
 }
+
+// Marca el campo con error y lo une a su mensaje (para el lector de pantalla y para useEnfocarError).
+const conError = (nombre: string, error?: string) => (error ? { 'aria-invalid': true, 'aria-describedby': `${nombre}-error` } : {});
 
 function ErrorGeneral({ estado }: { estado: EstadoForm }) {
   return estado.error ? <p role="alert" className="aparecer rounded-2xl bg-crit-soft px-4 py-3 text-sm font-semibold text-crit">{estado.error}</p> : null;
@@ -34,16 +37,16 @@ function Costos({ errores, kmUltimo }: { errores: Record<string, string>; kmUlti
             <label htmlFor={nombre} className="text-sm font-semibold text-ink-2">{etiqueta}</label>
             <div className="relative">
               <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 font-semibold text-ink-3">$</span>
-              <input id={nombre} name={nombre} inputMode="decimal" autoComplete="off" placeholder="0" value={valor} onChange={(e) => set(conMiles(e.target.value, true))} className={`h-14 pl-7 text-lg font-semibold ${campo(errores[nombre])}`} />
+              <input id={nombre} name={nombre} inputMode="decimal" autoComplete="off" placeholder="0" value={valor} onChange={(e) => set(conMiles(e.target.value, true))} {...conError(nombre, errores[nombre])} className={`h-14 pl-7 text-lg font-semibold ${campo(errores[nombre])}`} />
             </div>
-            <MensajeError texto={errores[nombre]} />
+            <MensajeError id={`${nombre}-error`} texto={errores[nombre]} />
           </div>
         ))}
       </div>
       <div className="flex flex-col gap-1.5">
         <label htmlFor="km" className="text-sm font-semibold text-ink-2">Kilometraje <span className="font-normal text-ink-3">(opcional)</span></label>
-        <input id="km" name="km" inputMode="numeric" autoComplete="off" value={km} onChange={(e) => setKm(conMiles(e.target.value))} className={`h-14 text-lg font-semibold ${campo(errores.km)}`} />
-        {errores.km ? <MensajeError texto={errores.km} /> : kmUltimo != null && <span className="text-xs text-ink-3">Último registrado: {kmUltimo.toLocaleString('es-AR')} km</span>}
+        <input id="km" name="km" inputMode="numeric" autoComplete="off" value={km} onChange={(e) => setKm(conMiles(e.target.value))} {...conError('km', errores.km)} className={`h-14 text-lg font-semibold ${campo(errores.km)}`} />
+        {errores.km ? <MensajeError id="km-error" texto={errores.km} /> : kmUltimo != null && <span className="text-xs text-ink-3">Último registrado: {kmUltimo.toLocaleString('es-AR')} km</span>}
       </div>
     </div>
   );
@@ -87,9 +90,10 @@ export function FormTrabajo({ unidad, org, fallas, preelegida, kmUltimo }: { uni
   const [elegidas, setElegidas] = useState<string[]>(preelegida ? [preelegida] : []);
   const [fotos, setFotos] = useState<EstadoFotos>({ rutas: [], subiendo: false });
   const e = estado.errores ?? {};
+  const formulario = useEnfocarError(estado.errores);
 
   return (
-    <form action={enviar} className="flex flex-col gap-5 px-4 pb-40 pt-4">
+    <form ref={formulario} action={enviar} className="flex flex-col gap-5 px-4 pb-40 pt-4">
       <input type="hidden" name="tipo" value={tipo} />
       <div className="grid grid-cols-2 gap-1 rounded-2xl bg-surface-2 p-1" role="radiogroup" aria-label="Tipo de trabajo">
         {([['correctivo', 'Reparación', Wrench], ['preventivo', 'Mantenimiento', Droplets]] as const).map(([valor, texto, Icono]) => (
@@ -104,8 +108,8 @@ export function FormTrabajo({ unidad, org, fallas, preelegida, kmUltimo }: { uni
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor="descripcion" className="text-sm font-semibold text-ink-2">Trabajo</label>
-        <input id="descripcion" name="descripcion" value={descripcion} onChange={(x) => setDescripcion(x.target.value)} placeholder={tipo === 'preventivo' ? 'Cambio de aceite y filtros' : 'Cambio de pulmón de freno'} className={`h-14 ${campo(e.descripcion)}`} />
-        <MensajeError texto={e.descripcion} />
+        <input id="descripcion" name="descripcion" value={descripcion} onChange={(x) => setDescripcion(x.target.value)} placeholder={tipo === 'preventivo' ? 'Cambio de aceite y filtros' : 'Cambio de pulmón de freno'} {...conError('descripcion', e.descripcion)} className={`h-14 ${campo(e.descripcion)}`} />
+        <MensajeError id="descripcion-error" texto={e.descripcion} />
         {tipo === 'preventivo' && (
           <div className="flex flex-wrap gap-1.5 pt-1">
             {RAPIDOS.preventivo.map((r) => (
@@ -142,13 +146,14 @@ export function FormAbrirOrden({ unidad, fallas }: { unidad: string; fallas: Fal
   const [descripcion, setDescripcion] = useState('');
   const [elegidas, setElegidas] = useState<string[]>(fallas.map((f) => f.id));
   const [parada, setParada] = useState(true);
+  const formulario = useEnfocarError(estado.errores);
   return (
-    <form action={enviar} className="flex flex-col gap-5 px-4 pb-40 pt-4">
+    <form ref={formulario} action={enviar} className="flex flex-col gap-5 px-4 pb-40 pt-4">
       <input type="hidden" name="parada" value={parada ? 'si' : 'no'} />
       <div className="flex flex-col gap-1.5">
         <label htmlFor="descripcion" className="text-sm font-semibold text-ink-2">¿Qué hay que hacer?</label>
-        <input id="descripcion" name="descripcion" value={descripcion} onChange={(x) => setDescripcion(x.target.value)} placeholder="Cambio de embrague" className={`h-14 ${campo(estado.errores?.descripcion)}`} />
-        <MensajeError texto={estado.errores?.descripcion} />
+        <input id="descripcion" name="descripcion" value={descripcion} onChange={(x) => setDescripcion(x.target.value)} placeholder="Cambio de embrague" {...conError('descripcion', estado.errores?.descripcion)} className={`h-14 ${campo(estado.errores?.descripcion)}`} />
+        <MensajeError id="descripcion-error" texto={estado.errores?.descripcion} />
       </div>
       <ElegirFallas fallas={fallas} elegidas={elegidas} alCambiar={setElegidas} />
       <button type="button" role="switch" aria-checked={parada} onClick={() => setParada(!parada)} className="tap flex items-center gap-3 rounded-2xl border border-line bg-surface p-4 text-left">
@@ -170,12 +175,13 @@ export function FormCerrarOrden({ orden, unidad, org, kmUltimo }: { orden: strin
   const [trabajo, setTrabajo] = useState('');
   const [fotos, setFotos] = useState<EstadoFotos>({ rutas: [], subiendo: false });
   const e = estado.errores ?? {};
+  const formulario = useEnfocarError(estado.errores);
   return (
-    <form action={enviar} className="flex flex-col gap-5 px-4 pb-40 pt-4">
+    <form ref={formulario} action={enviar} className="flex flex-col gap-5 px-4 pb-40 pt-4">
       <div className="flex flex-col gap-1.5">
         <label htmlFor="trabajo" className="text-sm font-semibold text-ink-2">¿Qué se hizo?</label>
-        <textarea id="trabajo" name="trabajo" rows={3} value={trabajo} onChange={(x) => setTrabajo(x.target.value)} placeholder="Embrague nuevo, se reguló el pedal…" className={`py-3 ${campo(e.trabajo)}`} />
-        <MensajeError texto={e.trabajo} />
+        <textarea id="trabajo" name="trabajo" rows={3} value={trabajo} onChange={(x) => setTrabajo(x.target.value)} placeholder="Embrague nuevo, se reguló el pedal…" {...conError('trabajo', e.trabajo)} className={`py-3 ${campo(e.trabajo)}`} />
+        <MensajeError id="trabajo-error" texto={e.trabajo} />
       </div>
       <div className="flex flex-col gap-2">
         <span className="text-sm font-semibold text-ink-2">Fotos del trabajo</span>

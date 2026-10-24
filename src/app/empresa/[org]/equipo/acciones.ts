@@ -42,29 +42,45 @@ export async function crearInvitacion(org: string, _: EstadoInvitacion, form: Fo
   return { enlace: `${await urlBase()}/invitacion/${data.token}`, nombre, rol, clave: Date.now() };
 }
 
-export async function revocarInvitacion(org: string, id: string) {
-  if (!(await exigir(org, 'equipo.administrar')) || !UUID.test(id)) return;
+type Resultado = { error?: string };
+
+// Las reglas de la base (por ejemplo, "al menos un administrador") ya escriben su error para la persona (P0001).
+function fallo(donde: string, error: { code?: string; message: string }, generico: string): Resultado {
+  avisarError(donde, error);
+  return { error: error.code === 'P0001' ? error.message : generico };
+}
+
+export async function revocarInvitacion(org: string, id: string): Promise<Resultado> {
+  if (!(await exigir(org, 'equipo.administrar'))) return { error: 'Sólo el administrador gestiona el equipo.' };
+  if (!UUID.test(id)) return { error: 'No encontramos esa invitación.' };
   const supabase = await crearClienteServidor();
   const { error } = await supabase.from('invitaciones').update({ revocada: true }).eq('id', id).eq('organizacion_id', org);
-  avisarError('revocarInvitacion', error);
+  if (error) return fallo('revocarInvitacion', error, 'No pudimos cancelar la invitación. Probá de nuevo en unos segundos.');
   revalidatePath(`/empresa/${org}/equipo`);
+  return {};
 }
 
-export async function cambiarRol(org: string, usuario: string, form: FormData) {
+export async function cambiarRol(org: string, usuario: string, form: FormData): Promise<Resultado> {
   const empresa = await exigir(org, 'equipo.administrar');
   const rol = String(form.get('rol') ?? '') as Rol;
-  if (!empresa || usuario === empresa.usuario.id || !UUID.test(usuario) || !ROLES_DE[empresa.organizacion.tipo].includes(rol)) return;
+  if (!empresa) return { error: 'Sólo el administrador cambia los roles.' };
+  if (usuario === empresa.usuario.id) return { error: 'No podés cambiar tu propio rol.' };
+  if (!UUID.test(usuario) || !ROLES_DE[empresa.organizacion.tipo].includes(rol)) return { error: 'Elegí uno de los roles de la lista.' };
   const supabase = await crearClienteServidor();
   const { error } = await supabase.from('miembros').update({ rol }).eq('organizacion_id', org).eq('user_id', usuario);
-  avisarError('cambiarRol', error);
+  if (error) return fallo('cambiarRol', error, 'No pudimos cambiar el rol. Probá de nuevo en unos segundos.');
   revalidatePath(`/empresa/${org}/equipo`);
+  return {};
 }
 
-export async function quitarMiembro(org: string, usuario: string) {
+export async function quitarMiembro(org: string, usuario: string): Promise<Resultado> {
   const empresa = await exigir(org, 'equipo.administrar');
-  if (!empresa || usuario === empresa.usuario.id || !UUID.test(usuario)) return;
+  if (!empresa) return { error: 'Sólo el administrador gestiona el equipo.' };
+  if (usuario === empresa.usuario.id) return { error: 'No podés quitarte a vos.' };
+  if (!UUID.test(usuario)) return { error: 'No encontramos a esa persona.' };
   const supabase = await crearClienteServidor();
   const { error } = await supabase.from('miembros').delete().eq('organizacion_id', org).eq('user_id', usuario);
-  avisarError('quitarMiembro', error);
+  if (error) return fallo('quitarMiembro', error, 'No pudimos quitar a esa persona. Probá de nuevo en unos segundos.');
   revalidatePath(`/empresa/${org}/equipo`);
+  return {};
 }

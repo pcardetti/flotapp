@@ -6,7 +6,7 @@ import { Atras } from './pantalla';
 export function AppMovil({ app, children, barra }: { app: 'chofer' | 'taller'; children: React.ReactNode; barra: React.ReactNode }) {
   return (
     <div data-app={app} className="min-h-dvh bg-bg">
-      <div className="mx-auto w-full max-w-lg pb-[calc(env(safe-area-inset-bottom)+var(--alto-barra)+32px)]">{children}</div>
+      <main id="contenido" className="mx-auto w-full max-w-lg pb-[calc(env(safe-area-inset-bottom)+var(--alto-barra)+32px)]">{children}</main>
       {barra}
     </div>
   );

@@ -1,6 +1,6 @@
 import { UserMinus } from 'lucide-react';
 import type { Metadata } from 'next';
-import { FormConfirmado } from '@/components/confirmar';
+import { FormConAviso, FormConfirmado } from '@/components/confirmar';
 import { Encabezado } from '@/components/encabezado';
 import { Pantalla } from '@/components/pantalla';
 import { Pildora, Tarjeta } from '@/components/ui';
@@ -55,7 +55,14 @@ export default async function Equipo({ params }: { params: Promise<{ org: string
                     <b>{i.nombre ?? 'Sin nombre'}</b>
                     <Pildora tipo="info">{NOMBRE_ROL[i.rol as Rol]}</Pildora>
                     <span className="text-sm text-ink-3">vence el {fechaCorta(i.vence)}</span>
-                    <FormConfirmado accion={revocarInvitacion.bind(null, org, i.id)} pregunta={`¿Cancelar la invitación de ${i.nombre ?? 'esta persona'}? El enlace deja de funcionar.`} className="ml-auto">
+                    <FormConfirmado
+                      accion={revocarInvitacion.bind(null, org, i.id)}
+                      pregunta={`¿Cancelar la invitación de ${i.nombre ?? 'esta persona'}?`}
+                      detalle="El enlace deja de funcionar. Si hace falta, después podés mandar uno nuevo."
+                      confirmar="Sí, cancelar"
+                      hecho="Invitación cancelada"
+                      className="ml-auto"
+                    >
                       <button className="text-sm font-semibold text-ink-3 hover:text-crit">Cancelar invitación</button>
                     </FormConfirmado>
                   </div>
@@ -88,13 +95,20 @@ export default async function Equipo({ params }: { params: Promise<{ org: string
                   <Pildora tipo="info">{NOMBRE_ROL[m.rol as Rol]}</Pildora>
                 ) : (
                   <span className="flex items-center gap-2">
-                    <form action={cambiarRol.bind(null, org, m.user_id)} className="flex items-center gap-2">
+                    {/* La clave con el rol vuelve a armar el selector cuando el rol cambia en la base. */}
+                    <FormConAviso key={m.rol} accion={cambiarRol.bind(null, org, m.user_id)} hecho={`Listo: cambió el rol de ${nombre}`} className="flex items-center gap-2">
                       <select name="rol" defaultValue={m.rol} aria-label={`Rol de ${nombre}`} className="rounded-lg border border-line bg-surface px-2.5 py-1.5 text-sm">
                         {roles.map((r) => <option key={r} value={r}>{NOMBRE_ROL[r]}</option>)}
                       </select>
                       <button className="rounded-lg border border-line px-2.5 py-1.5 text-sm font-semibold hover:border-ink-3">Guardar</button>
-                    </form>
-                    <FormConfirmado accion={quitarMiembro.bind(null, org, m.user_id)} pregunta={`¿Quitar a ${nombre} de ${organizacion.nombre}? Pierde el acceso enseguida.`}>
+                    </FormConAviso>
+                    <FormConfirmado
+                      accion={quitarMiembro.bind(null, org, m.user_id)}
+                      pregunta={`¿Quitar a ${nombre} de ${organizacion.nombre}?`}
+                      detalle="Pierde el acceso enseguida. Lo que cargó queda guardado."
+                      confirmar="Sí, quitar"
+                      hecho={`${nombre} ya no tiene acceso`}
+                    >
                       <button aria-label={`Quitar a ${nombre}`} className="tap grid size-9 place-items-center rounded-lg text-ink-3 hover:bg-crit-soft hover:text-crit"><UserMinus className="size-4" /></button>
                     </FormConfirmado>
                   </span>

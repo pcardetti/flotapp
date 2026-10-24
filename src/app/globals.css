@@ -190,11 +190,37 @@ h1, h2, h3 { text-wrap: balance; }
 ::view-transition-new(encabezado),
 ::view-transition-new(barra-inferior) { animation: none; }
 
+/* Cuadro de confirmación (<dialog>, ver components/confirmar): centrado en la PC, hoja desde abajo en el celular.
+   Mientras está abierto, la página de atrás no se desplaza. */
+.dialogo {
+  margin: auto;
+  width: min(26rem, calc(100vw - 2rem));
+  max-width: none;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--sombra);
+}
+.dialogo::backdrop { background: rgb(0 0 0 / 0.45); }
+.dialogo[open] { animation: aparecer 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@media (max-width: 639px) {
+  .dialogo {
+    margin: auto 0 0;
+    width: 100%;
+    border-width: 1px 0 0;
+    border-radius: 1.25rem 1.25rem 0 0;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+html:has(.dialogo[open]) { overflow: hidden; }
+
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-old(*),
   ::view-transition-new(*),
   ::view-transition-group(*) { animation-duration: 0s !important; animation-delay: 0s !important; }
-  .aparecer, .esqueleto { animation: none; }
+  .aparecer, .esqueleto, .dialogo[open] { animation: none; }
   .senalar { animation: none; box-shadow: 0 0 0 3px var(--accent); }
   .tap:active { transform: none; }
 }

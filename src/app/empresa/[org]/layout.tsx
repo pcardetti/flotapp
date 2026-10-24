@@ -36,6 +36,8 @@ export default async function LayoutEmpresa({ children, params }: { children: Re
 
   return (
     <div className="mx-auto grid w-full max-w-[1400px] gap-6 px-4 pb-14 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-8 lg:px-6">
+      {/* Con teclado o lector de pantalla, el primer Tab ofrece saltear el menú. */}
+      <a href="#contenido" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[70] focus:rounded-lg focus:bg-surface focus:px-4 focus:py-2 focus:font-semibold focus:shadow-tarjeta">Saltar al contenido</a>
       <aside className="sticky top-0 z-10 -mx-4 flex min-w-0 flex-col gap-3 border-b border-line bg-bg/95 px-4 pt-[calc(env(safe-area-inset-top)+12px)] backdrop-blur lg:top-5 lg:mx-0 lg:self-start lg:border-0 lg:bg-transparent lg:px-0 lg:pt-5" style={{ viewTransitionName: 'encabezado' }}>
         <div className="flex items-center justify-between gap-3 lg:flex-col lg:items-start">
           <Link href={`/empresa/${org}/panel`} aria-label="Ir al tablero"><Marca chica /></Link>
@@ -58,7 +60,7 @@ export default async function LayoutEmpresa({ children, params }: { children: Re
           <form action={salir}><button className="font-semibold text-ink-2 hover:underline">Salir</button></form>
         </div>
       </aside>
-      <main className="flex min-w-0 flex-col gap-6 lg:pt-5">{children}</main>
+      <main id="contenido" tabIndex={-1} className="flex min-w-0 flex-col gap-6 outline-none lg:pt-5">{children}</main>
       <footer className="flex flex-wrap items-center gap-4 border-t border-line pt-4 text-sm lg:hidden">
         <span className="text-ink-3">{usuario.email}</span>
         {appChofer && <Link href="/chofer" className="font-semibold text-accent">App Chofer</Link>}

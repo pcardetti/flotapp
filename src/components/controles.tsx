@@ -1,8 +1,9 @@
 'use client';
 
-import { Check, Loader2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Loader2 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { useFormStatus } from 'react-dom';
+import { avisar } from './avisos';
 
 // Controles grandes para usar con una mano en el celular.
 
@@ -63,12 +64,13 @@ export function CampoKm({ nombre = 'km', ultimo, etiqueta = 'Kilometraje del tab
           value={valor}
           onChange={alCambiar ? (e) => alCambiar(conMiles(e.target.value)) : undefined}
           aria-invalid={error ? true : undefined}
+          aria-describedby={error ? `${nombre}-error` : undefined}
           className={`h-16 w-full rounded-2xl border bg-surface px-4 pr-14 font-display text-3xl font-bold tracking-wide outline-none focus:border-transparent focus:ring-2 focus:ring-accent ${error ? 'border-crit' : 'border-line'}`}
         />
         <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 font-semibold text-ink-3">km</span>
       </div>
       {error ? (
-        <span className="text-sm font-semibold text-crit">{error}</span>
+        <span id={`${nombre}-error`} className="text-sm font-semibold text-crit">{error}</span>
       ) : (
         ultimo != null && <span className="text-xs text-ink-3">Último registrado: {ultimo.toLocaleString('es-AR')} km</span>
       )}
@@ -101,13 +103,25 @@ export function BotonEnviar({ children, pendiente, deshabilitado, variante = 'pr
   );
 }
 
-// Aviso flotante que aparece y se va solo (por ejemplo, "Viaje iniciado").
+// Después de un envío con errores, lleva la vista y el foco al primer campo marcado (aria-invalid): en el celular
+// puede haber quedado fuera de la pantalla o tapado por el botón fijo. El lector de pantalla lee el campo y su error.
+export function useEnfocarError(errores?: Record<string, string | undefined>) {
+  const formulario = useRef<HTMLFormElement>(null);
+  useEffect(() => {
+    if (!errores || !Object.values(errores).some(Boolean)) return;
+    const campo = formulario.current?.querySelector<HTMLElement>('[aria-invalid="true"]');
+    if (!campo) return;
+    campo.focus({ preventScroll: true });
+    campo.scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  }, [errores]);
+  return formulario;
+}
+
+// Aviso de lo que se acaba de guardar en otra pantalla (por ejemplo, "Viaje iniciado"), que llega en ?ok=.
 export function Toast({ mensaje }: { mensaje?: string | null }) {
-  const [visible, setVisible] = useState(Boolean(mensaje));
   useEffect(() => {
     if (!mensaje) return;
-    setVisible(true);
-    navigator.vibrate?.(20);
+    avisar(mensaje);
     // Se llega acá después de guardar algo: la pantalla arranca desde arriba, no donde quedó el formulario.
     window.scrollTo({ top: 0 });
     // Se limpia el parámetro de la dirección para que no reaparezca al recargar.
@@ -116,15 +130,6 @@ export function Toast({ mensaje }: { mensaje?: string | null }) {
       url.searchParams.delete('ok');
       window.history.replaceState(window.history.state, '', url);
     }
-    const t = setTimeout(() => setVisible(false), 3200);
-    return () => clearTimeout(t);
   }, [mensaje]);
-  if (!mensaje || !visible) return null;
-  return (
-    <div role="status" className="aparecer fixed inset-x-0 top-[calc(env(safe-area-inset-top)+12px)] z-50 flex justify-center px-4">
-      <div className="flex items-center gap-2 rounded-full bg-ink px-4 py-2.5 text-sm font-semibold text-bg shadow-tarjeta">
-        <Check className="size-4" />{mensaje}
-      </div>
-    </div>
-  );
+  return null;
 }

@@ -2,6 +2,7 @@
 
 import { Check, Trash2 } from 'lucide-react';
 import { useActionState } from 'react';
+import { BotonConfirmado } from '@/components/confirmar';
 import { guardarTipo, eliminarTipo, type EstadoTipo } from './acciones';
 
 export type Tipo = { id: string; nombre: string; aplica: string; vigencia_meses: number; aviso_dias: number; documentos: number };
@@ -38,16 +39,17 @@ export function FilaTipo({ org, tipo }: { org: string; tipo: Tipo | null }) {
         </button>
         {estado.ok && <Check className="aparecer size-5 text-ok" aria-label={estado.ok} />}
         {tipo && (
-          <button
-            type="button"
-            onClick={() => {
-              // Borrar un tipo borra sus documentos: se pide confirmación si hay alguno cargado.
-              if (tipo.documentos && !window.confirm(`Se borran también ${tipo.documentos} documentos cargados de "${tipo.nombre}". ¿Seguir?`)) return;
-              eliminarTipo(org, tipo.id);
-            }}
-            aria-label={`Eliminar ${tipo.nombre}`} className="tap grid size-10 place-items-center rounded-lg text-ink-3 hover:bg-crit-soft hover:text-crit">
+          // Borrar un tipo borra también sus documentos: la confirmación dice cuántos.
+          <BotonConfirmado
+            accion={eliminarTipo.bind(null, org, tipo.id)}
+            pregunta={`¿Eliminar "${tipo.nombre}"?`}
+            detalle={tipo.documentos ? `Se borran también ${tipo.documentos === 1 ? 'el documento cargado' : `los ${tipo.documentos} documentos cargados`} de este tipo. No se puede deshacer.` : 'No tiene documentos cargados.'}
+            hecho="Tipo de documento eliminado"
+            etiqueta={`Eliminar ${tipo.nombre}`}
+            className="tap grid size-10 place-items-center rounded-lg text-ink-3 hover:bg-crit-soft hover:text-crit"
+          >
             <Trash2 className="size-4" />
-          </button>
+          </BotonConfirmado>
         )}
       </div>
       {estado.error && <p className="col-span-full text-sm font-semibold text-crit">{estado.error}</p>}

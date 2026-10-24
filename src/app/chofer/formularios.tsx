@@ -2,7 +2,7 @@
 
 import { Banknote, CircleHelp, Fuel, Receipt, Ticket } from 'lucide-react';
 import { useActionState, useState } from 'react';
-import { BotonEnviar, CampoKm, conMiles, NivelCombustible } from '@/components/controles';
+import { BotonEnviar, CampoKm, conMiles, NivelCombustible, useEnfocarError } from '@/components/controles';
 import { Fotos, type EstadoFotos } from '@/components/fotos';
 import { AccionFija } from '@/components/movil';
 import { cargarGasto, reportarFalla, terminarViaje, type EstadoForm } from './acciones';
@@ -19,8 +19,9 @@ export function FormTerminar({ viaje, kmInicio }: { viaje: string; kmInicio: num
   const [estado, enviar] = useActionState(terminarViaje.bind(null, viaje), {});
   const [km, setKm] = useState('');
   const [nota, setNota] = useState('');
+  const formulario = useEnfocarError(estado.errores);
   return (
-    <form action={enviar} className="flex flex-col gap-5 px-4 pb-40 pt-4">
+    <form ref={formulario} action={enviar} className="flex flex-col gap-5 px-4 pb-40 pt-4">
       <CampoKm etiqueta="Kilometraje de llegada" ultimo={kmInicio} valor={km} alCambiar={setKm} error={estado.errores?.km} />
       <NivelCombustible nombre="combustible" />
       <div className="flex flex-col gap-1.5">
@@ -53,8 +54,9 @@ export function FormGasto({ org, categoriaInicial }: { org: string; categoriaIni
   // Precio por litro mientras se escribe: un número raro avisa que hay un error de tipeo.
   const numero = (t: string) => Number(t.replace(/\./g, '').replace(',', '.'));
   const porLitro = numero(monto) > 0 && numero(litros) > 0 ? `$ ${Math.round(numero(monto) / numero(litros)).toLocaleString('es-AR')} por litro` : null;
+  const formulario = useEnfocarError(estado.errores);
   return (
-    <form action={enviar} className="flex flex-col gap-5 px-4 pb-40 pt-4">
+    <form ref={formulario} action={enviar} className="flex flex-col gap-5 px-4 pb-40 pt-4">
       <fieldset>
         <legend className="mb-2 text-sm font-semibold text-ink-2">¿Qué pagaste?</legend>
         <div className="grid grid-cols-4 gap-2">
@@ -71,16 +73,16 @@ export function FormGasto({ org, categoriaInicial }: { org: string; categoriaIni
         <div className="relative">
           <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 font-display text-3xl font-bold text-ink-3">$</span>
           <input id="monto" name="monto" inputMode="decimal" autoComplete="off" placeholder="0" value={monto} onChange={(x) => setMonto(conMiles(x.target.value, true))} aria-invalid={e.monto ? true : undefined}
-            className={`h-16 w-full pl-11 font-display text-3xl font-bold ${campo(e.monto)}`} />
+            aria-describedby={e.monto ? 'monto-error' : undefined} className={`h-16 w-full pl-11 font-display text-3xl font-bold ${campo(e.monto)}`} />
         </div>
-        {e.monto && <span className="text-sm font-semibold text-crit">{e.monto}</span>}
+        {e.monto && <span id="monto-error" className="text-sm font-semibold text-crit">{e.monto}</span>}
       </div>
       {categoria === 'combustible' && (
         <div className="aparecer flex flex-col gap-1.5">
           <label htmlFor="litros" className="text-sm font-semibold text-ink-2">Litros <span className="font-normal text-ink-3">(para calcular el consumo)</span></label>
           <input id="litros" name="litros" inputMode="decimal" autoComplete="off" placeholder="0" value={litros} onChange={(x) => setLitros(conMiles(x.target.value, true))} aria-invalid={e.litros ? true : undefined}
-            className={`h-14 text-xl font-semibold ${campo(e.litros)}`} />
-          {e.litros ? <span className="text-sm font-semibold text-crit">{e.litros}</span> : porLitro && <span className="text-sm text-ink-3">{porLitro}</span>}
+            aria-describedby={e.litros ? 'litros-error' : undefined} className={`h-14 text-xl font-semibold ${campo(e.litros)}`} />
+          {e.litros ? <span id="litros-error" className="text-sm font-semibold text-crit">{e.litros}</span> : porLitro && <span className="text-sm text-ink-3">{porLitro}</span>}
         </div>
       )}
       {categoria === 'otro' && (
@@ -108,26 +110,28 @@ export function FormFalla({ org, unidad, sistemas }: { org: string; unidad: stri
   const [grave, setGrave] = useState<'si' | 'no'>('no');
   const [fotos, setFotos] = useState<EstadoFotos>({ rutas: [], subiendo: false });
   const e = estado.errores ?? {};
+  const formulario = useEnfocarError(estado.errores);
   return (
-    <form action={enviar} className="flex flex-col gap-5 px-4 pb-40 pt-4">
+    <form ref={formulario} action={enviar} className="flex flex-col gap-5 px-4 pb-40 pt-4">
       <input type="hidden" name="unidad" value={unidad} />
       <fieldset>
         <legend className="mb-2 text-sm font-semibold text-ink-2">¿Qué parte falla?</legend>
         <div className="flex flex-wrap gap-2">
           {sistemas.map((s) => (
-            <label key={s.clave} className={`tap cursor-pointer rounded-full border px-4 py-2.5 text-sm font-semibold ${sistema === s.clave ? 'border-accent bg-accent text-accent-ink' : 'border-line bg-surface text-ink-2'}`}>
-              <input type="radio" name="sistema" value={s.clave} checked={sistema === s.clave} onChange={() => setSistema(s.clave)} className="sr-only" />
+            <label key={s.clave} className={`tap cursor-pointer rounded-full border px-4 py-2.5 text-sm font-semibold has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent ${sistema === s.clave ? 'border-accent bg-accent text-accent-ink' : 'border-line bg-surface text-ink-2'}`}>
+              <input type="radio" name="sistema" value={s.clave} checked={sistema === s.clave} onChange={() => setSistema(s.clave)} className="sr-only"
+                aria-invalid={e.sistema ? true : undefined} aria-describedby={e.sistema ? 'sistema-error' : undefined} />
               {s.nombre}
             </label>
           ))}
         </div>
-        {e.sistema && <span className="mt-2 block text-sm font-semibold text-crit">{e.sistema}</span>}
+        {e.sistema && <span id="sistema-error" className="mt-2 block text-sm font-semibold text-crit">{e.sistema}</span>}
       </fieldset>
       <div className="flex flex-col gap-1.5">
         <label htmlFor="descripcion" className="text-sm font-semibold text-ink-2">¿Qué pasa?</label>
         <textarea id="descripcion" name="descripcion" rows={3} value={descripcion} onChange={(x) => setDescripcion(x.target.value)} placeholder="Ej.: ruido al frenar, se prende la luz de motor…" aria-invalid={e.descripcion ? true : undefined}
-          className={`py-3 ${campo(e.descripcion)}`} />
-        {e.descripcion && <span className="text-sm font-semibold text-crit">{e.descripcion}</span>}
+          aria-describedby={e.descripcion ? 'descripcion-error' : undefined} className={`py-3 ${campo(e.descripcion)}`} />
+        {e.descripcion && <span id="descripcion-error" className="text-sm font-semibold text-crit">{e.descripcion}</span>}
       </div>
       <div className="flex flex-col gap-2">
         <span className="text-sm font-semibold text-ink-2">Fotos</span>

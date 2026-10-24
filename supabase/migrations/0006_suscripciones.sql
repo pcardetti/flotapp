@@ -213,30 +213,41 @@ begin
   where proveedor = p_proveedor and evento = p_evento;
 end $$;
 
--- Alta, cambio de plan o baja según la pasarela.
+-- Alta, cambio de plan o baja según la pasarela. Sólo una suscripción que se activa reemplaza a la vigente: el aviso
+-- de baja de otra (una reemplazada, o un pago abandonado) no cambia nada. Mientras la vigente sigue autorizada, un
+-- cobro rechazado queda pendiente hasta que se apruebe otro. Devuelve la suscripción reemplazada, para darla de baja.
 create function public.pagos_actualizar_suscripcion(
   p_secreto text, p_org uuid, p_plan text, p_periodo text, p_estado public.estado_suscripcion, p_precio numeric,
   p_proveedor text, p_proveedor_suscripcion text, p_periodo_hasta timestamptz, p_cancelar_al_terminar boolean, p_pagador text
-) returns void language plpgsql security definer set search_path = public as $$
+) returns text language plpgsql security definer set search_path = public as $$
+declare v suscripciones; v_estado public.estado_suscripcion := p_estado;
 begin
   perform public.pagos_autorizar(p_secreto);
   if not exists (select 1 from organizaciones where id = p_org and tipo = 'flota') then
     raise exception 'No encontramos la flota';
   end if;
+  select * into v from suscripciones where organizacion_id = p_org for update;
+  if v.organizacion_id is not null and v.proveedor_suscripcion is distinct from p_proveedor_suscripcion then
+    if p_estado <> 'activa' then return null; end if;
+  elsif v.estado = 'pago_pendiente' and p_estado = 'activa' then
+    v_estado := 'pago_pendiente';
+  end if;
   insert into suscripciones as s (organizacion_id, plan, estado, periodo, precio, proveedor, proveedor_suscripcion, periodo_hasta, cancelar_al_terminar, pagador)
-  values (p_org, p_plan, p_estado, p_periodo, p_precio, p_proveedor, p_proveedor_suscripcion, p_periodo_hasta, coalesce(p_cancelar_al_terminar, false), p_pagador)
+  values (p_org, p_plan, v_estado, p_periodo, p_precio, p_proveedor, p_proveedor_suscripcion, p_periodo_hasta, coalesce(p_cancelar_al_terminar, false), p_pagador)
   on conflict (organizacion_id) do update set
     plan = excluded.plan, estado = excluded.estado, periodo = excluded.periodo, precio = excluded.precio,
     proveedor = excluded.proveedor, proveedor_suscripcion = excluded.proveedor_suscripcion,
     periodo_hasta = coalesce(excluded.periodo_hasta, s.periodo_hasta),
     gracia_hasta = case when excluded.estado = 'pago_pendiente' then s.gracia_hasta end,
     cancelar_al_terminar = excluded.cancelar_al_terminar, pagador = coalesce(excluded.pagador, s.pagador), actualizada_en = now();
+  return case when v.proveedor_suscripcion is distinct from p_proveedor_suscripcion then v.proveedor_suscripcion end;
 end $$;
 
--- Un cobro: si se aprueba, extiende el período pago; si se rechaza, abre 7 días de gracia.
+-- Un cobro: si se aprueba, extiende el período pago; si se rechaza, abre 7 días de gracia. Se anota siempre, pero sólo
+-- los cobros de la suscripción vigente cambian el estado de la cuenta.
 create function public.pagos_registrar_cobro(
-  p_secreto text, p_org uuid, p_proveedor text, p_proveedor_pago text, p_estado text, p_monto numeric,
-  p_fecha timestamptz, p_cubre_hasta timestamptz, p_detalle text
+  p_secreto text, p_org uuid, p_proveedor text, p_proveedor_pago text, p_proveedor_suscripcion text, p_estado text,
+  p_monto numeric, p_fecha timestamptz, p_cubre_hasta timestamptz, p_detalle text
 ) returns void language plpgsql security definer set search_path = public as $$
 begin
   perform public.pagos_autorizar(p_secreto);
@@ -248,10 +259,10 @@ begin
       estado = case when estado = 'cancelada' then estado else 'activa' end,
       periodo_hasta = greatest(coalesce(periodo_hasta, p_cubre_hasta), p_cubre_hasta),
       gracia_hasta = null, actualizada_en = now()
-    where organizacion_id = p_org;
+    where organizacion_id = p_org and proveedor_suscripcion is not distinct from p_proveedor_suscripcion;
   elsif p_estado = 'rechazado' then
     update suscripciones set estado = 'pago_pendiente', gracia_hasta = coalesce(gracia_hasta, now() + interval '7 days'), actualizada_en = now()
-    where organizacion_id = p_org and estado in ('activa', 'pago_pendiente');
+    where organizacion_id = p_org and estado in ('activa', 'pago_pendiente') and proveedor_suscripcion is not distinct from p_proveedor_suscripcion;
   end if;
 end $$;
 
@@ -272,8 +283,8 @@ grant execute on function public.mi_suscripcion(uuid) to authenticated;
 revoke execute on function public.pagos_recibir_evento(text, text, text, text, text) from public;
 revoke execute on function public.pagos_cerrar_evento(text, text, text, text) from public;
 revoke execute on function public.pagos_actualizar_suscripcion(text, uuid, text, text, public.estado_suscripcion, numeric, text, text, timestamptz, boolean, text) from public;
-revoke execute on function public.pagos_registrar_cobro(text, uuid, text, text, text, numeric, timestamptz, timestamptz, text) from public;
+revoke execute on function public.pagos_registrar_cobro(text, uuid, text, text, text, text, numeric, timestamptz, timestamptz, text) from public;
 grant execute on function public.pagos_recibir_evento(text, text, text, text, text) to anon, authenticated;
 grant execute on function public.pagos_cerrar_evento(text, text, text, text) to anon, authenticated;
 grant execute on function public.pagos_actualizar_suscripcion(text, uuid, text, text, public.estado_suscripcion, numeric, text, text, timestamptz, boolean, text) to anon, authenticated;
-grant execute on function public.pagos_registrar_cobro(text, uuid, text, text, text, numeric, timestamptz, timestamptz, text) to anon, authenticated;
+grant execute on function public.pagos_registrar_cobro(text, uuid, text, text, text, text, numeric, timestamptz, timestamptz, text) to anon, authenticated;

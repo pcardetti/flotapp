@@ -50,7 +50,9 @@ no deja ve qué no puede hacer, qué roles sí pueden y a quién pedírselo.
 - **Modo consulta:** si termina la prueba sin pagar, o un cobro rechazado pasa sus 7 días de gracia, se ve todo pero
   no se cargan datos. No se borra nada.
 - **Suscripción** (menú del administrador): plan, uso, cambio de plan, pagos y baja. El cobro es con Mercado Pago
-  Suscripciones; en el modo demo un simulador aprueba los pagos.
+  Suscripciones, con el email de la cuenta de Mercado Pago de quien paga (si no coincide, Mercado Pago rechaza el
+  pago). Al volver de pagar, la app consulta la suscripción y activa el plan sin esperar el aviso; los cobros de cada
+  mes llegan por los avisos. En el modo demo un simulador aprueba los pagos.
 - **Pedidos de contacto** (flotas de más de 40 unidades o quien quiere ayuda): en Table Editor → `solicitudes`.
 
 Las flotas que ya existían antes de la migración 0006 quedaron activas, sin tope ni vencimiento. Para cambiarlas,
@@ -93,9 +95,12 @@ como QR. El enlace sirve una sola vez y vence en 7 días.
      como `FLOTAPP_SECRETO_PAGOS`. Con ese secreto la app anota los pagos sin usar la llave maestra de la base.
    - En Mercado Pago Developers creá una aplicación y copiá su Access Token en Vercel como `MP_ACCESS_TOKEN`
      (primero el de prueba, después el de producción).
-   - En la aplicación → Webhooks: dirección `https://<tu-dominio>/api/pagos/mercadopago`, con los eventos de
-     planes y suscripciones. Copiá la clave secreta en Vercel como `MP_WEBHOOK_SECRET`.
+   - En la aplicación → Webhooks: dirección `https://<tu-dominio>/api/pagos/mercadopago`, con los eventos
+     **Planes y suscripciones** y **Pagos**. Copiá la clave secreta en Vercel como `MP_WEBHOOK_SECRET`.
    - Volvé a publicar. Sin estas variables la prueba gratis funciona igual, pero los planes no se pueden pagar en línea.
+   - Para probar sin cobrar: en la aplicación → Cuentas de prueba, creá un vendedor y un comprador (los dos de
+     Argentina). Con el token de prueba en Vercel, contratá con el email del comprador de prueba y pagá con una
+     tarjeta de prueba (titular `APRO`). Los avisos de prueba se mandan con el simulador de Webhooks.
 9. **Chequeo.** `/api/health` responde 200 si la app y la base andan (para monitoreo, sin datos de
    configuración). `/api/estado`, sólo para administradores, muestra qué variables de Supabase existen
    (sólo los nombres), si las migraciones están al día y la demora a la base. Nunca devuelve claves.

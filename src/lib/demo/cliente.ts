@@ -368,20 +368,25 @@ function rpc(db: Db, rol: string, nombre: string, a: Fila): Resultado {
       return { data: { ...s, nombre_plan: p?.nombre, max_unidades: p?.max_unidades ?? null, unidades: db.unidades.filter((u) => u.estado !== 'baja').length, cuenta: cuentaDemo(s), pagos }, error: null };
     }
 
-    // Las funciones del servidor de pagos: en el demo no se pide el secreto.
+    // Las funciones del servidor de pagos, con las mismas reglas que en la base; en el demo no se pide el secreto.
     case 'pagos_actualizar_suscripcion': {
       const s = db.suscripciones[0];
+      const otra = (s.proveedor_suscripcion ?? null) !== (a.p_proveedor_suscripcion ?? null);
+      if (otra && a.p_estado !== 'activa') return { data: null, error: null };
+      const estado = !otra && s.estado === 'pago_pendiente' && a.p_estado === 'activa' ? 'pago_pendiente' : a.p_estado;
+      const reemplazada = otra ? s.proveedor_suscripcion ?? null : null;
       Object.assign(s, {
-        plan: a.p_plan, estado: a.p_estado, periodo: a.p_periodo, precio: a.p_precio, proveedor: a.p_proveedor, proveedor_suscripcion: a.p_proveedor_suscripcion,
-        periodo_hasta: a.p_periodo_hasta ?? s.periodo_hasta, gracia_hasta: a.p_estado === 'pago_pendiente' ? s.gracia_hasta : null, cancelar_al_terminar: Boolean(a.p_cancelar_al_terminar),
+        plan: a.p_plan, estado, periodo: a.p_periodo, precio: a.p_precio, proveedor: a.p_proveedor, proveedor_suscripcion: a.p_proveedor_suscripcion,
+        periodo_hasta: a.p_periodo_hasta ?? s.periodo_hasta, gracia_hasta: estado === 'pago_pendiente' ? s.gracia_hasta : null, cancelar_al_terminar: Boolean(a.p_cancelar_al_terminar),
       });
-      return { data: null, error: null };
+      return { data: reemplazada, error: null };
     }
 
     case 'pagos_registrar_cobro': {
       (db.pagos ??= []).push({ fecha: a.p_fecha ?? ahora(), monto: a.p_monto, estado: a.p_estado, detalle: a.p_detalle });
       const s = db.suscripciones[0];
-      if (a.p_estado === 'aprobado') Object.assign(s, { estado: s.estado === 'cancelada' ? 'cancelada' : 'activa', periodo_hasta: a.p_cubre_hasta ?? s.periodo_hasta, gracia_hasta: null });
+      const vigente = (s.proveedor_suscripcion ?? null) === (a.p_proveedor_suscripcion ?? null);
+      if (vigente && a.p_estado === 'aprobado') Object.assign(s, { estado: s.estado === 'cancelada' ? 'cancelada' : 'activa', periodo_hasta: a.p_cubre_hasta ?? s.periodo_hasta, gracia_hasta: null });
       return { data: null, error: null };
     }
 

@@ -16,8 +16,17 @@ export const metadata: Metadata = { title: 'Suscripción' };
 
 const AVISOS: Record<string, string> = {
   'plan-activo': 'Listo: el plan quedó activo',
-  pago: 'Recibimos el pago. En unos segundos se activa el plan',
+  pago: 'Mercado Pago está confirmando el pago: en unos minutos se activa el plan',
 };
+
+// Cuándo se cobra al elegir un plan, según cómo está la cuenta.
+function cuandoSeCobra(s: Suscripcion) {
+  if (s.cuenta === 'prueba') return 'Al activar un plan termina la prueba y se hace el primer cobro.';
+  if (s.proveedor === 'mercadopago' && s.estado !== 'cancelada') {
+    return 'Si cambiás de plan, el precio nuevo rige desde el próximo cobro. Si pasás de mensual a anual, o al revés, el período nuevo se cobra al confirmar y la suscripción anterior se da de baja.';
+  }
+  return '';
+}
 
 const ESTADO_COBRO = { aprobado: ['ok', 'Aprobado'], rechazado: ['crit', 'Rechazado'], pendiente: ['warn', 'Pendiente'], devuelto: ['neutro', 'Devuelto'] } as const;
 
@@ -48,7 +57,7 @@ function Estado({ s }: { s: Suscripcion }) {
 export default async function PaginaSuscripcion({ params, searchParams }: { params: Promise<{ org: string }>; searchParams: Promise<{ ok?: string }> }) {
   const { org } = await params;
   const { ok } = await searchParams;
-  const { organizacion } = await abrirSeccion(org, 'suscripcion');
+  const { organizacion, usuario } = await abrirSeccion(org, 'suscripcion');
   const [s, planes] = await Promise.all([suscripcionDe(org), planesPublicos()]);
 
   if (!s) {
@@ -92,8 +101,9 @@ export default async function PaginaSuscripcion({ params, searchParams }: { para
           actual={{ plan: s.plan, periodo: s.periodo, paga }}
           unidades={s.unidades}
           cobroEnLinea={pasarela() !== null}
+          emailInicial={usuario.email ?? ''}
         />
-        <p className="text-sm text-ink-3">Precios en pesos argentinos, sin IVA. El pago es con tarjeta, a través de Mercado Pago, y se renueva solo.</p>
+        <p className="text-sm text-ink-3">Precios en pesos argentinos, sin IVA. El pago es con tarjeta, a través de Mercado Pago, y se renueva solo. {cuandoSeCobra(s)}</p>
       </Tarjeta>
 
       {s.pagos.length > 0 && (

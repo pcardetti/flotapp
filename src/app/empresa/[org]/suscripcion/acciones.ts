@@ -24,12 +24,15 @@ export async function elegirPlan(org: string, _: EstadoPlan, form: FormData): Pr
   }
   const cobro = pasarela();
   if (!cobro) return { error: 'El pago en línea todavía no está habilitado. Escribinos desde la página de inicio y te damos de alta.' };
+  // Mercado Pago rechaza el pago si este email no es el de la cuenta con la que se paga.
+  const email = String(form.get('email') ?? '').trim().toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { error: 'Revisá el email de tu cuenta de Mercado Pago, por ejemplo nombre@empresa.com.' };
   const resultado = await cobro.contratar({
     org,
     empresa: empresa.organizacion.nombre,
     plan,
     periodo,
-    email: empresa.usuario.email ?? '',
+    email,
     actual,
     volver: `${await urlBase()}/empresa/${org}/suscripcion`,
   });

@@ -2,21 +2,23 @@
 
 import { useActionState, useState } from 'react';
 import { useFormStatus } from 'react-dom';
-import { Aviso, Boton } from '@/components/ui';
+import { Aviso, Boton, Campo } from '@/components/ui';
 import { pesos } from '@/lib/formato';
 import { desde, precioDe, seCotiza, type Periodo, type Plan } from '@/lib/planes';
 import type { EstadoPlan } from './acciones';
 
 // Planes para elegir, con el período mensual o anual. El plan que ya se paga queda marcado y los que no
 // alcanzan para las unidades en servicio no se pueden elegir.
-export function ElegirPlan({ accion, planes, actual, unidades, cobroEnLinea }: {
+export function ElegirPlan({ accion, planes, actual, unidades, cobroEnLinea, emailInicial }: {
   accion: (estado: EstadoPlan, form: FormData) => Promise<EstadoPlan>;
   planes: Plan[];
   actual: { plan: string; periodo: Periodo; paga: boolean };
   unidades: number;
   cobroEnLinea: boolean;
+  emailInicial: string;
 }) {
   const [periodo, setPeriodo] = useState<Periodo>(actual.periodo);
+  const [email, setEmail] = useState(emailInicial);
   const [estado, enviar] = useActionState(accion, {});
   return (
     <div className="flex flex-col gap-4">
@@ -29,6 +31,11 @@ export function ElegirPlan({ accion, planes, actual, unidades, cobroEnLinea }: {
         ))}
       </div>
       {!cobroEnLinea && <Aviso>El pago en línea se habilita en breve. Mientras tanto, si querés activar un plan, escribinos desde la página de inicio.</Aviso>}
+      {cobroEnLinea && (
+        <Campo label="Email de tu cuenta de Mercado Pago" name="email" type="email" autoComplete="email" value={email}
+          onChange={(e) => setEmail(e.target.value)} className="max-w-md"
+          ayuda="El mismo con el que entrás a Mercado Pago: si no coincide, Mercado Pago rechaza el pago." />
+      )}
       {estado.error && <Aviso tipo="error">{estado.error}</Aviso>}
       <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {planes.map((p) => {
@@ -58,6 +65,7 @@ export function ElegirPlan({ accion, planes, actual, unidades, cobroEnLinea }: {
                   <form action={enviar}>
                     <input type="hidden" name="plan" value={p.clave} />
                     <input type="hidden" name="periodo" value={periodo} />
+                    <input type="hidden" name="email" value={email} />
                     <Elegir nombre={p.nombre} desactivado={!cobroEnLinea} />
                   </form>
                 )}

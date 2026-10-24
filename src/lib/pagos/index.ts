@@ -9,7 +9,7 @@ export type Contratacion = {
   empresa: string;
   plan: Plan;
   periodo: Periodo;
-  email: string;
+  email: string; // el de la cuenta de Mercado Pago con la que se paga
   actual: Suscripcion;
   volver: string; // adónde vuelve la persona después de pagar
 };

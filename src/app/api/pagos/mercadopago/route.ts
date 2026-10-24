@@ -2,23 +2,25 @@ import { cerrarEvento, recibirEvento } from '@/lib/pagos/base';
 import { firmaValida } from '@/lib/pagos/firma';
 import { mercadoPagoConfigurado, procesarAviso } from '@/lib/pagos/mercadopago';
 
-// Avisos (webhooks) de Mercado Pago sobre suscripciones y cobros. Cada aviso se verifica con su firma, se anota una
-// sola vez (si llega repetido no se vuelve a procesar) y el estado real se consulta en la API de Mercado Pago.
-// Respuestas: 200 procesado o repetido; 401 firma inválida; 500/503 para que Mercado Pago lo reintente.
+// Avisos (webhooks) de Mercado Pago sobre suscripciones, cuotas y pagos. Cada aviso se verifica con su firma, se anota
+// una sola vez (si llega repetido no se vuelve a procesar) y el estado real se consulta en la API de Mercado Pago.
+// Respuestas: 200 procesado, repetido o ignorado; 401 firma inválida; 500/503 para que Mercado Pago lo reintente.
 export const dynamic = 'force-dynamic';
 
 export async function POST(pedido: Request) {
   if (!mercadoPagoConfigurado()) return new Response(null, { status: 404 });
   const url = new URL(pedido.url);
   const cuerpo = (await pedido.json().catch(() => null)) as { id?: string | number; type?: string; data?: { id?: string | number } } | null;
-  const recurso = url.searchParams.get('data.id') ?? (cuerpo?.data?.id != null ? String(cuerpo.data.id) : null);
-  const tipo = cuerpo?.type ?? url.searchParams.get('type') ?? '';
+  // La firma se arma con el data.id de la dirección del aviso, no con el del cuerpo.
+  const idEnLaDireccion = url.searchParams.get('data.id');
   const idPedido = pedido.headers.get('x-request-id');
 
-  if (!firmaValida(pedido.headers.get('x-signature'), idPedido, recurso, process.env.MP_WEBHOOK_SECRET ?? '')) {
+  if (!firmaValida(pedido.headers.get('x-signature'), idPedido, idEnLaDireccion, process.env.MP_WEBHOOK_SECRET ?? '')) {
     return new Response(null, { status: 401 });
   }
-  if (!recurso || !tipo) return Response.json({ ok: true, ignorado: true });
+  const recurso = idEnLaDireccion ?? (cuerpo?.data?.id != null ? String(cuerpo.data.id) : null);
+  const tipo = cuerpo?.type ?? url.searchParams.get('type') ?? '';
+  if (!recurso || !/^[\w-]{1,64}$/.test(recurso) || !tipo) return Response.json({ ok: true, ignorado: true });
 
   const evento = String(cuerpo?.id ?? `${tipo}:${recurso}:${idPedido ?? ''}`);
   const nuevo = await recibirEvento({ proveedor: 'mercadopago', evento, tipo, recurso });

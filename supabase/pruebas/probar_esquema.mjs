@@ -512,17 +512,22 @@ ok((await uno('K', 'select count(*)::int n from unidades where organizacion_id =
 
 const secreto = (await db.query(`select valor from secretos where clave = 'pagos'`)).rows[0].valor;
 const enDias = (d) => new Date(Date.now() + d * 86400000).toISOString();
-const actualizar = (clave, estado, plan, hasta) => comoAnonimo(
-  `select pagos_actualizar_suscripcion($1, $2, $3, 'mensual', $4, 259000, 'mercadopago', 'pre-123', $5, false, 'k@flota.test')`, [clave, fk, plan, estado, hasta]);
+const actualizar = async (clave, estado, plan, hasta, pre = 'pre-123') => (await comoAnonimo(
+  `select pagos_actualizar_suscripcion($1, $2, $3, 'mensual', $4, 259000, 'mercadopago', $6, $5, false, 'k@flota.test') r`, [clave, fk, plan, estado, hasta, pre])).rows[0].r;
+const suscripcionK = async () => (await db.query('select estado, proveedor_suscripcion, gracia_hasta from suscripciones where organizacion_id = $1', [fk])).rows[0];
 let sinSecreto = true;
 try { await actualizar('otro', 'activa', 'empresa', null); } catch { sinSecreto = false; }
 ok(!sinSecreto, 'Sin el secreto nadie puede activar una suscripción');
-await actualizar(secreto, 'activa', 'empresa', enDias(30));
+await actualizar(secreto, 'cancelada', 'empresa', null, 'pre-abandonada');
+const sinTocar = await suscripcionK();
+ok(sinTocar.estado === 'prueba' && sinTocar.proveedor_suscripcion === null, 'La baja de una suscripción que nunca se activó (un pago abandonado) no toca la cuenta');
+ok((await actualizar(secreto, 'activa', 'empresa', enDias(30))) === null, 'Activar la primera suscripción no reemplaza a ninguna');
 await como('K', `update unidades set estado = 'operativa' where id = $1`, [idsCupo[0]]);
 ok((await cuenta()) === 'activa' && (await uno('K', `select count(*)::int n from unidades where organizacion_id = $1 and estado <> 'baja'`, [fk])).n === 16,
   'Con el plan Empresa activo se vuelve a cargar y entran más unidades');
 
-const cobro = (id, estado, hasta) => comoAnonimo(`select pagos_registrar_cobro($1, $2, 'mercadopago', $3, $4, 259000, now(), $5, 'Plan Empresa')`, [secreto, fk, id, estado, hasta]);
+const cobro = (id, estado, hasta, pre = 'pre-123') => comoAnonimo(
+  `select pagos_registrar_cobro($1, $2, 'mercadopago', $3, $6, $4, 259000, now(), $5, 'Plan Empresa')`, [secreto, fk, id, estado, hasta, pre]);
 await cobro('pago-1', 'rechazado', null);
 const conGracia = (await db.query('select estado, gracia_hasta from suscripciones where organizacion_id = $1', [fk])).rows[0];
 ok(conGracia.estado === 'pago_pendiente' && Math.round((new Date(conGracia.gracia_hasta) - Date.now()) / 86400000) === 7 && (await cuenta()) === 'gracia',
@@ -540,14 +545,32 @@ const primeraVez = (await recibir()).rows[0].r;
 await comoAnonimo(`select pagos_cerrar_evento($1, 'mercadopago', 'ev-1')`, [secreto]);
 ok(primeraVez === true && (await recibir()).rows[0].r === false, 'Un aviso repetido de la pasarela no se procesa dos veces');
 
-await actualizar(secreto, 'cancelada', 'empresa', enDias(10));
+const reemplazada = await actualizar(secreto, 'activa', 'empresa', enDias(30), 'pre-456');
+ok(reemplazada === 'pre-123' && (await suscripcionK()).proveedor_suscripcion === 'pre-456',
+  'Una suscripción nueva autorizada reemplaza a la vigente y avisa cuál dar de baja (cambio de mensual a anual)');
+await actualizar(secreto, 'cancelada', 'empresa', null, 'pre-123');
+await cobro('pago-3', 'rechazado', null, 'pre-123');
+const conLaNueva = await suscripcionK();
+ok(conLaNueva.estado === 'activa' && conLaNueva.proveedor_suscripcion === 'pre-456',
+  'La baja y los cobros rechazados de la suscripción reemplazada no tocan la nueva');
+await cobro('pago-4', 'rechazado', null, 'pre-456');
+await actualizar(secreto, 'activa', 'empresa', enDias(30), 'pre-456');
+const sigueAutorizada = await suscripcionK();
+ok(sigueAutorizada.estado === 'pago_pendiente' && sigueAutorizada.gracia_hasta !== null && (await cuenta()) === 'gracia',
+  'Mientras la suscripción sigue autorizada, un cobro rechazado queda pendiente hasta que se apruebe otro');
+await cobro('pago-4', 'aprobado', enDias(30), 'pre-456');
+const reintento = (await db.query(`select estado from pagos where proveedor_pago = 'pago-4'`)).rows;
+ok((await suscripcionK()).estado === 'activa' && reintento.length === 1 && reintento[0].estado === 'aprobado',
+  'Si el reintento se cobra, el mismo cobro pasa a aprobado y la cuenta queda al día');
+
+await actualizar(secreto, 'cancelada', 'empresa', enDias(10), 'pre-456');
 ok((await cuenta()) === 'activa', 'Una baja sigue activa hasta el fin del período pago');
 await db.query(`update suscripciones set periodo_hasta = now() - interval '4 days' where organizacion_id = $1`, [fk]);
 ok((await cuenta()) === 'solo_lectura', 'Y después queda en modo consulta');
 
 await db.query(`insert into miembros (organizacion_id, user_id, rol) values ($1, $2, 'chofer')`, [fk, U.D]);
 const mia = (await uno('K', 'select mi_suscripcion($1) s', [fk])).s;
-ok(mia?.plan === 'empresa' && mia.max_unidades === 40 && mia.unidades === 16 && mia.pagos.length === 2, 'El administrador ve su plan, el uso y los cobros');
+ok(mia?.plan === 'empresa' && mia.max_unidades === 40 && mia.unidades === 16 && mia.pagos.length === 4, 'El administrador ve su plan, el uso y los cobros');
 ok((await uno('D', 'select mi_suscripcion($1) s', [fk])).s === null, 'Los demás roles no ven la suscripción');
 let leeSuscripcion = true;
 try { await como('K', 'select count(*) from suscripciones'); } catch { leeSuscripcion = false; }

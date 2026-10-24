@@ -8,6 +8,8 @@ const secreto = () => process.env.FLOTAPP_SECRETO_PAGOS ?? '';
 export type EstadoSuscripcion = 'prueba' | 'activa' | 'pago_pendiente' | 'cancelada' | 'vencida';
 export type EstadoCobro = 'aprobado' | 'rechazado' | 'pendiente' | 'devuelto';
 
+// La base ignora la baja de una suscripción que ya no es la vigente. Devuelve la que quedó reemplazada por una
+// nueva (hay que darla de baja en la pasarela), o null.
 export async function guardarSuscripcion(s: {
   org: string;
   plan: string;
@@ -21,7 +23,7 @@ export async function guardarSuscripcion(s: {
   pagador: string | null;
 }) {
   const supabase = await crearClienteServidor();
-  return supabase.rpc('pagos_actualizar_suscripcion', {
+  const { data, error } = await supabase.rpc('pagos_actualizar_suscripcion', {
     p_secreto: secreto(),
     p_org: s.org,
     p_plan: s.plan,
@@ -34,12 +36,14 @@ export async function guardarSuscripcion(s: {
     p_cancelar_al_terminar: s.cancelarAlTerminar,
     p_pagador: s.pagador,
   });
+  return { reemplazada: (data as string | null) ?? null, error };
 }
 
 export async function guardarCobro(c: {
   org: string;
   proveedor: string;
   proveedorPago: string;
+  proveedorSuscripcion: string | null; // la suscripción a la que pertenece el cobro
   estado: EstadoCobro;
   monto: number;
   fecha: string | null;
@@ -52,6 +56,7 @@ export async function guardarCobro(c: {
     p_org: c.org,
     p_proveedor: c.proveedor,
     p_proveedor_pago: c.proveedorPago,
+    p_proveedor_suscripcion: c.proveedorSuscripcion,
     p_estado: c.estado,
     p_monto: c.monto,
     p_fecha: c.fecha,

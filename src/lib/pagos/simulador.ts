@@ -20,7 +20,7 @@ export const simulador: Pasarela = {
     });
     if (error) return { error: 'No pudimos activar el plan. Probá de nuevo en unos segundos.' };
     await guardarCobro({
-      org, proveedor: 'simulador', proveedorPago: `demo-${Date.now()}`, estado: 'aprobado', monto: precio ?? 0,
+      org, proveedor: 'simulador', proveedorPago: `demo-${Date.now()}`, proveedorSuscripcion: null, estado: 'aprobado', monto: precio ?? 0,
       fecha: new Date().toISOString(), cubreHasta: hasta, detalle: `Plan ${plan.nombre} (${periodo})`,
     });
     return { url: `${volver}?ok=plan-activo` };

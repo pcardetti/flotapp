@@ -29,3 +29,17 @@ export const GRAVEDAD = {
   moderada: { texto: 'Moderada', tono: 'warn' },
   leve: { texto: 'Leve', tono: 'neutro' },
 } as const;
+
+// Falla cargada desde la oficina: qué parte, qué pasa y qué tan grave. Las fotos se validan aparte (rutasValidas).
+export function leerFalla(form: FormData, hayFotos = false): { datos?: { sistema: string; descripcion: string | null; gravedad: keyof typeof GRAVEDAD }; errores: Record<string, string> } {
+  const texto = (v: FormDataEntryValue | null) => (typeof v === 'string' ? v.trim() : '');
+  const sistema = texto(form.get('sistema'));
+  const descripcion = texto(form.get('descripcion')).slice(0, 500);
+  const gravedad = texto(form.get('gravedad'));
+  const errores: Record<string, string> = {};
+  if (!SISTEMAS_FALLA.some((s) => s.clave === sistema)) errores.sistema = 'Elegí qué parte de la unidad falla.';
+  if (!descripcion && !hayFotos) errores.descripcion = 'Contá qué pasa o agregá una foto.';
+  if (!Object.hasOwn(GRAVEDAD, gravedad)) errores.gravedad = 'Indicá qué tan grave es.';
+  if (Object.keys(errores).length) return { errores };
+  return { errores, datos: { sistema, descripcion: descripcion || null, gravedad: gravedad as keyof typeof GRAVEDAD } };
+}

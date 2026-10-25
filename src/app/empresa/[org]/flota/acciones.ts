@@ -5,8 +5,10 @@ import { redirect } from 'next/navigation';
 import { exigir, UUID } from '@/lib/empresa';
 import { hoyISO } from '@/lib/fechas';
 import { leerChofer, leerKm, leerUnidad, mensajeDeError, type Errores } from '@/lib/flota';
+import { rutasValidas } from '@/lib/fotos';
 import type { Permiso } from '@/lib/permisos';
 import { avisarError, crearClienteServidor } from '@/lib/supabase/server';
+import { leerFalla } from '@/lib/taller';
 
 // `valores` y `clave` devuelven lo que la persona escribió para no perderlo si hay que corregir algo.
 export type EstadoForm = { error?: string; errores?: Errores; ok?: string; valores?: Record<string, string>; clave?: number; subirPlan?: string };
@@ -102,6 +104,22 @@ export async function registrarKm(org: string, id: string, _: EstadoForm, form: 
   if (error) return fallo('registrarKm', form, error);
   refrescar(org);
   return { ok: `Kilometraje actualizado a ${km.toLocaleString('es-AR')} km.`, clave: Date.now() };
+}
+
+// Falla avisada desde la oficina (un llamado del chofer, algo que se vio en la base): llega al taller como las demás.
+export async function reportarFalla(org: string, id: string, _: EstadoForm, form: FormData): Promise<EstadoForm> {
+  const sinPermiso = await verificar(org, 'flota.editar', id);
+  if (sinPermiso) return devolver(form, { error: sinPermiso });
+  const fotos = rutasValidas(org, form.getAll('fotos'));
+  const { datos, errores } = leerFalla(form, fotos.length > 0);
+  if (!datos) return devolver(form, { errores });
+  const supabase = await crearClienteServidor();
+  const { data: unidad } = await supabase.from('unidades').select('id').eq('id', id).eq('organizacion_id', org).maybeSingle();
+  if (!unidad) return devolver(form, { error: 'No encontramos la unidad. Puede que la hayan eliminado.' });
+  const { error } = await supabase.from('fallas').insert({ ...datos, organizacion_id: org, unidad_id: id, fotos, origen: 'administracion' });
+  if (error) return fallo('reportarFalla', form, error);
+  refrescar(org);
+  redirect(`/empresa/${org}/flota/unidades/${id}?ok=falla`);
 }
 
 // ───────────── Choferes ─────────────

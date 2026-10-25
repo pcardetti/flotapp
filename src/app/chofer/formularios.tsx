@@ -107,7 +107,8 @@ export function FormFalla({ org, unidad, sistemas }: { org: string; unidad: stri
   const [estado, enviar] = useActionState(reportarFalla, {});
   const [sistema, setSistema] = useState('');
   const [descripcion, setDescripcion] = useState('');
-  const [grave, setGrave] = useState<'si' | 'no'>('no');
+  // Sin respuesta elegida: el chofer tiene que decidir si es grave, no aceptar un valor que ya venía marcado.
+  const [grave, setGrave] = useState<'si' | 'no' | ''>('');
   const [fotos, setFotos] = useState<EstadoFotos>({ rutas: [], subiendo: false });
   const e = estado.errores ?? {};
   const formulario = useEnfocarError(estado.errores);
@@ -141,11 +142,13 @@ export function FormFalla({ org, unidad, sistemas }: { org: string; unidad: stri
         <legend className="mb-2 flex items-center gap-1 text-sm font-semibold text-ink-2"><CircleHelp className="size-4" />¿Podés seguir viaje?</legend>
         <div className="grid grid-cols-2 gap-2">
           {([['no', 'Sí, puedo seguir', 'border-ok bg-ok-soft text-ok'], ['si', 'No, es grave', 'border-crit bg-crit-soft text-crit']] as const).map(([valor, texto, activo]) => (
-            <label key={valor} className={`tap flex cursor-pointer items-center justify-center rounded-2xl border py-3.5 font-semibold ${grave === valor ? activo : 'border-line bg-surface'}`}>
-              <input type="radio" name="grave" value={valor} checked={grave === valor} onChange={() => setGrave(valor)} className="sr-only" />{texto}
+            <label key={valor} className={`tap flex cursor-pointer items-center justify-center rounded-2xl border py-3.5 font-semibold has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent ${grave === valor ? activo : 'border-line bg-surface'}`}>
+              <input type="radio" name="grave" value={valor} checked={grave === valor} onChange={() => setGrave(valor)} className="sr-only"
+                aria-invalid={e.grave && !grave ? true : undefined} aria-describedby={e.grave ? 'grave-error' : undefined} />{texto}
             </label>
           ))}
         </div>
+        {e.grave && !grave && <span id="grave-error" className="block text-sm font-semibold text-crit">{e.grave}</span>}
       </fieldset>
       <AccionFija>
         {errorGeneral(estado)}

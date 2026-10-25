@@ -1,7 +1,6 @@
 import { Ban, Container, QrCode, Route, Wrench } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
 import { EncabezadoMovil } from '@/components/movil';
 import { Pantalla } from '@/components/pantalla';
 import { Patente } from '@/components/ui';
@@ -47,10 +46,14 @@ export default async function Salida({ params }: { params: Promise<{ codigo: str
     );
   }
   const { unidad, viaje_en_curso: viaje } = ficha;
-  if (viaje?.mio) redirect('/chofer');
-
   let bloqueo: React.ReactNode = null;
-  if (viaje) bloqueo = <Aviso icono={<Route className="size-10" />} titulo="La unidad ya está en viaje" texto={`${viaje.chofer ?? 'Otro chofer'} la tiene en un viaje en curso. Tiene que terminarlo antes de que puedas salir.`} />;
+  // Escaneó la unidad con la que ya está viajando: se le explica en vez de mandarlo al inicio sin decir nada.
+  if (viaje?.mio) {
+    bloqueo = (
+      <Aviso icono={<Route className="size-10" />} titulo="Ya estás en viaje con esta unidad" texto="Para hacer un chequeo nuevo, primero terminá el viaje en curso."
+        otra={{ href: '/chofer/viaje/terminar', texto: 'Terminar viaje' }} />
+    );
+  } else if (viaje) bloqueo = <Aviso icono={<Route className="size-10" />} titulo="La unidad ya está en viaje" texto={`${viaje.chofer ?? 'Otro chofer'} la tiene en un viaje en curso. Tiene que terminarlo antes de que puedas salir.`} />;
   else if (unidad.estado === 'baja') bloqueo = <Aviso icono={<Ban className="size-10" />} titulo="La unidad está dada de baja" texto="No se usa más en la flota. Consultá con el encargado." />;
   else if (!tieneMotor(unidad.tipo)) {
     bloqueo = (

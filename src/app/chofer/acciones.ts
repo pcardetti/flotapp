@@ -112,6 +112,8 @@ export async function reportarFalla(_: EstadoForm, form: FormData): Promise<Esta
   const errores: Record<string, string> = {};
   if (!sistema) errores.sistema = 'Elegí qué parte de la unidad falla.';
   if (!descripcion && !fotos.length) errores.descripcion = 'Contá qué pasa o sacá una foto.';
+  const grave = form.get('grave');
+  if (grave !== 'si' && grave !== 'no') errores.grave = 'Indicá si podés seguir viaje.';
   if (Object.keys(errores).length) return { errores };
 
   const supabase = await crearClienteServidor();

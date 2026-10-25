@@ -4,13 +4,13 @@ import { BarraInferior } from '@/components/barra-inferior';
 import { AppMovil } from '@/components/movil';
 
 export const metadata: Metadata = {
-  title: { default: 'Taller', template: '%s · Flotapp Taller' },
+  title: { default: 'Taller', template: '%s · Tallerflota Taller' },
   manifest: '/manifests/taller.webmanifest',
   appleWebApp: { capable: true, title: 'Taller', statusBarStyle: 'default' },
   robots: { index: false, follow: false },
 };
 
-export const viewport: Viewport = { themeColor: '#0e7490' };
+export const viewport: Viewport = { themeColor: '#f4f5f7' };
 
 export default function LayoutTaller({ children }: { children: React.ReactNode }) {
   return (

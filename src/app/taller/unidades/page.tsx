@@ -45,7 +45,7 @@ export default async function UnidadesTaller() {
               );
             })
           ) : (
-            <Vacio icono={<Truck className="size-6" />} titulo="No hay unidades cargadas">El administrador de la flota las carga desde Flotapp.</Vacio>
+            <Vacio icono={<Truck className="size-6" />} titulo="No hay unidades cargadas">El administrador de la flota las carga desde Tallerflota.</Vacio>
           )}
         </Seccion>
       </Pantalla>

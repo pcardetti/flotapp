@@ -1,4 +1,4 @@
-# Flotapp · Arquitectura
+# Tallerflota · Arquitectura
 
 Sistema de mantenimiento para flotas de camiones, pensado para venderse a varias empresas.
 Cada flota tiene sus datos separados. Talleres y recapadoras participan como proveedores y
@@ -40,9 +40,9 @@ manda por WhatsApp o muestra como QR. Si el chofer ya estaba cargado, la cuenta 
 
 Un solo código sirve tres apps instalables, cada una con su manifiesto, ícono y color:
 
-- **Flotapp** (azul, `/empresa/<id>`): gestión y tablero. Quien es chofer o mecánico no entra acá: va a su app.
-- **Flotapp Chofer** (amarillo, `/chofer`): pensada para una mano, botones grandes, la acción principal fija abajo.
-- **Flotapp Taller** (cian, `/taller`): lo pendiente primero, agrupado por unidad y con las fallas críticas arriba.
+- **Tallerflota** (azul, `/empresa/<id>`): gestión y tablero. Quien es chofer o mecánico no entra acá: va a su app.
+- **Tallerflota Chofer** (amarillo, `/chofer`): pensada para una mano, botones grandes, la acción principal fija abajo.
+- **Tallerflota Taller** (cian, `/taller`): lo pendiente primero, agrupado por unidad y con las fallas críticas arriba.
 
 En los formularios de las apps de celular la barra de pestañas se esconde y el botón principal guía hasta
 lo que falta completar; si el servidor devuelve un error, el foco va al primer campo a corregir. Las
@@ -50,7 +50,7 @@ transiciones entre pantallas usan las View Transitions de React (hacia adelante 
 la preferencia de movimiento reducido.
 
 La página de inicio es la única que se indexa: presenta las tres apps, cómo funciona y preguntas frecuentes,
-con datos estructurados (JSON-LD) para los buscadores. Cualquier enlace de Flotapp que se comparta (también
+con datos estructurados (JSON-LD) para los buscadores. Cualquier enlace de Tallerflota que se comparta (también
 las invitaciones por WhatsApp) muestra la tarjeta de `opengraph-image.tsx`. Los textos de presentación están
 en `src/lib/sitio.ts`. La app usa siempre colores claros, aunque el equipo esté en modo oscuro.
 

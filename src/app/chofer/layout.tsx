@@ -4,13 +4,13 @@ import { BarraInferior } from '@/components/barra-inferior';
 import { AppMovil } from '@/components/movil';
 
 export const metadata: Metadata = {
-  title: { default: 'Chofer', template: '%s · Flotapp Chofer' },
+  title: { default: 'Chofer', template: '%s · Tallerflota Chofer' },
   manifest: '/manifests/chofer.webmanifest',
   appleWebApp: { capable: true, title: 'Chofer', statusBarStyle: 'default' },
   robots: { index: false, follow: false },
 };
 
-export const viewport: Viewport = { themeColor: '#f2b705' };
+export const viewport: Viewport = { themeColor: '#f4f5f7' };
 
 export default function LayoutChofer({ children }: { children: React.ReactNode }) {
   return (

@@ -1,11 +1,26 @@
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
 
+// Isotipo de Tallerflota: un medidor con la aguja marcando cuánto falta para el próximo service.
+export function Isotipo({ className = 'size-8' }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 88 88" aria-hidden className={`shrink-0 ${className}`}>
+      <rect width="88" height="88" rx="22" fill="var(--noche)" />
+      <path d="M20 58a24 24 0 0 1 48 0" fill="none" stroke="#4b4f6b" strokeWidth="7" strokeLinecap="round" />
+      <path d="M20 58a24 24 0 0 1 38-19.5" fill="none" stroke="var(--aguja)" strokeWidth="7" strokeLinecap="round" />
+      <path d="M44 58 58 40" stroke="#ffffff" strokeWidth="5" strokeLinecap="round" />
+      <circle cx="44" cy="58" r="5" fill="#ffffff" />
+    </svg>
+  );
+}
+
 export function Marca({ chica = false }: { chica?: boolean }) {
   return (
-    <span className="inline-flex flex-col gap-1">
-      <span className={`font-display font-bold leading-none tracking-wide ${chica ? 'text-2xl' : 'text-4xl'}`}>Flotapp</span>
-      <span aria-hidden className="block h-0 w-full border-b-2 border-dashed border-road" />
+    <span className="inline-flex items-center gap-2.5">
+      <Isotipo className={chica ? 'size-8' : 'size-11'} />
+      <span className={`font-display leading-none ${chica ? 'text-2xl' : 'text-4xl'}`}>
+        taller<span className="text-accent">flota</span>
+      </span>
     </span>
   );
 }
@@ -16,7 +31,7 @@ export function Patente({ dominio }: { dominio: string }) {
   const vieja = /^[A-Z]{3}\s?\d{3}$/.test(d);
   return (
     <span
-      className={`inline-flex items-center whitespace-nowrap rounded px-2 pt-0.5 font-display text-[0.95rem] font-semibold leading-tight tracking-[0.09em] ${
+      className={`inline-flex items-center whitespace-nowrap rounded px-2 pt-0.5 font-mono text-[0.9rem] font-semibold leading-tight tracking-[0.04em] ${
         vieja ? 'border-[1.5px] border-[#6d6d6d] bg-[#141414] text-[#f1f1f1]' : 'border-[1.5px] border-t-[5px] border-[#1b1b1b] border-t-[#1f4fa8] bg-white text-[#111]'
       }`}
     >

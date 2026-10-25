@@ -45,7 +45,7 @@ function Indicador({ titulo, valor, detalle, alerta }: { titulo: string; valor: 
   return (
     <div className={`flex min-w-0 flex-col gap-1 rounded-2xl border bg-surface px-4 py-3.5 ${alerta ? 'border-crit' : 'border-line'}`}>
       <span className="eyebrow">{titulo}</span>
-      <span className="truncate font-display text-[2rem] font-bold leading-none">{valor}</span>
+      <span className="truncate font-mono text-[1.75rem] font-semibold leading-none">{valor}</span>
       {detalle && <span className="text-sm text-ink-3">{detalle}</span>}
     </div>
   );
@@ -121,9 +121,30 @@ export async function TableroFlota({ org, periodo }: { org: string; periodo: str
     );
   }
 
+  const atencion = ahora.fallas_abiertas > 0 || ahora.vencidos > 0 || ahora.en_taller > 0;
+
   return (
     <>
       <Encabezado titulo="Tablero">{selector}</Encabezado>
+
+      {/* Lo que pide acción hoy va primero; los costos del período, después. */}
+      <section aria-labelledby="ahora" className="flex flex-col gap-2.5">
+        <h2 id="ahora" className="eyebrow">{atencion ? 'Requiere atención' : 'Ahora · todo en orden'}</h2>
+        <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+          {[
+            { href: 'taller', icono: ahora.fallas_criticas ? <ShieldAlert className="size-5 text-crit" /> : <Wrench className="size-5" />, valor: ahora.fallas_abiertas, texto: `${pl(ahora.fallas_abiertas, 'falla abierta', 'fallas abiertas')}${ahora.fallas_criticas ? ` (${ahora.fallas_criticas} ${pl(ahora.fallas_criticas, 'crítica', 'críticas')})` : ''}`, alerta: ahora.fallas_criticas > 0 },
+            { href: 'vencimientos', icono: ahora.vencidos ? <AlertTriangle className="size-5 text-crit" /> : <CalendarClock className="size-5" />, valor: ahora.vencidos + ahora.por_vencer, texto: ahora.vencidos ? `${pl(ahora.vencidos + ahora.por_vencer, 'vencimiento', 'vencimientos')} (${ahora.vencidos} ${pl(ahora.vencidos, 'vencido', 'vencidos')})` : pl(ahora.por_vencer, 'vence en 30 días', 'vencen en 30 días'), alerta: ahora.vencidos > 0 },
+            { href: 'flota', icono: <Truck className={`size-5 ${ahora.en_taller ? 'text-warn' : ''}`} />, valor: `${ahora.en_servicio}/${ahora.unidades}`, texto: ahora.en_taller ? `en servicio (${ahora.en_taller} en el taller)` : 'unidades en servicio' },
+            { href: 'viajes', icono: <Route className="size-5" />, valor: ahora.en_viaje, texto: 'en viaje ahora' },
+          ].map((x) => (
+            <Link key={x.href} href={`/empresa/${org}/${x.href}`} transitionTypes={['nav-forward']}
+              className={`tap flex items-center gap-3 rounded-2xl border bg-surface px-4 py-3 hover:border-ink-3 ${x.alerta ? 'border-crit' : 'border-line'}`}>
+              <span className="text-ink-2">{x.icono}</span>
+              <span className="min-w-0"><b className={`block font-mono text-2xl font-semibold leading-none ${x.alerta ? 'text-crit' : ''}`}>{x.valor}</b><span className="text-sm text-ink-2">{x.texto}</span></span>
+            </Link>
+          ))}
+        </div>
+      </section>
 
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-3 2xl:grid-cols-6">
         <Indicador titulo="Costo operativo" valor={pesosCorto(tot.costo)} detalle={`Mantenimiento ${pesosCorto(tot.mantenimiento)}`} />
@@ -131,22 +152,7 @@ export async function TableroFlota({ org, periodo }: { org: string; periodo: str
         <Indicador titulo="Km recorridos" valor={numero(tot.km)} detalle={`${tot.viajes} ${tot.viajes === 1 ? 'viaje' : 'viajes'}`} />
         <Indicador titulo="Consumo" valor={l100 !== null ? `${numero(l100, 1)} l` : '—'} detalle={l100 !== null ? 'cada 100 km' : 'Cargá litros con el combustible'} />
         <Indicador titulo="Combustible" valor={pesosCorto(tot.combustible)} detalle={tot.litros > 0 ? `$ ${numero(tot.combustible / tot.litros)} por litro` : 'Sin cargas en el período'} />
-        <Indicador titulo="Fallas reportadas" valor={String(tot.fallas)} detalle="en el período" alerta={ahora.fallas_criticas > 0} />
-      </section>
-
-      <section className="grid grid-cols-2 gap-2 md:grid-cols-4">
-        {[
-          { href: 'viajes', icono: <Route className="size-5" />, valor: ahora.en_viaje, texto: 'en viaje ahora' },
-          { href: 'flota', icono: <Truck className="size-5" />, valor: `${ahora.en_servicio}/${ahora.unidades}`, texto: 'unidades en servicio' },
-          { href: 'taller', icono: ahora.fallas_criticas ? <ShieldAlert className="size-5 text-crit" /> : <Wrench className="size-5" />, valor: ahora.fallas_abiertas, texto: `${pl(ahora.fallas_abiertas, 'falla abierta', 'fallas abiertas')}${ahora.fallas_criticas ? ` (${ahora.fallas_criticas} ${pl(ahora.fallas_criticas, 'crítica', 'críticas')})` : ''}`, alerta: ahora.fallas_criticas > 0 },
-          { href: 'vencimientos', icono: ahora.vencidos ? <AlertTriangle className="size-5 text-crit" /> : <CalendarClock className="size-5" />, valor: ahora.vencidos + ahora.por_vencer, texto: ahora.vencidos ? `${pl(ahora.vencidos + ahora.por_vencer, 'vencimiento', 'vencimientos')} (${ahora.vencidos} ${pl(ahora.vencidos, 'vencido', 'vencidos')})` : pl(ahora.por_vencer, 'vence en 30 días', 'vencen en 30 días'), alerta: ahora.vencidos > 0 },
-        ].map((x) => (
-          <Link key={x.href} href={`/empresa/${org}/${x.href}`} transitionTypes={['nav-forward']}
-            className={`tap flex items-center gap-3 rounded-2xl border bg-surface px-4 py-3 hover:border-ink-3 ${x.alerta ? 'border-crit' : 'border-line'}`}>
-            <span className="text-ink-2">{x.icono}</span>
-            <span className="min-w-0"><b className="block font-display text-2xl leading-none">{x.valor}</b><span className="text-xs text-ink-3">{x.texto}</span></span>
-          </Link>
-        ))}
+        <Indicador titulo="Fallas reportadas" valor={String(tot.fallas)} detalle="en el período" />
       </section>
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">

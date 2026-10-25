@@ -6,7 +6,7 @@ import { appDeRol, inicioDe } from '@/lib/apps';
 import { misEmpresas, NOMBRE_ROL } from '@/lib/empresa';
 
 const ICONO = { flota: LayoutDashboard, chofer: Route, taller: Wrench };
-const APP = { flota: 'Flotapp', chofer: 'App Chofer', taller: 'App Taller' };
+const APP = { flota: 'Tallerflota', chofer: 'App Chofer', taller: 'App Taller' };
 
 // Cuenta compartida por las apps de celular: empresas, accesos a las otras apps y salir.
 export async function Cuenta({ email }: { email: string }) {

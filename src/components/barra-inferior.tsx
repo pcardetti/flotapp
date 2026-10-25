@@ -24,7 +24,7 @@ export function BarraInferior({ items, ocultarEn = [] }: { items: ItemBarra[]; o
               <Link
                 href={it.href}
                 aria-current={activo ? 'page' : undefined}
-                className={`tap flex h-16 flex-col items-center justify-center gap-0.5 text-[0.72rem] font-semibold ${activo ? 'text-ink' : 'text-ink-3'}`}
+                className={`tap flex h-16 flex-col items-center justify-center gap-0.5 text-[0.8125rem] font-semibold ${activo ? 'text-ink' : 'text-ink-3'}`}
               >
                 <span className={`grid h-8 w-14 place-items-center rounded-full transition-colors ${activo ? 'bg-accent text-accent-ink' : ''}`}>{it.icono}</span>
                 {it.texto}

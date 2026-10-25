@@ -41,7 +41,7 @@ export default async function EtiquetasQr({ params, searchParams }: { params: Pr
             <p className="text-[9pt] text-neutral-600">{e.marca} {e.modelo}</p>
             <div className="my-1 w-[48mm] [&>svg]:h-auto [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: e.svg }} />
             <p className="font-display text-[16pt] font-bold tracking-[0.2em]">{codigoLegible(e.qr_token)}</p>
-            <p className="text-[8.5pt] leading-tight">Escaneá con la cámara para el chequeo y el viaje.<br />{organizacion.nombre} · Flotapp</p>
+            <p className="text-[8.5pt] leading-tight">Escaneá con la cámara para el chequeo y el viaje.<br />{organizacion.nombre} · Tallerflota</p>
           </section>
         ))}
       </div>

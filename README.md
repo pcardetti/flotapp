@@ -1,10 +1,10 @@
-# Flotapp
+# Tallerflota
 
 Sistema de mantenimiento para flotas de camiones en Argentina, multiempresa: cada flota con sus datos
 separados, y talleres y recapadoras como proveedores vinculados.
 
 - [Arquitectura](docs/ARQUITECTURA.md): modelo de empresas, roles, seguridad y etapas.
-- `src/`: aplicación Next.js con tres apps (Flotapp, Chofer y Taller) sobre las mismas cuentas.
+- `src/`: aplicación Next.js con tres apps (Tallerflota, Chofer y Taller) sobre las mismas cuentas.
 - `supabase/migrations`: esquema de base de datos para Supabase, en orden.
 - `supabase/pruebas`: pruebas del esquema en un Postgres local.
 - `prototipo/flota-al-dia.html`: prototipo navegable de las pantallas, con datos de ejemplo.
@@ -15,9 +15,9 @@ Cada persona entra directo a la suya según su rol, y cada una se instala en el 
 
 | App | Dirección | Para quién | Qué hace |
 |---|---|---|---|
-| **Flotapp** | `/empresa/<id>/panel` | Dueños, administración, jefe de taller | Tablero de costos (por unidad, por chofer, por mes), viajes, taller, gastos, vencimientos, equipo |
-| **Flotapp Chofer** | `/chofer` | Choferes | Escanear el QR de la unidad, chequeo de salida, viaje, combustible y gastos, aviso de fallas con fotos |
-| **Flotapp Taller** | `/taller` | Mecánicos | Fallas pendientes, resolver en un paso con fotos y costos, órdenes largas, historial |
+| **Tallerflota** | `/empresa/<id>/panel` | Dueños, administración, jefe de taller | Tablero de costos (por unidad, por chofer, por mes), viajes, taller, gastos, vencimientos, equipo |
+| **Tallerflota Chofer** | `/chofer` | Choferes | Escanear el QR de la unidad, chequeo de salida, viaje, combustible y gastos, aviso de fallas con fotos |
+| **Tallerflota Taller** | `/taller` | Mecánicos | Fallas pendientes, resolver en un paso con fotos y costos, órdenes largas, historial |
 
 ### El QR de cada unidad
 

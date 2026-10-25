@@ -11,7 +11,7 @@
   --surface-2: #e8ecf1;
   --ink: #142133;
   --ink-2: #47566a;
-  --ink-3: #66748a;
+  --ink-3: #56647a; /* 5,4:1 sobre --bg y 5,1:1 sobre --surface-2: se lee al sol. */
   --line: #d3dae3;
   --accent: #1d4f91;
   --accent-ink: #ffffff;

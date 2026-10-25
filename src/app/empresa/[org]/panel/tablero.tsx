@@ -51,6 +51,9 @@ function Indicador({ titulo, valor, detalle, alerta }: { titulo: string; valor: 
   );
 }
 
+// Singular o plural según la cantidad: "1 falla abierta", "3 fallas abiertas".
+const pl = (n: number, uno: string, varios: string) => (n === 1 ? uno : varios);
+
 export async function TableroFlota({ org, periodo }: { org: string; periodo: string }) {
   const p = PERIODOS.some((x) => x.clave === periodo) ? periodo : 'mes';
   const { desde, hasta } = rango(p);
@@ -135,8 +138,8 @@ export async function TableroFlota({ org, periodo }: { org: string; periodo: str
         {[
           { href: 'viajes', icono: <Route className="size-5" />, valor: ahora.en_viaje, texto: 'en viaje ahora' },
           { href: 'flota', icono: <Truck className="size-5" />, valor: `${ahora.en_servicio}/${ahora.unidades}`, texto: 'unidades en servicio' },
-          { href: 'taller', icono: ahora.fallas_criticas ? <ShieldAlert className="size-5 text-crit" /> : <Wrench className="size-5" />, valor: ahora.fallas_abiertas, texto: ahora.fallas_criticas ? `fallas abiertas (${ahora.fallas_criticas} críticas)` : 'fallas abiertas', alerta: ahora.fallas_criticas > 0 },
-          { href: 'vencimientos', icono: ahora.vencidos ? <AlertTriangle className="size-5 text-crit" /> : <CalendarClock className="size-5" />, valor: ahora.vencidos + ahora.por_vencer, texto: ahora.vencidos ? `vencimientos (${ahora.vencidos} vencidos)` : 'vencen en 30 días', alerta: ahora.vencidos > 0 },
+          { href: 'taller', icono: ahora.fallas_criticas ? <ShieldAlert className="size-5 text-crit" /> : <Wrench className="size-5" />, valor: ahora.fallas_abiertas, texto: `${pl(ahora.fallas_abiertas, 'falla abierta', 'fallas abiertas')}${ahora.fallas_criticas ? ` (${ahora.fallas_criticas} ${pl(ahora.fallas_criticas, 'crítica', 'críticas')})` : ''}`, alerta: ahora.fallas_criticas > 0 },
+          { href: 'vencimientos', icono: ahora.vencidos ? <AlertTriangle className="size-5 text-crit" /> : <CalendarClock className="size-5" />, valor: ahora.vencidos + ahora.por_vencer, texto: ahora.vencidos ? `${pl(ahora.vencidos + ahora.por_vencer, 'vencimiento', 'vencimientos')} (${ahora.vencidos} ${pl(ahora.vencidos, 'vencido', 'vencidos')})` : pl(ahora.por_vencer, 'vence en 30 días', 'vencen en 30 días'), alerta: ahora.vencidos > 0 },
         ].map((x) => (
           <Link key={x.href} href={`/empresa/${org}/${x.href}`} transitionTypes={['nav-forward']}
             className={`tap flex items-center gap-3 rounded-2xl border bg-surface px-4 py-3 hover:border-ink-3 ${x.alerta ? 'border-crit' : 'border-line'}`}>

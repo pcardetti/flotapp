@@ -29,12 +29,18 @@ export function Chequeo({ codigo, org, items, kmUltimo, dominio }: { codigo: str
   const fotosDe = (clave: string) =>
     (avisos.current[clave] ??= (e: EstadoFotos) =>
       setRespuestas((r) => (r[clave] ? { ...r, [clave]: { ...r[clave], fotos: e.rutas, subiendo: e.subiendo } } : r)));
+  // El atajo sólo aprueba los puntos comunes: los críticos (frenos, luces…) se miran y se responden uno por uno.
   const todoBienLoQueFalta = () => {
     navigator.vibrate?.(15);
-    setRespuestas((r) => Object.fromEntries(items.map((i) => [i.clave, r[i.clave] ?? { estado: 'ok', nota: '', fotos: [], subiendo: false }])));
+    setRespuestas((r) => ({
+      ...r,
+      ...Object.fromEntries(items.filter((i) => !i.critico && !r[i.clave]).map((i) => [i.clave, { estado: 'ok' as const, nota: '', fotos: [], subiendo: false }])),
+    }));
   };
 
   const respondidos = items.filter((i) => respuestas[i.clave]).length;
+  const comunesSinResponder = items.filter((i) => !i.critico && !respuestas[i.clave]).length;
+  const criticosSinResponder = items.filter((i) => i.critico && !respuestas[i.clave]).length;
   const criticos = items.filter((i) => i.critico && respuestas[i.clave]?.estado === 'problema');
   const subiendo = Object.values(respuestas).some((r) => r.subiendo);
   const kmValido = /^\d[\d.\s]*$/.test(km.trim());
@@ -93,12 +99,17 @@ export function Chequeo({ codigo, org, items, kmUltimo, dominio }: { codigo: str
       <section className="flex flex-col gap-3">
         <div className="flex items-baseline justify-between gap-3 px-1">
           <h2 className="eyebrow">2 · Revisá la unidad · {respondidos}/{items.length}</h2>
-          {respondidos < items.length && (
-            <button type="button" onClick={todoBienLoQueFalta} className="tap flex items-center gap-1 text-sm font-semibold text-ink-2">
-              <CheckCheck className="size-4" />Lo que falta, bien
-            </button>
-          )}
         </div>
+        {comunesSinResponder > 0 && (
+          <div className="flex items-center justify-between gap-3 px-1">
+            <p className="flex min-w-0 items-center gap-1.5 text-sm text-ink-3">
+              {criticosSinResponder > 0 && <><ShieldAlert className="size-4 shrink-0" />Los críticos, uno por uno.</>}
+            </p>
+            <button type="button" onClick={todoBienLoQueFalta} className="tap -mr-2 flex min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl px-2 text-sm font-semibold text-ink-2 hover:bg-surface-2">
+              <CheckCheck className="size-4" />{criticosSinResponder ? 'Los comunes, bien' : 'Lo que falta, bien'}
+            </button>
+          </div>
+        )}
         <div className="h-1.5 overflow-hidden rounded-full bg-surface-2" aria-hidden>
           <div className="h-full rounded-full bg-accent transition-[width] duration-300" style={{ width: `${(respondidos / items.length) * 100}%` }} />
         </div>

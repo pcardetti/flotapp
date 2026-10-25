@@ -11,7 +11,7 @@ import { km, pesos } from '@/lib/formato';
 import { avisarError, crearClienteServidor } from '@/lib/supabase/server';
 
 // La plantilla de título del layout no alcanza a su propia página de inicio: va el nombre completo.
-export const metadata: Metadata = { title: { absolute: 'Flotapp Chofer' } };
+export const metadata: Metadata = { title: { absolute: 'Tallerflota Chofer' } };
 
 const AVISOS: Record<string, string> = {
   'viaje-iniciado': 'Viaje iniciado. ¡Buen viaje!',
@@ -120,7 +120,7 @@ export default async function InicioChofer({ searchParams }: { searchParams: Pro
               </Fila>
             ))
           ) : (
-            <p className="px-1 text-sm text-ink-3">Todavía no hiciste viajes con Flotapp.</p>
+            <p className="px-1 text-sm text-ink-3">Todavía no hiciste viajes con Tallerflota.</p>
           )}
         </Seccion>
       </Pantalla>

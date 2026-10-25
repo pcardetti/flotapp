@@ -1,4 +1,4 @@
-// Planes de Flotapp: un precio fijo por período según cuántas unidades tiene la flota, y todos incluyen todo.
+// Planes de Tallerflota: un precio fijo por período según cuántas unidades tiene la flota, y todos incluyen todo.
 // La lista vive en la base (tabla planes, migración 0006): ahí se cambian los precios y de ahí salen la página de
 // venta, el tope de unidades y los cobros. Pesos argentinos sin IVA; el anual equivale a 10 meses.
 

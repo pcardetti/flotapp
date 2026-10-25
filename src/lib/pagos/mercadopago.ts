@@ -50,7 +50,7 @@ function leerReferencia(texto: string | null) {
   return { org, plan, periodo: periodo as Periodo, anterior: anterior || null };
 }
 
-const motivo = (plan: Plan, periodo: Periodo, empresa: string) => `Flotapp · Plan ${plan.nombre} (${periodo === 'anual' ? 'anual' : 'mensual'}) · ${empresa}`.slice(0, 120);
+const motivo = (plan: Plan, periodo: Periodo, empresa: string) => `Tallerflota · Plan ${plan.nombre} (${periodo === 'anual' ? 'anual' : 'mensual'}) · ${empresa}`.slice(0, 120);
 
 // Da de baja una suscripción en Mercado Pago, si no lo estaba. La documentación pide "canceled" y los SDK oficiales
 // mandan "cancelled": se prueba una y, si Mercado Pago la rechaza, la otra.
@@ -182,7 +182,7 @@ async function aplicarCuota(cuota: PagoAutorizado) {
   const { error } = await guardarCobro({
     org: ref.org, proveedor: 'mercadopago', proveedorPago: String(cuota.id), proveedorSuscripcion: suscripcion.id, estado,
     monto: cuota.transaction_amount, fecha: cuota.debit_date ?? cuota.date_created ?? null, cubreHasta: suscripcion.next_payment_date ?? null,
-    detalle: cuota.reason ?? 'Flotapp',
+    detalle: cuota.reason ?? 'Tallerflota',
   });
   if (error) throw new Error(`No se pudo anotar el cobro: ${error.message}`);
 }

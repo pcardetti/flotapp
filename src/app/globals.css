@@ -1,24 +1,26 @@
 @import "tailwindcss";
 
-/* Identidad Flotapp: azul ruta, neutros fríos, amarillo de línea vial como detalle.
-   Cada app tiene su acento (Flota azul, Chofer amarillo vial, Taller cian técnico);
-   verde, ámbar y rojo quedan reservados para estados.
-   Siempre en colores claros, con fondo blanco, aunque el celular o la computadora estén en modo oscuro. */
+/* Identidad Tallerflota ("Instrumento"): índigo preciso sobre neutros fríos, como un tablero de instrumentos.
+   Las tres apps (Tallerflota, Chofer y Taller) comparten el mismo índigo; verde, ámbar y rojo quedan
+   reservados para estados. Los números van en IBM Plex Mono (font-mono) para que las columnas queden alineadas.
+   Siempre en colores claros, con fondo blanco, aunque el celular o la computadora estén en modo oscuro.
+   Contraste del texto: --ink-3 da 5,7:1 sobre --bg y 5,3:1 sobre --surface-2; --accent da 7,9:1 sobre blanco. */
 :root {
   color-scheme: light;
-  --bg: #f2f4f7;
+  --bg: #f4f5f7;
   --surface: #ffffff;
-  --surface-2: #e8ecf1;
-  --ink: #142133;
-  --ink-2: #47566a;
-  --ink-3: #56647a; /* 5,4:1 sobre --bg y 5,1:1 sobre --surface-2: se lee al sol. */
-  --line: #d3dae3;
-  --accent: #1d4f91;
+  --surface-2: #eceef3;
+  --ink: #161a2e;
+  --ink-2: #454b63;
+  --ink-3: #5a6079;
+  --line: #dadde6;
+  --accent: #4338ca;
   --accent-ink: #ffffff;
-  --accent-soft: #dfe9f7;
-  /* Texto con el color de la app sobre fondos claros (el amarillo del chofer no se lee como texto). */
-  --accent-text: #1d4f91;
-  --road: #e0a400;
+  --accent-soft: #e6e5fa;
+  --accent-text: #3730a3;
+  /* La aguja del isotipo: el índigo claro que se ve sobre el fondo oscuro de la marca. */
+  --aguja: #8b85ff;
+  --noche: #161a2e;
   --ok: #1d7349;
   --ok-soft: #dcf0e4;
   --warn: #9a5a00;
@@ -32,25 +34,12 @@
   --s4: #eda100;
   --s5: #e87ba4;
   --s6: #008300;
-  --sombra: 0 1px 2px rgb(20 33 51 / 0.06), 0 8px 24px rgb(20 33 51 / 0.08);
+  --sombra: 0 1px 2px rgb(22 26 46 / 0.05), 0 8px 24px rgb(22 26 46 / 0.07);
 }
 
 /* Alto de la barra inferior de las apps de celular: cero cuando un formulario la esconde. */
 [data-app] { --alto-barra: 0px; }
 [data-app]:has(> nav[aria-label="Secciones"]) { --alto-barra: 64px; }
-
-[data-app="chofer"] {
-  --accent: #f2b705;
-  --accent-ink: #17140a;
-  --accent-soft: #fdf3cf;
-  --accent-text: #3d3000;
-}
-[data-app="taller"] {
-  --accent: #0e7490;
-  --accent-ink: #ffffff;
-  --accent-soft: #d6f1f6;
-  --accent-text: #0b5f76;
-}
 
 @theme inline {
   --color-bg: var(--bg);
@@ -64,15 +53,18 @@
   --color-accent-ink: var(--accent-ink);
   --color-accent-soft: var(--accent-soft);
   --color-accent-text: var(--accent-text);
-  --color-road: var(--road);
+  --color-aguja: var(--aguja);
+  --color-noche: var(--noche);
   --color-ok: var(--ok);
   --color-ok-soft: var(--ok-soft);
   --color-warn: var(--warn);
   --color-warn-soft: var(--warn-soft);
   --color-crit: var(--crit);
   --color-crit-soft: var(--crit-soft);
-  --font-sans: var(--font-barlow), "Segoe UI", system-ui, sans-serif;
-  --font-display: var(--font-barlow-condensed), "Arial Narrow", sans-serif;
+  --font-sans: var(--font-plex-sans), "Segoe UI", system-ui, sans-serif;
+  /* Títulos: la misma IBM Plex Sans, en semibold y un poco más apretada (ver .font-display más abajo). */
+  --font-display: var(--font-plex-sans), "Segoe UI", system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, "Cascadia Mono", monospace;
   --shadow-tarjeta: var(--sombra);
 }
 
@@ -83,6 +75,8 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 h1, h2, h3 { text-wrap: balance; }
+/* Títulos de IBM Plex Sans: semibold y un poco más apretados, como en la marca. */
+.font-display { font-weight: 600; letter-spacing: -0.02em; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
 
 .eyebrow {

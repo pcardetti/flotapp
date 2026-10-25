@@ -13,13 +13,13 @@ import { PlanesYContratacion } from './planes';
 export const metadata: Metadata = {
   title: { absolute: `${TITULO} en Argentina` },
   alternates: { canonical: '/' },
-  openGraph: { type: 'website', locale: 'es_AR', siteName: 'Flotapp', url: '/', title: TITULO, description: DESCRIPCION },
+  openGraph: { type: 'website', locale: 'es_AR', siteName: 'Tallerflota', url: '/', title: TITULO, description: DESCRIPCION },
 };
 
 const APPS = [
-  { icono: Gauge, nombre: 'Flotapp', para: 'Administración', texto: 'Tablero de costos por unidad, por chofer y por mes. Flota, viajes, gastos, vencimientos y equipo.' },
-  { icono: Truck, nombre: 'Flotapp Chofer', para: 'Choferes', texto: 'Escanea el QR del camión, hace el chequeo de salida y carga combustible, gastos y fallas con fotos. Botones grandes, para usar con una mano.' },
-  { icono: Wrench, nombre: 'Flotapp Taller', para: 'Mecánicos', texto: 'Lo pendiente primero, con las fallas críticas arriba. Cada trabajo queda registrado con fotos, repuestos y mano de obra.' },
+  { icono: Gauge, nombre: 'Tallerflota', para: 'Administración', texto: 'Tablero de costos por unidad, por chofer y por mes. Flota, viajes, gastos, vencimientos y equipo.' },
+  { icono: Truck, nombre: 'Tallerflota Chofer', para: 'Choferes', texto: 'Escanea el QR del camión, hace el chequeo de salida y carga combustible, gastos y fallas con fotos. Botones grandes, para usar con una mano.' },
+  { icono: Wrench, nombre: 'Tallerflota Taller', para: 'Mecánicos', texto: 'Lo pendiente primero, con las fallas críticas arriba. Cada trabajo queda registrado con fotos, repuestos y mano de obra.' },
 ];
 
 const PASOS = [
@@ -41,13 +41,13 @@ export default async function Inicio() {
   const nonce = (await headers()).get('x-nonce') ?? undefined;
   const planes = supabaseConfigurado() ? await planesPublicos() : [];
   const precios = planes.flatMap((p) => (p.precio_mensual === null ? [] : [p.precio_mensual]));
-  // Datos estructurados para los buscadores: qué es Flotapp, sus precios y las preguntas frecuentes de esta página.
+  // Datos estructurados para los buscadores: qué es Tallerflota, sus precios y las preguntas frecuentes de esta página.
   const datos = {
     '@context': 'https://schema.org',
     '@graph': [
       {
         '@type': 'SoftwareApplication',
-        name: 'Flotapp',
+        name: 'Tallerflota',
         url: sitioPublico(),
         description: DESCRIPCION,
         applicationCategory: 'BusinessApplication',
@@ -63,7 +63,7 @@ export default async function Inicio() {
     <>
       <script type="application/ld+json" nonce={nonce} dangerouslySetInnerHTML={{ __html: JSON.stringify(datos).replace(/</g, '\\u003c') }} />
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-6 sm:px-6">
-        <Link href="/" aria-label="Flotapp, inicio"><Marca chica /></Link>
+        <Link href="/" aria-label="Tallerflota, inicio"><Marca chica /></Link>
         <nav aria-label="Principal" className="flex items-center gap-1 sm:gap-2">
           <a href="#como-funciona" className="hidden rounded-lg px-3 py-2 text-sm font-semibold text-ink-2 hover:bg-surface-2 md:block">Cómo funciona</a>
           <a href="#planes" className="hidden rounded-lg px-3 py-2 text-sm font-semibold text-ink-2 hover:bg-surface-2 md:block">Planes</a>
@@ -85,7 +85,7 @@ export default async function Inicio() {
             <span className="eyebrow">Mantenimiento de flotas de camiones · Argentina</span>
             <h1 className="font-display text-5xl font-bold leading-[1.02] sm:text-6xl">Cada camión con su historia, al día.</h1>
             <p className="max-w-2xl text-lg text-ink-2">
-              Flotapp junta en un solo lugar los services, las fallas, los gastos y los vencimientos de tu flota. El chofer avisa desde el
+              Tallerflota junta en un solo lugar los services, las fallas, los gastos y los vencimientos de tu flota. El chofer avisa desde el
               celular, el taller lo resuelve y vos ves cuánto te cuesta cada kilómetro.
             </p>
             <div className="flex flex-wrap items-center gap-3">
@@ -196,7 +196,7 @@ export default async function Inicio() {
       </main>
 
       <footer className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-6 text-sm text-ink-3 sm:px-6">
-        <span>© {new Date().getFullYear()} Flotapp · Hecho para flotas de Argentina</span>
+        <span>© {new Date().getFullYear()} Tallerflota · Hecho para flotas de Argentina</span>
         <span>Los plazos normativos (RTO, tacógrafo, licencias) los ajusta cada empresa. Verificá siempre la norma vigente.</span>
       </footer>
     </>

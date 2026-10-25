@@ -1,4 +1,4 @@
-import { AlertTriangle, CalendarClock, Route, ShieldAlert, Truck, Wrench } from 'lucide-react';
+import { AlertTriangle, CalendarClock, CheckCircle2, Route, ShieldAlert, Truck, Wrench } from 'lucide-react';
 import Link from 'next/link';
 import { Encabezado } from '@/components/encabezado';
 import { CostosMensuales, Ranking } from '@/components/graficos';
@@ -121,7 +121,16 @@ export async function TableroFlota({ org, periodo }: { org: string; periodo: str
     );
   }
 
-  const atencion = ahora.fallas_abiertas > 0 || ahora.vencidos > 0 || ahora.en_taller > 0;
+  // Sólo lo que pide acción hoy: fallas abiertas, unidades paradas y documentos vencidos.
+  // Rojo para lo crítico o vencido; ámbar para lo que espera; lo que vence pronto, neutro.
+  const fallasNoCriticas = ahora.fallas_abiertas - ahora.fallas_criticas;
+  const urgentes = [
+    ahora.fallas_criticas > 0 && { clave: 'criticas', href: 'taller', tono: 'crit', icono: <ShieldAlert className="size-5" />, valor: ahora.fallas_criticas, texto: pl(ahora.fallas_criticas, 'falla crítica abierta', 'fallas críticas abiertas') },
+    fallasNoCriticas > 0 && { clave: 'fallas', href: 'taller', tono: 'warn', icono: <Wrench className="size-5" />, valor: fallasNoCriticas, texto: pl(fallasNoCriticas, 'falla abierta', 'fallas abiertas') },
+    ahora.en_taller > 0 && { clave: 'paradas', href: 'flota', tono: 'warn', icono: <Truck className="size-5" />, valor: ahora.en_taller, texto: pl(ahora.en_taller, 'unidad parada en el taller', 'unidades paradas en el taller') },
+    ahora.vencidos > 0 && { clave: 'vencidos', href: 'vencimientos', tono: 'crit', icono: <AlertTriangle className="size-5" />, valor: ahora.vencidos, texto: pl(ahora.vencidos, 'documento vencido', 'documentos vencidos') },
+  ].filter((x) => x !== false);
+  const TONO = { crit: 'border-crit bg-crit-soft text-crit', warn: 'border-warn/40 bg-warn-soft text-warn' } as const;
 
   return (
     <>
@@ -129,21 +138,29 @@ export async function TableroFlota({ org, periodo }: { org: string; periodo: str
 
       {/* Lo que pide acción hoy va primero; los costos del período, después. */}
       <section aria-labelledby="ahora" className="flex flex-col gap-2.5">
-        <h2 id="ahora" className="eyebrow">{atencion ? 'Requiere atención' : 'Ahora · todo en orden'}</h2>
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-          {[
-            { href: 'taller', icono: ahora.fallas_criticas ? <ShieldAlert className="size-5 text-crit" /> : <Wrench className="size-5" />, valor: ahora.fallas_abiertas, texto: `${pl(ahora.fallas_abiertas, 'falla abierta', 'fallas abiertas')}${ahora.fallas_criticas ? ` (${ahora.fallas_criticas} ${pl(ahora.fallas_criticas, 'crítica', 'críticas')})` : ''}`, alerta: ahora.fallas_criticas > 0 },
-            { href: 'vencimientos', icono: ahora.vencidos ? <AlertTriangle className="size-5 text-crit" /> : <CalendarClock className="size-5" />, valor: ahora.vencidos + ahora.por_vencer, texto: ahora.vencidos ? `${pl(ahora.vencidos + ahora.por_vencer, 'vencimiento', 'vencimientos')} (${ahora.vencidos} ${pl(ahora.vencidos, 'vencido', 'vencidos')})` : pl(ahora.por_vencer, 'vence en 30 días', 'vencen en 30 días'), alerta: ahora.vencidos > 0 },
-            { href: 'flota', icono: <Truck className={`size-5 ${ahora.en_taller ? 'text-warn' : ''}`} />, valor: `${ahora.en_servicio}/${ahora.unidades}`, texto: ahora.en_taller ? `en servicio (${ahora.en_taller} en el taller)` : 'unidades en servicio' },
-            { href: 'viajes', icono: <Route className="size-5" />, valor: ahora.en_viaje, texto: 'en viaje ahora' },
-          ].map((x) => (
-            <Link key={x.href} href={`/empresa/${org}/${x.href}`} transitionTypes={['nav-forward']}
-              className={`tap flex items-center gap-3 rounded-2xl border bg-surface px-4 py-3 hover:border-ink-3 ${x.alerta ? 'border-crit' : 'border-line'}`}>
-              <span className="text-ink-2">{x.icono}</span>
-              <span className="min-w-0"><b className={`block font-mono text-2xl font-semibold leading-none ${x.alerta ? 'text-crit' : ''}`}>{x.valor}</b><span className="text-sm text-ink-2">{x.texto}</span></span>
-            </Link>
-          ))}
-        </div>
+        <h2 id="ahora" className="eyebrow">{urgentes.length ? 'Requiere atención' : 'Ahora'}</h2>
+        {urgentes.length ? (
+          <div className={`grid gap-2 ${urgentes.length > 1 ? 'grid-cols-2' : 'grid-cols-1'} ${urgentes.length > 2 ? 'lg:grid-cols-4' : ''}`}>
+            {urgentes.map((x) => (
+              <Link key={x.clave} href={`/empresa/${org}/${x.href}`} transitionTypes={['nav-forward']}
+                className={`tap flex items-center gap-3 rounded-2xl border px-4 py-3 hover:brightness-[0.97] ${TONO[x.tono as keyof typeof TONO]}`}>
+                {x.icono}
+                <span className="min-w-0"><b className="block font-mono text-2xl font-semibold leading-none">{x.valor}</b><span className="text-sm font-medium text-ink">{x.texto}</span></span>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <p className="flex items-center gap-2 rounded-2xl border border-ok/30 bg-ok-soft px-4 py-3 font-semibold text-ok">
+            <CheckCircle2 className="size-5 shrink-0" />Todo en orden: no hay fallas abiertas, unidades paradas ni documentos vencidos.
+          </p>
+        )}
+        <p className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-ink-2">
+          <Link href={`/empresa/${org}/flota`} transitionTypes={['nav-forward']} className="inline-flex items-center gap-1.5 hover:underline"><Truck className="size-4" /><b className="font-mono font-semibold text-ink">{ahora.en_servicio}/{ahora.unidades}</b> en servicio</Link>
+          <Link href={`/empresa/${org}/viajes`} transitionTypes={['nav-forward']} className="inline-flex items-center gap-1.5 hover:underline"><Route className="size-4" /><b className="font-mono font-semibold text-ink">{ahora.en_viaje}</b> en viaje ahora</Link>
+          {ahora.por_vencer > 0 && (
+            <Link href={`/empresa/${org}/vencimientos`} transitionTypes={['nav-forward']} className="inline-flex items-center gap-1.5 hover:underline"><CalendarClock className="size-4" /><b className="font-mono font-semibold text-ink">{ahora.por_vencer}</b> {pl(ahora.por_vencer, 'vence', 'vencen')} en 30 días</Link>
+          )}
+        </p>
       </section>
 
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-3 2xl:grid-cols-6">
@@ -202,7 +219,7 @@ export async function TableroFlota({ org, periodo }: { org: string; periodo: str
                   </td>
                   <td className="py-2.5 pr-3 text-right tabular-nums">{numero(Number(u.km))}</td>
                   <td className="py-2.5 pr-3 text-right font-semibold tabular-nums">{pesos(Number(u.costo))}</td>
-                  <td className={`py-2.5 pr-3 text-right tabular-nums ${u.id === masCara?.id && unidades.length > 1 ? 'font-bold text-crit' : ''}`}>{u.costoKm !== null ? `$ ${numero(u.costoKm, u.costoKm < 100 ? 1 : 0)}` : '—'}</td>
+                  <td className={`py-2.5 pr-3 text-right tabular-nums ${u.id === masCara?.id && unidades.length > 1 ? 'font-bold' : ''}`}>{u.costoKm !== null ? `$ ${numero(u.costoKm, u.costoKm < 100 ? 1 : 0)}` : '—'}</td>
                   <td className="py-2.5 pr-3 text-right tabular-nums">{u.l100 !== null ? numero(u.l100, 1) : '—'}</td>
                   <td className="py-2.5 pr-3 text-right tabular-nums">{u.viajes}</td>
                   <td className="py-2.5 pr-3 text-right tabular-nums">{u.fallas}</td>

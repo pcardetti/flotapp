@@ -15,7 +15,7 @@ import { Menu } from './menu';
 
 export const metadata: Metadata = {
   manifest: '/manifests/flota.webmanifest',
-  appleWebApp: { capable: true, title: 'Flotapp', statusBarStyle: 'default' },
+  appleWebApp: { capable: true, title: 'Tallerflota', statusBarStyle: 'default' },
   robots: { index: false, follow: false },
 };
 

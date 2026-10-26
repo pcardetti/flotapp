@@ -1,6 +1,6 @@
-# Auditoría UX/UI · Flotapp
+# Auditoría UX/UI · Tallerflota
 
-Revisión de las tres apps (Flotapp, Chofer y Taller) en modo demo, en computadora (1366 px) y celular (375 px),
+Revisión de las tres apps (Tallerflota, Chofer y Taller) en modo demo, en computadora (1366 px) y celular (375 px),
 más el código de los componentes compartidos. Fecha: 25/10/2026.
 
 **Estado:** los puntos 1, 2, 10, 11 y el plural del punto 14 están resueltos en la rama `ux/arreglos-rapidos`.

@@ -11,7 +11,7 @@ import { firmarFotos } from '@/lib/fotos';
 import { avisarError, crearClienteServidor } from '@/lib/supabase/server';
 
 // La plantilla de título del layout no alcanza a su propia página de inicio: va el nombre completo.
-export const metadata: Metadata = { title: { absolute: 'Flotapp Taller' } };
+export const metadata: Metadata = { title: { absolute: 'Tallerflota Taller' } };
 
 type Uno<T> = T | T[] | null;
 const uno = <T,>(x: Uno<T>) => (Array.isArray(x) ? x[0] : x) ?? null;

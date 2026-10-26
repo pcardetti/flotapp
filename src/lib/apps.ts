@@ -6,7 +6,7 @@ import { usuarioActual } from '@/lib/supabase/server';
 // Tres apps sobre la misma cuenta: cada rol entra directo a la suya.
 export type App = 'flota' | 'chofer' | 'taller';
 
-export const NOMBRE_APP: Record<App, string> = { flota: 'Flotapp', chofer: 'Flotapp Chofer', taller: 'Flotapp Taller' };
+export const NOMBRE_APP: Record<App, string> = { flota: 'Tallerflota', chofer: 'Tallerflota Chofer', taller: 'Tallerflota Taller' };
 
 export function appDeRol(m: Membresia): App {
   if (m.organizacion.tipo !== 'flota') return 'flota';

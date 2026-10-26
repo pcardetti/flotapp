@@ -12,10 +12,10 @@ export const metadata: Metadata = { title: 'Invitación' };
 const ROL: Record<string, { texto: string; app: string; icono: React.ReactNode }> = {
   chofer: { texto: 'chofer', app: 'Vas a usar la app Chofer: escaneás el QR de la unidad, hacés el chequeo y salís.', icono: <Route className="size-7" /> },
   mecanico: { texto: 'mecánico', app: 'Vas a usar la app Taller: ves las fallas con fotos y registrás los trabajos.', icono: <Wrench className="size-7" /> },
-  jefe_taller: { texto: 'jefe de taller', app: 'Vas a gestionar la flota y el taller desde Flotapp.', icono: <ShieldCheck className="size-7" /> },
+  jefe_taller: { texto: 'jefe de taller', app: 'Vas a gestionar la flota y el taller desde Tallerflota.', icono: <ShieldCheck className="size-7" /> },
   lectura: { texto: 'consulta', app: 'Vas a poder ver el tablero y los datos de la flota.', icono: <ShieldCheck className="size-7" /> },
   operario: { texto: 'operario', app: 'Vas a trabajar sobre lo que te asignen las flotas clientes.', icono: <Wrench className="size-7" /> },
-  admin: { texto: 'administrador', app: 'Vas a administrar la empresa en Flotapp.', icono: <ShieldCheck className="size-7" /> },
+  admin: { texto: 'administrador', app: 'Vas a administrar la empresa en Tallerflota.', icono: <ShieldCheck className="size-7" /> },
 };
 
 const MOTIVO: Record<string, string> = {

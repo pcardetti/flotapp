@@ -11,7 +11,7 @@ import { salir } from '../(auth)/acciones';
 export const metadata: Metadata = { title: 'Mis empresas' };
 
 const APP = {
-  flota: { icono: LayoutDashboard, texto: 'Flotapp' },
+  flota: { icono: LayoutDashboard, texto: 'Tallerflota' },
   chofer: { icono: Route, texto: 'App Chofer' },
   taller: { icono: Wrench, texto: 'App Taller' },
 };

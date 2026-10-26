@@ -1,9 +1,11 @@
 import { AlertTriangle, CalendarClock, CheckCircle2, Route, ShieldAlert, Truck, Wrench } from 'lucide-react';
 import Link from 'next/link';
 import { Encabezado } from '@/components/encabezado';
+import { SelectorPeriodo } from '@/components/periodo';
 import { CostosMensuales, Ranking } from '@/components/graficos';
 import { Aviso, BotonLink, Patente, Pildora, Tarjeta } from '@/components/ui';
 import { diasHasta, hoyISO } from '@/lib/fechas';
+import { PERIODOS, periodoValido, rango } from '@/lib/periodos';
 import { km, NOMBRE_CATEGORIA, numero, pesos, pesosCorto, serieDe } from '@/lib/formato';
 import { avisarError, crearClienteServidor } from '@/lib/supabase/server';
 import { nombreSistema } from '@/lib/taller';
@@ -18,26 +20,7 @@ type Tablero = {
   ahora: { unidades: number; en_servicio: number; en_taller: number; en_viaje: number; fallas_abiertas: number; fallas_criticas: number; vencidos: number; por_vencer: number };
 };
 
-const PERIODOS = [
-  { clave: 'mes', texto: 'Este mes', corto: 'Mes' },
-  { clave: 'anterior', texto: 'Mes anterior', corto: 'Anterior' },
-  { clave: '90', texto: 'Últimos 90 días', corto: '90 días' },
-  { clave: 'anio', texto: 'Este año', corto: 'Año' },
-] as const;
-
-const dos = (n: number) => String(n).padStart(2, '0');
 const sumarDias = (iso: string, dias: number) => new Date(Date.parse(iso) + dias * 864e5).toISOString().slice(0, 10);
-function rango(p: string) {
-  const hoy = hoyISO();
-  const [a, m] = hoy.split('-').map(Number);
-  if (p === 'anterior') {
-    const fin = new Date(Date.UTC(a, m - 1, 0));
-    return { desde: `${fin.getUTCFullYear()}-${dos(fin.getUTCMonth() + 1)}-01`, hasta: fin.toISOString().slice(0, 10) };
-  }
-  if (p === '90') return { desde: new Date(Date.parse(hoy) - 89 * 864e5).toISOString().slice(0, 10), hasta: hoy };
-  if (p === 'anio') return { desde: `${a}-01-01`, hasta: hoy };
-  return { desde: `${a}-${dos(m)}-01`, hasta: hoy };
-}
 
 const consumo = (litros: number, kms: number) => (litros > 0 && kms > 0 ? (litros / kms) * 100 : null);
 
@@ -55,8 +38,8 @@ function Indicador({ titulo, valor, detalle, alerta }: { titulo: string; valor: 
 const pl = (n: number, uno: string, varios: string) => (n === 1 ? uno : varios);
 
 export async function TableroFlota({ org, periodo }: { org: string; periodo: string }) {
-  const p = PERIODOS.some((x) => x.clave === periodo) ? periodo : 'mes';
-  const { desde, hasta } = rango(p);
+  const p = periodoValido(periodo);
+  const { desde, hasta } = rango(p, hoyISO());
   const supabase = await crearClienteServidor();
   const [{ data, error }, { data: docs }] = await Promise.all([
     supabase.rpc('tablero', { p_org: org, p_desde: desde, p_hasta: hasta }),
@@ -73,16 +56,7 @@ export async function TableroFlota({ org, periodo }: { org: string; periodo: str
     dueno: uno(d.unidad as Uno<{ dominio: string }>)?.dominio ?? uno(d.chofer as Uno<{ nombre: string }>)?.nombre ?? '',
   }));
 
-  const selector = (
-    <div className="grid w-full grid-cols-4 gap-1 rounded-2xl bg-surface-2 p-1 sm:flex sm:w-auto" role="tablist" aria-label="Período">
-      {PERIODOS.map((x) => (
-        <Link key={x.clave} href={`?p=${x.clave}`} scroll={false} role="tab" aria-selected={p === x.clave}
-          className={`tap rounded-xl px-3 py-1.5 text-center text-sm font-semibold ${p === x.clave ? 'bg-surface text-ink shadow-tarjeta' : 'text-ink-3 hover:text-ink'}`}>
-          <span className="sm:hidden">{x.corto}</span><span className="hidden sm:inline">{x.texto}</span>
-        </Link>
-      ))}
-    </div>
-  );
+  const selector = <SelectorPeriodo actual={p} />;
 
   if (error || !data) {
     return (

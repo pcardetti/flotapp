@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useActionState, useState } from 'react';
+import { Fotos, type EstadoFotos } from '@/components/fotos';
 import { Aviso, Boton, BotonLink, Campo, Casilla, Seleccion } from '@/components/ui';
 import { ESTADOS_UNIDAD, JURISDICCIONES, TIPOS_UNIDAD, tieneMotor } from '@/lib/flota';
 import type { EstadoForm } from './acciones';
@@ -124,6 +125,59 @@ export function Eliminar({ accion, boton, pregunta, detalle }: { accion: () => P
       <div className="flex flex-wrap gap-2">
         <Boton type="submit" variante="peligro" disabled={enviando}>{enviando ? 'Eliminando…' : 'Sí, eliminar'}</Boton>
         <Boton type="button" variante="fantasma" onClick={() => setConfirmando(false)}>Cancelar</Boton>
+      </div>
+    </form>
+  );
+}
+
+const GRAVEDADES = [
+  { valor: 'leve', texto: 'Leve', ayuda: 'Se arregla en el próximo service', activo: 'border-ink-3 bg-surface-2 text-ink' },
+  { valor: 'moderada', texto: 'Moderada', ayuda: 'Puede seguir, pero hay que verla', activo: 'border-warn bg-warn-soft text-warn' },
+  { valor: 'critica', texto: 'Crítica', ayuda: 'No puede salir hasta que se arregle', activo: 'border-crit bg-crit-soft text-crit' },
+];
+
+export function FormularioFalla({ accion, org, sistemas, cancelar }: { accion: Accion; org: string; sistemas: { clave: string; nombre: string }[]; cancelar: string }) {
+  const [estado, enviar, enviando] = useActionState(accion, {});
+  // Campos controlados: si hay que corregir algo, no se pierde lo escrito ni las fotos ya subidas.
+  const [sistema, setSistema] = useState('');
+  const [descripcion, setDescripcion] = useState('');
+  const [gravedad, setGravedad] = useState('');
+  const [fotos, setFotos] = useState<EstadoFotos>({ rutas: [], subiendo: false });
+  const e = estado.errores ?? {};
+  return (
+    <form action={enviar} className="flex flex-col gap-5">
+      {estado.error && <Aviso tipo="error">{estado.error}</Aviso>}
+      <Seleccion label="¿Qué parte falla?" name="sistema" value={sistema} onChange={(x) => setSistema(x.target.value)} vacio="Elegí una parte" opciones={sistemas.map((s) => ({ valor: s.clave, texto: s.nombre }))} error={e.sistema} />
+      <div className="flex min-w-0 flex-col gap-1.5">
+        <label htmlFor="descripcion" className="text-sm font-semibold text-ink-2">¿Qué pasa?</label>
+        <textarea id="descripcion" name="descripcion" rows={3} value={descripcion} onChange={(x) => setDescripcion(x.target.value)} placeholder="Ej.: el chofer avisa que pierde aire el circuito trasero."
+          aria-invalid={e.descripcion ? true : undefined} aria-describedby={e.descripcion ? 'descripcion-nota' : undefined}
+          className={`w-full min-w-0 rounded-lg border bg-surface px-3 py-2 outline-none focus:border-transparent focus:ring-2 focus:ring-accent ${e.descripcion ? 'border-crit' : 'border-line'}`} />
+        {e.descripcion && <span id="descripcion-nota" className="text-xs font-semibold text-crit">{e.descripcion}</span>}
+      </div>
+      <fieldset className="flex flex-col gap-2">
+        <legend className="mb-2 text-sm font-semibold text-ink-2">¿Qué tan grave es?</legend>
+        <div className="grid gap-2 sm:grid-cols-3">
+          {GRAVEDADES.map((g) => (
+            <label key={g.valor} className={`tap flex cursor-pointer flex-col rounded-xl border px-3.5 py-2.5 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent ${gravedad === g.valor ? g.activo : 'border-line bg-surface'}`}>
+              <input type="radio" name="gravedad" value={g.valor} checked={gravedad === g.valor} onChange={() => setGravedad(g.valor)} className="sr-only"
+                aria-invalid={e.gravedad && !gravedad ? true : undefined} aria-describedby={e.gravedad ? 'gravedad-nota' : undefined} />
+              <span className="font-semibold">{g.texto}</span>
+              <span className="text-xs text-ink-3">{g.ayuda}</span>
+            </label>
+          ))}
+        </div>
+        {e.gravedad && !gravedad && <span id="gravedad-nota" className="text-xs font-semibold text-crit">{e.gravedad}</span>}
+      </fieldset>
+      <div className="flex flex-col gap-2">
+        <span className="text-sm font-semibold text-ink-2">Fotos (opcional)</span>
+        <Fotos org={org} carpeta="fallas" nombre="fotos" alCambiar={setFotos} etiqueta="Agregar foto" />
+      </div>
+      <div className="flex flex-wrap items-center gap-3">
+        <Boton type="submit" variante={gravedad === 'critica' ? 'peligro' : 'primario'} disabled={enviando || fotos.subiendo}>
+          {fotos.subiendo ? 'Subiendo fotos…' : enviando ? 'Enviando…' : 'Avisar al taller'}
+        </Boton>
+        <Link href={cancelar} className="text-sm font-semibold text-ink-2 hover:underline">Cancelar</Link>
       </div>
     </form>
   );
